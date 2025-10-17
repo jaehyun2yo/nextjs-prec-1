@@ -2,6 +2,7 @@ import Link from "next/link";
 
 // 2. 관리자 페이지처럼 Supabase 서버 클라이언트를 가져옵니다.
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { Post } from "@/types/database.types";
 
 // 3. 함수를 'async'로 바꿔주세요.
 export default async function NoticeListPage() {
@@ -23,7 +24,7 @@ export default async function NoticeListPage() {
       <h1 className="text-3xl font-bold mb-6">공지사항</h1>
       <ul className="space-y-4">
         {/* 7. 더미 데이터 'posts' 대신, Supabase에서 가져온 'postList'를 사용합니다. */}
-        {postList.map((post: any) => (
+        {postList.map((post: Post) => (
           <li key={post.id} className="border p-4 rounded-md hover:bg-gray-50">
             {/* 8. 상세 페이지 경로도 수정해야 합니다. */}
             <Link href={`/notice/${post.id}`}>
