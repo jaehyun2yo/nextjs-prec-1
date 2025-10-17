@@ -14,11 +14,13 @@ type PostDetailPageProps = {
 export default async function PostDetailPage({ params }: PostDetailPageProps) {
   const supabase = await createSupabaseServerClient();
 
+  const postId = parseInt(params.id, 10);
+
   // 4. URL의 id와 일치하는 게시물 하나만 Supabase에서 가져옵니다.
   const { data: post, error } = await supabase
     .from("posts")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", postId)
     .single();
 
   if (error || !post) {
