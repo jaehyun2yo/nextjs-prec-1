@@ -27,23 +27,24 @@ export default function Header() {
       initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: "spring", stiffness: 100 }}
-      className="flex justify-between items-center p-4 md:p-6 bg-white/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50 dark:bg-gray-900/80 shadow-sm"
+      className="flex justify-between items-center px-4 py-3 md:px-6 md:py-4 bg-white/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50 dark:bg-gray-900/80 shadow-sm"
     >
-      <motion.div
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-      >
-        <Link href="/" className="flex items-center gap-2">
-          <Image 
-            src="/mainLogo.svg" 
-            alt="My Company Logo" 
-            width={200} 
-            height={60}
-            className="h-12 md:h-14 w-auto"
-            priority
-          />
-        </Link>
-      </motion.div>
+       <motion.div
+         whileHover={{ scale: 1.05 }}
+         whileTap={{ scale: 0.95 }}
+         className="flex-shrink-0"
+       >
+         <Link href="/" className="flex items-center">
+           <Image 
+             src="/mainLogo.svg" 
+             alt="My Company Logo" 
+             width={120} 
+             height={60}
+             className="h-16 w-auto object-contain"
+             priority
+           />
+         </Link>
+       </motion.div>
       <nav className="flex gap-4 md:gap-6 items-center">
         {navItems.map((item, index) => {
           return (
