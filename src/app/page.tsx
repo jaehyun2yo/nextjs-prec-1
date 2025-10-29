@@ -50,16 +50,14 @@ export default function Home() {
         
         <h1 className="text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-gray-100 mb-4 leading-tight transition-colors duration-300 flex items-center justify-center gap-4 flex-wrap">
           <span>혁신을 만드는 기업</span>
-          <div className="relative h-10 md:h-14 w-auto">
-            <Image
-              src="/logoBox.svg"
-              alt="Logo Box"
-              width={80}
-              height={56}
-              className="h-full w-auto object-contain"
-              priority
-            />
-          </div>
+          <Image
+            src="/logoBox.svg"
+            alt="Logo Box"
+            width={120}
+            height={84}
+            className="h-10 md:h-14 w-auto inline-block"
+            priority
+          />
         </h1>
         
         <p className="text-lg md:text-xl text-gray-700 dark:text-gray-300 max-w-2xl mb-8 leading-relaxed transition-colors duration-300">
