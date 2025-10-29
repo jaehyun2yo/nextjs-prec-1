@@ -6,6 +6,23 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+// 게시물을 삭제하는 서버 액션
+export async function deletePost(postId: string) {
+  const supabase = await createSupabaseServerClient();
+
+  const { error } = await supabase.from("posts").delete().eq("id", postId);
+
+  if (error) {
+    console.error("Error deleting post:", error);
+    return { error: error.message };
+  }
+
+  // 데이터가 변경되었으니, 목록 페이지의 캐시를 갱신합니다.
+  revalidatePath("/admin/posts");
+
+  return { success: true };
+}
+
 // 새 게시물을 생성하는 서버 액션
 export async function createPost(title: string, contentJson: string) {
   const supabase =  await createSupabaseServerClient();
