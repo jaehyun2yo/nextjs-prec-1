@@ -1,8 +1,9 @@
 'use client';
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
-import { FaHome, FaBuilding, FaBox, FaBullhorn, FaMoon, FaSun } from "react-icons/fa";
+import { FaMoon, FaSun } from "react-icons/fa";
 import { useTheme } from '@/store/useStore';
 import { useEffect } from 'react';
 
@@ -10,10 +11,10 @@ export default function Header() {
   const { theme, toggleTheme } = useTheme();
   
   const navItems = [
-    { href: "/", label: "홈", icon: FaHome },
-    { href: "/about", label: "회사 소개", icon: FaBuilding },
-    { href: "/products", label: "제품", icon: FaBox },
-    { href: "/notice", label: "공지사항", icon: FaBullhorn },
+    { href: "/", label: "홈" },
+    { href: "/about", label: "회사 소개" },
+    { href: "/products", label: "제품" },
+    { href: "/notice", label: "공지사항" },
   ];
 
   // 테마 변경 시 html 클래스 업데이트
@@ -32,13 +33,19 @@ export default function Header() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
-        <Link href="/" className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent flex items-center gap-2">
-          My Company
+        <Link href="/" className="flex items-center gap-2">
+          <Image 
+            src="/mainLogo.svg" 
+            alt="My Company Logo" 
+            width={120} 
+            height={40}
+            className="h-10 w-auto"
+            priority
+          />
         </Link>
       </motion.div>
       <nav className="flex gap-4 md:gap-6 items-center">
         {navItems.map((item, index) => {
-          const IconComponent = item.icon;
           return (
             <motion.div
               key={item.href}
@@ -50,10 +57,9 @@ export default function Header() {
             >
               <Link
                 href={item.href}
-                className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 font-medium"
               >
-                <IconComponent className="text-sm" />
-                <span className="font-medium">{item.label}</span>
+                {item.label}
               </Link>
             </motion.div>
           );
