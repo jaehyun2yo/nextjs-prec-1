@@ -21,24 +21,13 @@ export default function Header() {
   useEffect(() => {
     const root = document.documentElement;
     
+    // 현재 테마 상태와 일치하도록 클래스 업데이트
     if (theme === 'dark') {
       root.classList.add('dark');
     } else {
       root.classList.remove('dark');
     }
   }, [theme]);
-
-  // 초기 렌더링 시 테마 동기화
-  useEffect(() => {
-    const root = document.documentElement;
-    
-    // Zustand에서 가져온 테마에 따라 초기 클래스 설정
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-  }, []);
 
   return (
     <motion.header
