@@ -51,7 +51,7 @@ export default function RootLayout({
         />
         <Providers>
           <Header />
-          <main className="p-8" >
+          <main className="p-8 bg-white dark:bg-gray-900 min-h-screen transition-colors duration-300" >
             {children}
           </main>
           <Toaster position="top-right" richColors />
