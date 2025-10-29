@@ -35,14 +35,14 @@ export default function Header() {
          className="flex-shrink-0"
        >
          <Link href="/" className="flex items-center">
-           <Image 
-             src="/mainLogo.svg" 
-             alt="My Company Logo" 
-             width={120} 
-             height={60}
-             className="h-16 w-auto object-contain"
-             priority
-           />
+          <Image 
+            src="/mainLogo.svg" 
+            alt="My Company Logo" 
+            width={150} 
+            height={50}
+            className="h-10 md:h-12 w-auto object-contain"
+            priority
+          />
          </Link>
        </motion.div>
       <nav className="flex gap-4 md:gap-6 items-center">
