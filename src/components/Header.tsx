@@ -5,10 +5,11 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { FaMoon, FaSun } from "react-icons/fa";
 import { useTheme } from '@/store/useStore';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function Header() {
   const { theme, toggleTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   
   const navItems = [
     { href: "/", label: "홈" },
@@ -17,8 +18,15 @@ export default function Header() {
     { href: "/notice", label: "공지사항" },
   ];
 
-  // 테마 변경 시 html 클래스 업데이트 (초기 마운트 및 변경 시 모두 처리)
+  // 마운트 확인
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // 테마 변경 시 html 클래스 업데이트 (마운트 후에만 처리)
+  useEffect(() => {
+    if (!mounted) return;
+    
     const root = document.documentElement;
     const currentTheme = theme || 'light';
     
@@ -35,7 +43,7 @@ export default function Header() {
       root.classList.remove('dark');
       root.style.colorScheme = 'light';
     }
-  }, [theme]);
+  }, [theme, mounted]);
 
   return (
     <motion.header
@@ -91,7 +99,7 @@ export default function Header() {
           className="ml-4 p-2.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-orange-100 dark:hover:bg-orange-900/30 text-gray-900 dark:text-gray-300 hover:text-orange-600 transition-all duration-300"
           aria-label="테마 변경"
         >
-          {theme === 'light' ? (
+          {(!mounted || theme === 'light') ? (
             <FaMoon className="text-lg" />
           ) : (
             <FaSun className="text-lg" />

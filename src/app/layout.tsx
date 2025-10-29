@@ -29,6 +29,7 @@ export default function RootLayout({
     <html lang="ko" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300 flex flex-col min-h-screen`}
+        suppressHydrationWarning
       >
         <script
           dangerouslySetInnerHTML={{
@@ -68,7 +69,7 @@ export default function RootLayout({
         />
         <Providers>
           <Header />
-          <main className="flex-1 bg-white dark:bg-gray-900 min-h-[calc(100vh-80px)] transition-colors duration-300">
+          <main className="flex-1 bg-white dark:bg-gray-900 min-h-[calc(100vh-80px)] transition-colors duration-300" suppressHydrationWarning>
             {children}
           </main>
           <Toaster position="top-right" richColors />
