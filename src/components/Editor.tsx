@@ -2,6 +2,7 @@
 
 "use client";
 
+import React from "react";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -45,6 +46,7 @@ export default function Editor({ onChange }: EditorProps) {
               내용을 입력하세요...
             </div>
           }
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           ErrorBoundary={LexicalErrorBoundary as any}
         />
         {/* 4. 'undo', 'redo' 같은 히스토리 기능을 추가합니다. */}
