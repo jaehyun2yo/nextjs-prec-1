@@ -28,11 +28,11 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white dark:bg-gray-900 transition-colors`}
       >
         <Providers>
           <Header />
-          <main style={{ padding: '2rem' }} >
+          <main className="p-8" >
             {children}
           </main>
           <Toaster position="top-right" richColors />
