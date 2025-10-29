@@ -21,14 +21,32 @@ export default function Header() {
   useEffect(() => {
     const root = document.documentElement;
     
+    // 기존 dark 클래스 제거 후 추가/제거 (확실한 동기화)
+    root.classList.remove('dark');
+    
     if (theme === 'dark') {
+      root.classList.add('dark');
+      root.style.colorScheme = 'dark';
+    } else {
+      // 라이트 모드 확실히 적용
+      root.classList.remove('dark');
+      root.style.colorScheme = 'light';
+    }
+  }, [theme]);
+
+  // 초기 마운트 시 테마 강제 동기화
+  useEffect(() => {
+    const root = document.documentElement;
+    // 초기 테마 상태 확인 및 적용
+    const currentTheme = theme || 'light';
+    if (currentTheme === 'dark') {
       root.classList.add('dark');
       root.style.colorScheme = 'dark';
     } else {
       root.classList.remove('dark');
       root.style.colorScheme = 'light';
     }
-  }, [theme]);
+  }, []);
 
   return (
     <motion.header

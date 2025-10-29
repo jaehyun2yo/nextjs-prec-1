@@ -48,8 +48,7 @@ export default function Home() {
         </motion.div>
         
         <h1 className="text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-gray-100 mb-4 leading-tight transition-colors duration-300">
-          혁신을 만드는 기업,{' '}\
-          
+          혁신을 만드는 기업
         </h1>
         
         <p className="text-lg md:text-xl text-gray-700 dark:text-gray-300 max-w-2xl mb-8 leading-relaxed transition-colors duration-300">

@@ -36,21 +36,30 @@ export default function RootLayout({
               (function() {
                 try {
                   const root = document.documentElement;
+                  // 기존 dark 클래스 제거 (초기화)
+                  root.classList.remove('dark');
+                  
                   const theme = localStorage.getItem('app-storage');
                   if (theme) {
                     const parsed = JSON.parse(theme);
                     if (parsed.state && parsed.state.theme === 'dark') {
                       root.classList.add('dark');
+                      root.style.colorScheme = 'dark';
                     } else {
+                      // 라이트 모드 확실히 적용
                       root.classList.remove('dark');
+                      root.style.colorScheme = 'light';
                     }
                   } else {
                     // 기본값: 라이트 모드
                     root.classList.remove('dark');
+                    root.style.colorScheme = 'light';
                   }
                 } catch (e) {
                   // 에러 발생 시 라이트 모드로 설정
-                  document.documentElement.classList.remove('dark');
+                  const root = document.documentElement;
+                  root.classList.remove('dark');
+                  root.style.colorScheme = 'light';
                 }
               })();
             `,
