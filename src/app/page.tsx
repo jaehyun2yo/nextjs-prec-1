@@ -29,7 +29,7 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-[calc(100vh-150px)]">
+    <div className="min-h-[calc(100vh-150px)] bg-gradient-to-br from-gray-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-900 dark:to-blue-950">
       {/* Hero Section */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
@@ -41,16 +41,20 @@ export default function Home() {
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-          className="mb-6"
+          className="mb-6 relative"
         >
-          <FaRocket className="text-6xl text-blue-600" />
+          <div className="absolute inset-0 bg-blue-600/20 rounded-full blur-2xl" />
+          <FaRocket className="text-6xl text-blue-600 relative z-10" />
         </motion.div>
         
-        <h1 className="text-4xl md:text-6xl font-extrabold text-gray-900 mb-4">
-          혁신을 만드는 기업, <span className="text-blue-600">My Company</span>
+        <h1 className="text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-gray-100 mb-4 leading-tight">
+          혁신을 만드는 기업,{' '}
+          <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            My Company
+          </span>
         </h1>
         
-        <p className="text-lg md:text-xl text-gray-600 max-w-2xl mb-8">
+        <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mb-8 leading-relaxed">
           우리는 최고의 기술력과 끊임없는 도전으로 고객과 함께 성장합니다.
         </p>
 
@@ -60,7 +64,7 @@ export default function Home() {
         >
           <Link
             href="/about"
-            className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+            className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl inline-flex items-center gap-2"
           >
             더 알아보기
           </Link>
@@ -78,13 +82,13 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
               whileHover={{ y: -10, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)" }}
-              className="bg-white p-6 rounded-lg border border-gray-200 hover:border-blue-500 transition-all cursor-pointer"
+              className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 transition-all cursor-pointer group"
             >
-              <div className="mb-4 flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full">
-                <IconComponent className="text-blue-600 text-2xl" />
+              <div className="mb-4 flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full group-hover:scale-110 transition-transform">
+                <IconComponent className="text-white text-2xl" />
               </div>
-              <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
-              <p className="text-gray-600">{feature.description}</p>
+              <h3 className="text-xl font-bold mb-2 text-gray-900 dark:text-gray-100">{feature.title}</h3>
+              <p className="text-gray-600 dark:text-gray-400">{feature.description}</p>
             </motion.div>
           );
         })}

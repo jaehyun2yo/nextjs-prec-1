@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { FaHome, FaBuilding, FaBox, FaBullhorn } from "react-icons/fa";
+import { FaHome, FaBuilding, FaBox, FaBullhorn, FaMoon, FaSun } from "react-icons/fa";
 import { useTheme } from '@/store/useStore';
 import { useEffect } from 'react';
 
@@ -26,14 +26,14 @@ export default function Header() {
       initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: "spring", stiffness: 100 }}
-      className="flex justify-between items-center p-4 md:p-6 bg-white border-b shadow-sm sticky top-0 z-50"
+      className="flex justify-between items-center p-4 md:p-6 bg-white/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50 dark:bg-gray-900/80 shadow-sm"
     >
       <motion.div
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
-        <Link href="/" className="text-xl font-bold text-gray-800 flex items-center gap-2">
-          <strong>My Company</strong>
+        <Link href="/" className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent flex items-center gap-2">
+          My Company
         </Link>
       </motion.div>
       <nav className="flex gap-4 md:gap-6 items-center">
@@ -50,10 +50,10 @@ export default function Header() {
             >
               <Link
                 href={item.href}
-                className="text-gray-600 hover:text-blue-500 transition-colors flex items-center gap-1"
+                className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
               >
-                <IconComponent />
-                {item.label}
+                <IconComponent className="text-sm" />
+                <span className="font-medium">{item.label}</span>
               </Link>
             </motion.div>
           );
@@ -61,13 +61,17 @@ export default function Header() {
         
         {/* 테마 토글 버튼 */}
         <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
+          whileHover={{ scale: 1.05, rotate: 15 }}
+          whileTap={{ scale: 0.95 }}
           onClick={toggleTheme}
-          className="ml-4 p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+          className="ml-4 p-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors"
           aria-label="테마 변경"
         >
-          {theme === 'light' ? '🌙' : '☀️'}
+          {theme === 'light' ? (
+            <FaMoon className="text-lg" />
+          ) : (
+            <FaSun className="text-lg" />
+          )}
         </motion.button>
       </nav>
     </motion.header>
