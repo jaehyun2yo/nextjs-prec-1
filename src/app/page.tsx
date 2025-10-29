@@ -1,3 +1,5 @@
+'use client';
+
 import { motion } from 'framer-motion';
 import { FaRocket, FaUsers, FaLightbulb, FaChartLine } from 'react-icons/fa';
 import Link from 'next/link';
