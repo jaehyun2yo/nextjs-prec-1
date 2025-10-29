@@ -42,7 +42,7 @@ export default function Header() {
       initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: "spring", stiffness: 100 }}
-      className="flex justify-between items-center px-4 py-3 md:px-6 md:py-4 bg-white dark:bg-gray-900 backdrop-blur-lg border-b border-gray-300 dark:border-gray-700 sticky top-0 z-50 shadow-md dark:shadow-lg transition-all duration-300"
+      className="flex justify-between items-center px-4 py-3 md:px-6 md:py-4 bg-white/90 dark:bg-gray-900 backdrop-blur-lg border-b border-gray-300 dark:border-gray-700 sticky top-0 z-50 shadow-md dark:shadow-lg transition-all duration-300"
     >
        <motion.div
          whileHover={{ scale: 1.05 }}
@@ -75,7 +75,7 @@ export default function Header() {
             >
               <Link
                 href={item.href}
-                className="text-gray-700 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-500 transition-colors duration-300 px-3 py-2 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 font-medium"
+                className="text-gray-900 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-500 transition-colors duration-300 px-3 py-2 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 font-medium"
               >
                 {item.label}
               </Link>
@@ -88,7 +88,7 @@ export default function Header() {
           whileHover={{ scale: 1.05, rotate: 15 }}
           whileTap={{ scale: 0.95 }}
           onClick={toggleTheme}
-          className="ml-4 p-2.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-orange-100 dark:hover:bg-orange-900/30 text-gray-700 dark:text-gray-300 hover:text-orange-600 transition-all duration-300"
+          className="ml-4 p-2.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-orange-100 dark:hover:bg-orange-900/30 text-gray-900 dark:text-gray-300 hover:text-orange-600 transition-all duration-300"
           aria-label="테마 변경"
         >
           {theme === 'light' ? (
