@@ -29,7 +29,7 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-[calc(100vh-150px)] bg-white dark:bg-gray-900">
+    <div className="min-h-[calc(100vh-150px)] bg-white dark:bg-gray-900 transition-colors duration-300">
       {/* Hero Section */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
@@ -47,14 +47,14 @@ export default function Home() {
           <FaRocket className="text-6xl text-orange-600 relative z-10" />
         </motion.div>
         
-        <h1 className="text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-gray-100 mb-4 leading-tight">
+        <h1 className="text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-gray-100 mb-4 leading-tight transition-colors duration-300">
           혁신을 만드는 기업,{' '}
           <span className="bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">
             My Company
           </span>
         </h1>
         
-        <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mb-8 leading-relaxed">
+        <p className="text-lg md:text-xl text-gray-700 dark:text-gray-300 max-w-2xl mb-8 leading-relaxed transition-colors duration-300">
           우리는 최고의 기술력과 끊임없는 도전으로 고객과 함께 성장합니다.
         </p>
 
@@ -82,13 +82,13 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
               whileHover={{ y: -10, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)" }}
-              className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-orange-500 dark:hover:border-orange-500 transition-all cursor-pointer group shadow-sm hover:shadow-md"
+              className="bg-white dark:bg-gray-800 p-6 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-orange-500 dark:hover:border-orange-500 transition-all duration-300 cursor-pointer group shadow-md hover:shadow-xl dark:shadow-lg"
             >
-              <div className="mb-4 flex items-center justify-center w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full group-hover:scale-110 transition-transform">
+              <div className="mb-4 flex items-center justify-center w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full group-hover:scale-110 transition-transform duration-300">
                 <IconComponent className="text-white text-2xl" />
               </div>
-              <h3 className="text-xl font-bold mb-2 text-gray-900 dark:text-gray-100">{feature.title}</h3>
-              <p className="text-gray-600 dark:text-gray-400">{feature.description}</p>
+              <h3 className="text-xl font-bold mb-2 text-gray-900 dark:text-gray-100 transition-colors duration-300">{feature.title}</h3>
+              <p className="text-gray-700 dark:text-gray-400 transition-colors duration-300">{feature.description}</p>
             </motion.div>
           );
         })}
