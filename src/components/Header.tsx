@@ -27,7 +27,7 @@ export default function Header() {
       initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: "spring", stiffness: 100 }}
-      className="flex justify-between items-center px-4 py-3 md:px-6 md:py-4 bg-gradient-to-r from-orange-500 to-orange-600 backdrop-blur-lg border-b border-orange-700 sticky top-0 z-50 shadow-lg"
+      className="flex justify-between items-center px-4 py-3 md:px-6 md:py-4 bg-white/90 backdrop-blur-lg border-b border-gray-200 sticky top-0 z-50 shadow-sm"
     >
        <motion.div
          whileHover={{ scale: 1.05 }}
@@ -60,7 +60,7 @@ export default function Header() {
             >
               <Link
                 href={item.href}
-                className="text-white hover:text-orange-100 transition-colors px-3 py-2 rounded-lg hover:bg-orange-700/50 backdrop-blur-sm font-medium"
+                className="text-gray-700 hover:text-orange-600 transition-colors px-3 py-2 rounded-lg hover:bg-orange-50 font-medium"
               >
                 {item.label}
               </Link>
@@ -73,7 +73,7 @@ export default function Header() {
           whileHover={{ scale: 1.05, rotate: 15 }}
           whileTap={{ scale: 0.95 }}
           onClick={toggleTheme}
-          className="ml-4 p-2.5 rounded-lg bg-orange-700/30 hover:bg-orange-700/50 backdrop-blur-sm text-white transition-all"
+          className="ml-4 p-2.5 rounded-lg bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-orange-600 transition-all"
           aria-label="테마 변경"
         >
           {theme === 'light' ? (
