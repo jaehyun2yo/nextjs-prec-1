@@ -26,22 +26,21 @@ export default async function BlogPage() {
   const posts: Post[] = await getPosts();
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">블로그</h1>
+    <div className="w-full py-8 px-4 md:px-8 max-w-6xl mx-auto">
+      <h1 className="text-4xl font-bold mb-8 text-gray-900 dark:text-gray-100">블로그</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {posts.map((post) => (
           <div
             key={post.id}
-            className="border p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+            className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 p-6 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:border-orange-500 dark:hover:border-orange-500"
           >
-            <h2 className="text-xl font-semibold mb-2 line-clamp-2 h-14">
+            <h2 className="text-xl font-semibold mb-3 line-clamp-2 h-14 text-gray-900 dark:text-gray-100">
               {post.title}
             </h2>
-            <p className="text-gray-600 mb-4 line-clamp-3 h-20">{post.body}</p>
-            {/* 3. 상세 페이지로 가는 링크를 연결합니다. id가 숫자이므로 문자로 바꿔줍니다. */}
+            <p className="text-gray-700 dark:text-gray-300 mb-4 line-clamp-3 h-20">{post.body}</p>
             <Link
               href={`/blog/${post.id}`}
-              className="text-blue-500 font-semibold hover:underline"
+              className="text-orange-600 dark:text-orange-400 font-semibold hover:text-orange-700 dark:hover:text-orange-500 transition-colors duration-300 inline-flex items-center gap-2"
             >
               더 읽기 &rarr;
             </Link>

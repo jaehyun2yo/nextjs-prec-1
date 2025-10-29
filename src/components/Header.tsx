@@ -21,7 +21,6 @@ export default function Header() {
   useEffect(() => {
     const root = document.documentElement;
     
-    // 현재 테마 상태와 일치하도록 클래스 업데이트 (강제 동기화)
     if (theme === 'dark') {
       root.classList.add('dark');
       root.style.colorScheme = 'dark';
@@ -30,21 +29,6 @@ export default function Header() {
       root.style.colorScheme = 'light';
     }
   }, [theme]);
-
-  // 마운트 시 초기 테마 동기화
-  useEffect(() => {
-    const root = document.documentElement;
-    const currentTheme = theme || 'light';
-    
-    // 초기 상태 강제 적용
-    if (currentTheme === 'dark') {
-      root.classList.add('dark');
-      root.style.colorScheme = 'dark';
-    } else {
-      root.classList.remove('dark');
-      root.style.colorScheme = 'light';
-    }
-  }, []);
 
   return (
     <motion.header

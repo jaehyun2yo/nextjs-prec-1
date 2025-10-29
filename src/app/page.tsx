@@ -29,7 +29,7 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-[calc(100vh-150px)] bg-white dark:bg-gray-900 transition-colors duration-300">
+    <div className="w-full py-8 px-4 md:px-8 transition-colors duration-300">
       {/* Hero Section */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
