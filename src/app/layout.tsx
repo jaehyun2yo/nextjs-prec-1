@@ -36,8 +36,9 @@ export default function RootLayout({
               (function() {
                 try {
                   const root = document.documentElement;
-                  // 기존 dark 클래스 제거 (초기화)
+                  // 기존 클래스와 스타일 완전 초기화
                   root.classList.remove('dark');
+                  root.style.colorScheme = '';
                   
                   const theme = localStorage.getItem('app-storage');
                   if (theme) {

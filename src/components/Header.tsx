@@ -17,36 +17,25 @@ export default function Header() {
     { href: "/notice", label: "공지사항" },
   ];
 
-  // 테마 변경 시 html 클래스 업데이트
+  // 테마 변경 시 html 클래스 업데이트 (초기 마운트 및 변경 시 모두 처리)
   useEffect(() => {
     const root = document.documentElement;
-    
-    // 기존 dark 클래스 제거 후 추가/제거 (확실한 동기화)
-    root.classList.remove('dark');
-    
-    if (theme === 'dark') {
-      root.classList.add('dark');
-      root.style.colorScheme = 'dark';
-    } else {
-      // 라이트 모드 확실히 적용
-      root.classList.remove('dark');
-      root.style.colorScheme = 'light';
-    }
-  }, [theme]);
-
-  // 초기 마운트 시 테마 강제 동기화
-  useEffect(() => {
-    const root = document.documentElement;
-    // 초기 테마 상태 확인 및 적용
     const currentTheme = theme || 'light';
+    
+    // 기존 클래스와 스타일 초기화
+    root.classList.remove('dark');
+    root.style.colorScheme = '';
+    
+    // 현재 테마에 맞게 적용
     if (currentTheme === 'dark') {
       root.classList.add('dark');
       root.style.colorScheme = 'dark';
     } else {
+      // 라이트 모드: dark 클래스 제거 (명시적으로)
       root.classList.remove('dark');
       root.style.colorScheme = 'light';
     }
-  }, []);
+  }, [theme]);
 
   return (
     <motion.header
