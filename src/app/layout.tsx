@@ -28,7 +28,7 @@ export default function RootLayout({
   return (
     <html lang="ko" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white dark:bg-gray-900 transition-colors`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300`}
       >
         <script
           dangerouslySetInnerHTML={{
@@ -58,7 +58,7 @@ export default function RootLayout({
         />
         <Providers>
           <Header />
-          <main className="p-8 bg-white dark:bg-gray-900 min-h-screen transition-colors duration-300" >
+          <main className="p-8 min-h-screen" >
             {children}
           </main>
           <Toaster position="top-right" richColors />
