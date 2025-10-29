@@ -19,8 +19,26 @@ export default function Header() {
 
   // 테마 변경 시 html 클래스 업데이트
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'dark');
+    const root = document.documentElement;
+    
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
   }, [theme]);
+
+  // 초기 렌더링 시 테마 동기화
+  useEffect(() => {
+    const root = document.documentElement;
+    
+    // Zustand에서 가져온 테마에 따라 초기 클래스 설정
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }, []);
 
   return (
     <motion.header
