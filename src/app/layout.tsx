@@ -35,16 +35,23 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
+                  const root = document.documentElement;
                   const theme = localStorage.getItem('app-storage');
                   if (theme) {
                     const parsed = JSON.parse(theme);
                     if (parsed.state && parsed.state.theme === 'dark') {
-                      document.documentElement.classList.add('dark');
+                      root.classList.add('dark');
                     } else {
-                      document.documentElement.classList.remove('dark');
+                      root.classList.remove('dark');
                     }
+                  } else {
+                    // 기본값: 라이트 모드
+                    root.classList.remove('dark');
                   }
-                } catch (e) {}
+                } catch (e) {
+                  // 에러 발생 시 라이트 모드로 설정
+                  document.documentElement.classList.remove('dark');
+                }
               })();
             `,
           }}
