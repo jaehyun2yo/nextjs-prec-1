@@ -3,14 +3,23 @@ import { FaFileAlt, FaUsers, FaEye, FaChartLine } from "react-icons/fa";
 import Link from "next/link";
 
 export default async function AdminDashboardPage() {
-  const supabase = await createSupabaseServerClient();
+  let postCount = 0;
+  let posts: any[] = [];
   
-  // 통계 데이터 가져오기
-  const { data: posts, error } = await supabase
-    .from("posts")
-    .select("*");
-  
-  const postCount = posts?.length || 0;
+  try {
+    const supabase = await createSupabaseServerClient();
+    
+    // 통계 데이터 가져오기
+    const { data, error } = await supabase
+      .from("posts")
+      .select("*");
+    
+    posts = data || [];
+    postCount = posts.length;
+  } catch (error) {
+    console.error("Supabase connection error:", error);
+    // Supabase 설정이 없는 경우에도 페이지는 표시되도록 함
+  }
 
   // 통계 카드 데이터
   const stats = [

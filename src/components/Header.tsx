@@ -3,19 +3,24 @@
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { FaMoon, FaSun } from "react-icons/fa";
+import { FaMoon, FaSun, FaSignOutAlt, FaUserCog } from "react-icons/fa";
 import { useTheme } from '@/store/useStore';
 import { useEffect, useState } from 'react';
+import { logoutAction } from '@/app/actions/auth';
 
-export default function Header() {
+interface HeaderProps {
+  isAuthenticated?: boolean;
+}
+
+export default function Header({ isAuthenticated = false }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   
   const navItems = [
-    { href: "/", label: "홈" },
-    { href: "/about", label: "회사 소개" },
-    { href: "/products", label: "제품" },
+    { href: "/about", label: "소개" },
+    { href: "/portfolio", label: "포트폴리오" },
     { href: "/notice", label: "공지사항" },
+    { href: "/contact", label: "문의하기" },
   ];
 
   // 마운트 확인
@@ -70,7 +75,7 @@ export default function Header() {
            </div>
          </Link>
        </motion.div>
-      <nav className="flex gap-4 md:gap-6 items-center">
+      <nav className="flex gap-2 md:gap-3 items-center">
         {navItems.map((item, index) => {
           return (
             <motion.div
@@ -83,13 +88,70 @@ export default function Header() {
             >
               <Link
                 href={item.href}
-                className="text-gray-900 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-500 transition-colors duration-300 px-3 py-2 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 font-medium"
+                className="text-sm text-gray-900 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-500 transition-colors duration-300 px-3 py-2 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 font-medium"
               >
                 {item.label}
               </Link>
             </motion.div>
           );
         })}
+        
+        {/* 로그인 상태에 따른 UI */}
+        {isAuthenticated ? (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: navItems.length * 0.1 }}
+            className="ml-6 md:ml-8 flex items-center gap-2"
+          >
+            <span className="text-gray-900 dark:text-gray-300 text-xs px-2 py-2">
+              관리자
+            </span>
+            <Link
+              href="/admin"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-orange-100 dark:hover:bg-orange-900/30 text-gray-900 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 transition-all duration-300 text-xs"
+              title="관리자 페이지"
+            >
+              <FaUserCog className="text-xs" />
+              <span>관리자 페이지</span>
+            </Link>
+            <form action={logoutAction}>
+              <motion.button
+                type="submit"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-900 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-all duration-300 text-xs"
+                title="로그아웃"
+              >
+                <FaSignOutAlt className="text-xs" />
+                <span>로그아웃</span>
+              </motion.button>
+            </form>
+          </motion.div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: navItems.length * 0.1 }}
+            className="ml-6 md:ml-8"
+          >
+            <Link
+              href="/login"
+              className="text-sm transition-colors duration-300 px-3 py-2 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 font-medium"
+              style={{
+                color: '#ED6C00',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#d15f00';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '#ED6C00';
+              }}
+            >
+              기업 로그인
+            </Link>
+          </motion.div>
+        )}
         
         {/* 테마 토글 버튼 */}
         <motion.button

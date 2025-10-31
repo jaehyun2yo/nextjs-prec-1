@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import { Providers } from './providers';
 import { Toaster } from 'sonner';
+import { verifySession } from '@/lib/auth/session';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,11 +22,14 @@ export const metadata: Metadata = {
   description: "소개",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // 세션 확인 (관리자 페이지가 아닌 경우에도 로그인 상태 확인)
+  const isAuthenticated = await verifySession();
+
   return (
     <html lang="ko" suppressHydrationWarning>
       <body
@@ -68,10 +73,11 @@ export default function RootLayout({
           }}
         />
         <Providers>
-          <Header />
+          <Header isAuthenticated={isAuthenticated} />
           <main className="flex-1 bg-white dark:bg-gray-900 min-h-[calc(100vh-80px)] transition-colors duration-300" suppressHydrationWarning>
             {children}
           </main>
+          <Footer />
           <Toaster position="top-right" richColors />
         </Providers>
       </body>

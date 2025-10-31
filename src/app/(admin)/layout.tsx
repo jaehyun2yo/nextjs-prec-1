@@ -1,12 +1,20 @@
 // src/app/(admin)/layout.tsx
 
 import Link from "next/link";
+import { verifySession } from "@/lib/auth/session";
+import { redirect } from "next/navigation";
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // 세션 검증
+  const isAuthenticated = await verifySession();
+  
+  if (!isAuthenticated) {
+    redirect("/login");
+  }
   return (
     <div className="flex min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
       <aside className="w-64 bg-gray-800 dark:bg-gray-900 text-white dark:text-gray-100 p-6 border-r border-gray-700 dark:border-gray-700">
@@ -22,7 +30,13 @@ export default function AdminLayout({
             href="/admin/posts"
             className="hover:bg-gray-700 dark:hover:bg-gray-800 p-2 rounded transition-colors duration-300"
           >
-            게시물 관리
+            공지사항 관리
+          </Link>
+          <Link
+            href="/admin/portfolio"
+            className="hover:bg-gray-700 dark:hover:bg-gray-800 p-2 rounded transition-colors duration-300"
+          >
+            포트폴리오 관리
           </Link>
           <Link
             href="/"
