@@ -22,11 +22,11 @@ export default async function PortfolioPage() {
 
   return (
     <div className="w-full py-8 px-4 md:px-8 max-w-6xl mx-auto">
-      <h1 className="text-4xl font-bold mb-8 text-gray-900 dark:text-gray-100">포트폴리오</h1>
+      <h1 className="text-2xl font-bold mb-8 text-gray-900 dark:text-gray-100">포트폴리오</h1>
       
       {items.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-gray-600 dark:text-gray-300 text-lg">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
             등록된 포트폴리오가 없습니다.
           </p>
         </div>

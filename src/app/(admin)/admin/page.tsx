@@ -1,21 +1,36 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { FaFileAlt, FaUsers, FaEye, FaChartLine } from "react-icons/fa";
+import { FaFileAlt, FaUsers, FaEye, FaChartLine, FaEnvelope } from "react-icons/fa";
 import Link from "next/link";
 
 export default async function AdminDashboardPage() {
   let postCount = 0;
   let posts: any[] = [];
+  let contactCount = 0;
+  let newContactCount = 0;
   
   try {
     const supabase = await createSupabaseServerClient();
     
-    // 통계 데이터 가져오기
-    const { data, error } = await supabase
+    // 게시물 통계
+    const { data: postsData } = await supabase
       .from("posts")
       .select("*");
     
-    posts = data || [];
+    posts = postsData || [];
     postCount = posts.length;
+
+    // 문의하기 통계
+    const { count: totalContacts } = await supabase
+      .from("contacts")
+      .select("*", { count: 'exact', head: true });
+    
+    const { count: newContacts } = await supabase
+      .from("contacts")
+      .select("*", { count: 'exact', head: true })
+      .eq('status', 'new');
+    
+    contactCount = totalContacts || 0;
+    newContactCount = newContacts || 0;
   } catch (error) {
     console.error("Supabase connection error:", error);
     // Supabase 설정이 없는 경우에도 페이지는 표시되도록 함
@@ -31,11 +46,12 @@ export default async function AdminDashboardPage() {
       href: "/admin/posts",
     },
     {
-      title: "사용자",
-      value: "N/A",
-      icon: FaUsers,
-      color: "bg-green-500",
-      href: "#",
+      title: "전체 문의",
+      value: contactCount,
+      icon: FaEnvelope,
+      color: "bg-orange-500",
+      href: "/admin/contacts",
+      badge: newContactCount > 0 ? `${newContactCount}건 신규` : undefined,
     },
     {
       title: "조회수",
@@ -70,14 +86,19 @@ export default async function AdminDashboardPage() {
             <Link
               key={stat.title}
               href={stat.href}
-              className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow border-l-4 border-blue-500"
+              className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow border-l-4 border-blue-500 relative"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm mb-1">{stat.title}</p>
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">{stat.title}</p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
                     {stat.value}
                   </p>
+                  {stat.badge && (
+                    <p className="text-xs text-orange-600 dark:text-orange-400 mt-1 font-medium">
+                      {stat.badge}
+                    </p>
+                  )}
                 </div>
                 <div className={`${stat.color} p-4 rounded-full`}>
                   <Icon className="text-white text-2xl" />

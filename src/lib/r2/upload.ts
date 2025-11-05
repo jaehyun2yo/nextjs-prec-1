@@ -32,14 +32,14 @@ function getS3() {
   });
 }
 
-function buildObjectKey(filename: string) {
+function buildObjectKey(filename: string, prefix: string = 'portfolio') {
   const ext = filename.split(".").pop() || "bin";
   const base = filename.replace(/\.[^.]+$/, "");
   const id = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-  return `portfolio/${id}-${base}.${ext}`;
+  return `${prefix}/${id}-${base}.${ext}`;
 }
 
-export async function uploadFileToR2(file: File): Promise<{ key: string; url: string }> {
+export async function uploadFileToR2(file: File, prefix: string = 'portfolio'): Promise<{ key: string; url: string }> {
   console.log('[DEBUG_R2 ENV]', {
     R2_ENDPOINT: process.env.R2_ENDPOINT || '[MISSING]',
     R2_ACCESS_KEY_ID: process.env.R2_ACCESS_KEY_ID ? '[OK]' : '[MISSING]',
@@ -53,7 +53,7 @@ export async function uploadFileToR2(file: File): Promise<{ key: string; url: st
     if (!bucket || !publicBase) {
       throw new Error("R2 is not configured: missing bucket or public base url");
     }
-    const key = buildObjectKey(file.name);
+    const key = buildObjectKey(file.name, prefix);
     const Body = Buffer.from(await file.arrayBuffer());
     const ContentType = file.type || "application/octet-stream";
     const s3 = getS3();

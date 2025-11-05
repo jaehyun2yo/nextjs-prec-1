@@ -27,20 +27,20 @@ export default async function BlogPage() {
 
   return (
     <div className="w-full py-8 px-4 md:px-8 max-w-6xl mx-auto">
-      <h1 className="text-4xl font-bold mb-8 text-gray-900 dark:text-gray-100">블로그</h1>
+      <h1 className="text-2xl font-bold mb-8 text-gray-900 dark:text-gray-100">블로그</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {posts.map((post) => (
           <div
             key={post.id}
             className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 p-6 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:border-orange-500 dark:hover:border-orange-500"
           >
-            <h2 className="text-xl font-semibold mb-3 line-clamp-2 h-14 text-gray-900 dark:text-gray-100">
+            <h2 className="text-sm font-semibold mb-3 line-clamp-2 h-14 text-gray-900 dark:text-gray-100">
               {post.title}
             </h2>
-            <p className="text-gray-700 dark:text-gray-300 mb-4 line-clamp-3 h-20">{post.body}</p>
+            <p className="text-sm text-gray-700 dark:text-gray-300 mb-4 line-clamp-3 h-20">{post.body}</p>
             <Link
               href={`/blog/${post.id}`}
-              className="text-orange-600 dark:text-orange-400 font-semibold hover:text-orange-700 dark:hover:text-orange-500 transition-colors duration-300 inline-flex items-center gap-2"
+              className="text-sm text-orange-600 dark:text-orange-400 font-semibold hover:text-orange-700 dark:hover:text-orange-500 transition-colors duration-300 inline-flex items-center gap-2"
             >
               더 읽기 &rarr;
             </Link>
