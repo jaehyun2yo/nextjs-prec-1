@@ -11,6 +11,7 @@ interface ContactFormData {
   position: string;
   phone: string;
   email: string;
+  referral_source?: string;
   // 도면 및 샘플
   drawing_type?: string;
   has_physical_sample?: boolean;
@@ -140,6 +141,7 @@ async function sendEmail(
             <p><strong>담당자 직책:</strong> ${data.position}</p>
             <p><strong>담당자 연락처:</strong> <a href="tel:${data.phone}">${data.phone}</a></p>
             <p><strong>담당자 이메일:</strong> <a href="mailto:${data.email}">${data.email}</a></p>
+            ${data.referral_source ? `<p><strong>유입경로:</strong> ${data.referral_source}</p>` : ''}
           </div>
           
           ${data.drawing_type ? `
@@ -216,6 +218,7 @@ async function sendEmail(
 담당자 직책: ${data.position}
 담당자 연락처: ${data.phone}
 담당자 이메일: ${data.email}
+${data.referral_source ? `유입경로: ${data.referral_source}` : ''}
 
 ${data.drawing_type ? `[도면 및 샘플 정보]
 도면 상태: ${data.drawing_type === 'create' ? '도면 제작이 필요합니다' : '도면을 가지고 있습니다'}
@@ -309,6 +312,7 @@ export async function submitContact(formData: FormData) {
   let position = String(formData.get('position') || '').trim();
   const phone = String(formData.get('phone') || '').trim();
   const email = String(formData.get('email') || '').trim();
+  const referral_source = String(formData.get('referral_source') || '').trim();
   
   // 도면 및 샘플 필드
   const drawing_type = String(formData.get('drawing_type') || '').trim();
@@ -489,6 +493,7 @@ export async function submitContact(formData: FormData) {
     position,
     phone,
     email,
+    referral_source: referral_source || undefined,
     drawing_type: drawing_type || undefined,
     has_physical_sample: has_physical_sample || undefined,
     has_reference_photos: has_reference_photos || undefined,
@@ -521,6 +526,7 @@ export async function submitContact(formData: FormData) {
       position: contactData.position,
       phone: contactData.phone,
       email: contactData.email,
+      referral_source: referral_source || null,
       // 연락처 정보 추가 필드
       contact_type: contact_type || null,
       service_mold_request: service_mold_request || false,

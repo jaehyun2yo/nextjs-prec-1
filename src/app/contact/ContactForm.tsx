@@ -46,6 +46,8 @@ export default function ContactForm({ success, error }: ContactFormProps) {
   const [position, setPosition] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [referralSource, setReferralSource] = useState<string>('');
+  const [referralSourceOther, setReferralSourceOther] = useState('');
   const [boxShape, setBoxShape] = useState('');
   const [length, setLength] = useState('');
   const [width, setWidth] = useState('');
@@ -57,7 +59,6 @@ export default function ContactForm({ success, error }: ContactFormProps) {
   // 모달 상태
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isTestMode, setIsTestMode] = useState(false); // 테스트 모드 여부
   
   // 내용 확인 페이지에서 파일 정보만 읽기 (나머지는 state에서 직접 사용)
   useEffect(() => {
@@ -159,20 +160,6 @@ export default function ContactForm({ success, error }: ContactFormProps) {
       </div>
       
       <div className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 p-8 rounded-xl shadow-md">
-        {/* 테스트용 모달 버튼 (개발용) */}
-        <div className="mb-4 flex justify-end">
-          <button
-            type="button"
-            onClick={() => {
-              setIsTestMode(true);
-              setShowSuccessModal(true);
-            }}
-            className="bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-2 rounded-lg transition-colors duration-200"
-          >
-            모달 테스트
-          </button>
-        </div>
-        
         <form className="space-y-6">
           {/* 첫 번째 섹션: 연락처 */}
           <div style={{ display: currentStep === 1 ? 'block' : 'none' }} className="space-y-6">
@@ -249,7 +236,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                  className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
                   placeholder={contactType === 'company' ? '업체명을 입력하세요' : '이름을 입력하세요'}
                 />
               </div>
@@ -267,7 +254,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       required
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                      className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
                       placeholder="담당자명을 입력하세요"
                     />
                   </div>
@@ -283,7 +270,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                       value={position}
                       onChange={(e) => setPosition(e.target.value)}
                       required
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                      className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
                       placeholder="예: 대표, 팀장, 매니저 등"
                     />
                   </div>
@@ -302,7 +289,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                  className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
                   placeholder="010-1234-5678"
                 />
               </div>
@@ -318,10 +305,51 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                  className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
                   placeholder="email@example.com"
                 />
               </div>
+
+              <div>
+                <label htmlFor="referralSource" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                  유입경로 <span className="text-red-500">*</span>
+                </label>
+                <select
+                  id="referralSource"
+                  name="referralSource"
+                  value={referralSource}
+                  onChange={(e) => setReferralSource(e.target.value)}
+                  required
+                  className="w-1/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                >
+                  <option value="">선택해주세요</option>
+                  <option value="구글">구글</option>
+                  <option value="네이버">네이버</option>
+                  <option value="블로그">블로그</option>
+                  <option value="인스타그램">인스타그램</option>
+                  <option value="인공지능">인공지능</option>
+                  <option value="거래처 소개">거래처 소개</option>
+                  <option value="기타">기타</option>
+                </select>
+              </div>
+
+              {(referralSource === '기타' || referralSource === '거래처 소개') && (
+                <div>
+                  <label htmlFor="referralSourceOther" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                    {referralSource === '기타' ? '유입경로 (기타)' : '거래처명'} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="referralSourceOther"
+                    name="referralSourceOther"
+                    value={referralSourceOther}
+                    onChange={(e) => setReferralSourceOther(e.target.value)}
+                    required
+                    className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                    placeholder={referralSource === '기타' ? '유입경로를 입력해주세요' : '거래처명을 입력해주세요'}
+                  />
+                </div>
+              )}
 
               {/* 숨겨진 필드 (서비스 유형 정보 전달용) */}
               <input type="hidden" name="contact_type" value={contactType} />
@@ -332,7 +360,18 @@ export default function ContactForm({ success, error }: ContactFormProps) {
               <div className="flex justify-end pt-4">
                 <button
                   type="button"
-                  onClick={() => setCurrentStep(2)}
+                  onClick={() => {
+                    // 유입경로 검증
+                    if (!referralSource) {
+                      alert('유입경로를 선택해주세요.');
+                      return;
+                    }
+                    if ((referralSource === '기타' || referralSource === '거래처 소개') && !referralSourceOther.trim()) {
+                      alert(referralSource === '기타' ? '유입경로(기타)를 입력해주세요.' : '거래처명을 입력해주세요.');
+                      return;
+                    }
+                    setCurrentStep(2);
+                  }}
                   className="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors duration-300 shadow-md hover:shadow-lg"
                 >
                   다음 단계
@@ -460,7 +499,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                                 value={sampleNotes}
                                 onChange={(e) => setSampleNotes(e.target.value)}
                                 rows={3}
-                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300 resize-none"
+                                className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300 resize-none"
                                 placeholder="샘플에 대한 특이사항이나 주의사항을 입력해주세요"
                               />
                             </div>
@@ -525,7 +564,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                                 name="reference_photos"
                                 multiple
                                 accept="image/*,.pdf,.doc,.docx"
-                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 dark:file:bg-orange-900/20 dark:file:text-orange-300"
+                                className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 dark:file:bg-orange-900/20 dark:file:text-orange-300"
                               />
                               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                                 이미지 파일 또는 문서 파일 업로드 가능 (JPG, PNG, GIF, PDF, DOC, DOCX 등)
@@ -582,7 +621,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                       name="drawing_file"
                       accept=".pdf,.dwg,.dxf,.jpg,.jpeg,.png,.gif,.zip,.rar"
                       required={drawingType === 'have'}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 dark:file:bg-orange-900/20 dark:file:text-orange-300"
+                      className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 dark:file:bg-orange-900/20 dark:file:text-orange-300"
                     />
                     <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                       지원 형식: PDF, DWG, DXF, JPG, PNG, GIF, ZIP, RAR (최대 10MB)
@@ -605,7 +644,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                     name="box_shape"
                     value={boxShape}
                     onChange={(e) => setBoxShape(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                    className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
                     placeholder="예: 직사각형, 정사각형, 원형 등"
                   />
                 </div>
@@ -625,7 +664,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                         name="length"
                         value={length}
                         onChange={(e) => setLength(e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                        className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
                         placeholder="mm"
                       />
                     </div>
@@ -639,7 +678,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                         name="width"
                         value={width}
                         onChange={(e) => setWidth(e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                        className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
                         placeholder="mm"
                       />
                     </div>
@@ -653,7 +692,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                         name="height"
                         value={height}
                         onChange={(e) => setHeight(e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                        className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
                         placeholder="mm"
                       />
                     </div>
@@ -670,7 +709,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                     name="material"
                     value={material}
                     onChange={(e) => setMaterial(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                    className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
                     placeholder="예: 종이, 플라스틱, 천 등"
                   />
                 </div>
@@ -687,7 +726,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                   value={drawingNotes}
                   onChange={(e) => setDrawingNotes(e.target.value)}
                   rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300 resize-none"
+                  className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300 resize-none"
                   placeholder="도면 및 샘플 제작시 특별히 주의해야 할 사항을 입력해주세요"
                 />
               </div>
@@ -907,7 +946,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                                 
                                 return endDate.toISOString().split('T')[0];
                               })()}
-                              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                              className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
                               required
                             />
                           </div>
@@ -1038,7 +1077,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                             name="delivery_address"
                             value={deliveryAddress}
                             onChange={(e) => setDeliveryAddress(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                            className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
                             placeholder="택배 받을 주소를 입력해주세요"
                             required
                           />
@@ -1054,7 +1093,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                             name="delivery_name"
                             value={deliveryName}
                             onChange={(e) => setDeliveryName(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                            className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
                             placeholder="이름을 입력해주세요"
                             required
                           />
@@ -1070,7 +1109,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                             name="delivery_phone"
                             value={deliveryPhone}
                             onChange={(e) => setDeliveryPhone(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                            className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
                             placeholder="010-1234-5678"
                             required
                           />
@@ -1193,6 +1232,10 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                     <div>
                       <span className="font-medium text-gray-600 dark:text-gray-400">이메일:</span>
                       <span className="ml-2">{email || '-'}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-600 dark:text-gray-400">유입경로:</span>
+                      <span className="ml-2">{(referralSource === '기타' || referralSource === '거래처 소개') ? referralSourceOther : referralSource || '-'}</span>
                     </div>
                   </div>
                 </div>
@@ -1487,6 +1530,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                       formData.append('position', position);
                       formData.append('phone', phone);
                       formData.append('email', email);
+                      formData.append('referral_source', (referralSource === '기타' || referralSource === '거래처 소개') ? referralSourceOther : referralSource);
                       
                       // Step 2: 도면 및 샘플
                       formData.append('drawing_type', drawingType || '');
@@ -1533,7 +1577,6 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                       
                       if (result && result.success) {
                         // 성공 모달 표시
-                        setIsTestMode(false);
                         setShowSuccessModal(true);
                       } else {
                         // 실패 시 에러 메시지 표시
@@ -1555,6 +1598,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
           )}
 
           {/* 모든 섹션의 hidden input을 form 태그 바로 안에 배치 */}
+          <input type="hidden" name="referral_source" value={(referralSource === '기타' || referralSource === '거래처 소개') ? referralSourceOther : referralSource} />
           <input type="hidden" name="receipt_method" value={receiptMethod || ''} />
           <input type="hidden" name="visit_location" value={visitLocation || ''} />
           <input type="hidden" name="visit_date" value={visitDate || ''} />
@@ -1565,15 +1609,6 @@ export default function ContactForm({ success, error }: ContactFormProps) {
           <input type="hidden" name="delivery_type" value={deliveryType || ''} />
         </form>
       </div>
-      
-      <div className="mt-8 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 p-6 rounded-xl shadow-md">
-        <h2 className="text-sm font-semibold mb-4 text-gray-900 dark:text-gray-100">연락처 정보</h2>
-        <div className="space-y-2 text-gray-700 dark:text-gray-300">
-          <p>이메일: contact@example.com</p>
-          <p>전화: 02-0000-0000</p>
-          <p>주소: 서울특별시 강남구</p>
-        </div>
-      </div>
 
       {/* 성공 모달 */}
       <SuccessModal
@@ -1583,7 +1618,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
         }}
         title="문의가 전송되었습니다"
         message="빠른 시일 내에 연락드리겠습니다."
-        redirectUrl={!isTestMode ? '/contact' : undefined}
+        redirectUrl="/contact"
       />
     </div>
   );

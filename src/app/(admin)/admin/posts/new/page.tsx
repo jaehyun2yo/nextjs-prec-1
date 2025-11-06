@@ -75,16 +75,22 @@ export default function NewPostPage() {
   }
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-6">새 게시물 작성</h1>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-gray-100">새 게시물 작성</h1>
+        <p className="text-gray-600 dark:text-gray-400">
+          새로운 게시물을 작성할 수 있습니다
+        </p>
+      </div>
+      
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="bg-white p-8 rounded-lg shadow-md space-y-6"
+        className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-md border-2 border-gray-200 dark:border-gray-700 space-y-6"
       >
         <div>
           <label
             htmlFor="title"
-            className="block text-sm font-medium text-gray-700 mb-1"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
           >
             제목 <span className="text-red-500">*</span>
           </label>
@@ -93,30 +99,32 @@ export default function NewPostPage() {
             id="title"
             {...register('title')}
             placeholder="게시물 제목을 입력하세요"
-            className={`mt-1 block w-full px-3 py-2 border rounded-md ${
-              errors.title ? 'border-red-500' : 'border-gray-300'
+            className={`mt-1 block w-full px-4 py-3 border-2 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300 ${
+              errors.title ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
             }`}
           />
           {errors.title && (
-            <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>
+            <p className="text-red-500 dark:text-red-400 text-sm mt-2">{errors.title.message}</p>
           )}
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             내용 <span className="text-red-500">*</span>
           </label>
-          <Editor onChange={handleEditorChange} />
+          <div className={errors.content ? 'border-2 border-red-500 dark:border-red-500 rounded-lg' : ''}>
+            <Editor onChange={handleEditorChange} />
+          </div>
           {errors.content && (
-            <p className="text-red-500 text-sm mt-1">{errors.content.message}</p>
+            <p className="text-red-500 dark:text-red-400 text-sm mt-2">{errors.content.message}</p>
           )}
         </div>
         
-        <div className="flex gap-3">
+        <div className="flex gap-3 pt-4">
           <button
             type="submit"
             disabled={isSubmitting}
-            className="bg-blue-600 text-white py-2 px-6 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            className="bg-gradient-to-r from-orange-500 to-orange-600 text-white py-2 px-6 rounded-lg hover:from-orange-600 hover:to-orange-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-all duration-300 shadow-md hover:shadow-lg font-medium"
           >
             {isSubmitting ? "작성 중..." : "작성하기"}
           </button>
@@ -124,7 +132,7 @@ export default function NewPostPage() {
           <button
             type="button"
             onClick={() => window.history.back()}
-            className="bg-gray-200 text-gray-700 py-2 px-6 rounded-md hover:bg-gray-300 transition-colors"
+            className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-2 px-6 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-300 font-medium"
           >
             취소
           </button>
