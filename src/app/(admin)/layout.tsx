@@ -1,7 +1,7 @@
 // src/app/(admin)/layout.tsx
 
 import Link from "next/link";
-import { verifySession } from "@/lib/auth/session";
+import { verifySession, getSessionUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 
 export default async function AdminLayout({
@@ -14,6 +14,12 @@ export default async function AdminLayout({
   
   if (!isAuthenticated) {
     redirect("/login");
+  }
+
+  // 관리자만 접근 가능
+  const user = await getSessionUser();
+  if (user?.userType === 'company') {
+    redirect("/company/dashboard");
   }
   return (
     <div className="flex min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
@@ -43,6 +49,12 @@ export default async function AdminLayout({
             className="hover:bg-gray-700 dark:hover:bg-gray-800 p-2 rounded transition-colors duration-300 text-sm lg:text-base"
           >
             문의하기 관리
+          </Link>
+          <Link
+            href="/admin/companies"
+            className="hover:bg-gray-700 dark:hover:bg-gray-800 p-2 rounded transition-colors duration-300 text-sm lg:text-base"
+          >
+            업체관리
           </Link>
           <Link
             href="/"

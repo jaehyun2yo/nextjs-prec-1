@@ -1,9 +1,27 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { PortfolioCard } from "@/components/PortfolioCard";
+import { PortfolioGrid } from "@/components/PortfolioGrid";
+import { logger } from "@/lib/utils/logger";
+
+interface PortfolioItem {
+  id: number;
+  title: string;
+  field: string;
+  purpose: string;
+  type: string;
+  format: string;
+  size: string;
+  paper: string;
+  printing: string;
+  finishing: string;
+  description: string;
+  images: string[];
+  created_at: string;
+}
 
 export default async function PortfolioPage() {
   // Supabase에서 포트폴리오 데이터 가져오기
-  let items: any[] = [];
+  const portfolioLogger = logger.createLogger('PORTFOLIO');
+  let items: PortfolioItem[] = [];
   try {
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase
@@ -12,12 +30,12 @@ export default async function PortfolioPage() {
       .order("created_at", { ascending: false });
     
     if (error) {
-      console.error("[PORTFOLIO PAGE SELECT ERROR]", error);
+      portfolioLogger.error("Portfolio page select error", error);
     } else {
-      items = data || [];
+      items = (data || []) as PortfolioItem[];
     }
-  } catch (e) {
-    console.error("[PORTFOLIO PAGE SELECT EXCEPTION]", e);
+  } catch (error) {
+    portfolioLogger.error("Portfolio page select exception", error);
   }
 
   return (
@@ -31,11 +49,7 @@ export default async function PortfolioPage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {items.map((item) => (
-            <PortfolioCard key={item.id} item={item} />
-          ))}
-        </div>
+        <PortfolioGrid items={items} />
       )}
     </div>
   );

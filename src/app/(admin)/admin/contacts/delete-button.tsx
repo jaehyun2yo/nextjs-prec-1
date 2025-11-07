@@ -11,7 +11,6 @@ interface DeleteButtonProps {
 export function DeleteButton({ contactId, contactName }: DeleteButtonProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
 
   const handleDelete = async () => {
     if (!confirm(`정말로 "${contactName}" 문의를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) {
@@ -36,7 +35,6 @@ export function DeleteButton({ contactId, contactName }: DeleteButtonProps) {
       alert('삭제 중 오류가 발생했습니다.');
     } finally {
       setIsDeleting(false);
-      setShowConfirm(false);
     }
   };
 

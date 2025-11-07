@@ -4,19 +4,26 @@ import { ContactsList } from "./ContactsList";
 export default async function ContactsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; page?: string }>;
+  searchParams: Promise<{ status?: string; page?: string; search?: string }>;
 }) {
   const params = await searchParams;
   const statusFilter = params.status || 'all';
   const page = parseInt(params.page || '1', 10);
   const itemsPerPage = 20;
+  const searchQuery = params.search || '';
 
   const supabase = await createSupabaseServerClient();
   
-  // 모든 데이터를 한 번에 가져오기 (필터링 없이)
-  const { data: contacts, error, count } = await supabase
+  // 검색 쿼리가 있으면 문의번호로 필터링
+  let query = supabase
     .from('contacts')
-    .select('*', { count: 'exact' })
+    .select('*', { count: 'exact' });
+  
+  if (searchQuery) {
+    query = query.ilike('inquiry_number', `%${searchQuery}%`);
+  }
+  
+  const { data: contacts, error, count } = await query
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -45,6 +52,7 @@ export default async function ContactsPage({
             totalCount={count || 0}
             itemsPerPage={itemsPerPage}
             currentPage={page}
+            searchQuery={searchQuery}
             showFiltersOnly={true}
           />
         </div>
@@ -56,6 +64,7 @@ export default async function ContactsPage({
         totalCount={count || 0}
         itemsPerPage={itemsPerPage}
         currentPage={page}
+        searchQuery={searchQuery}
         showFiltersOnly={false}
       />
     </div>

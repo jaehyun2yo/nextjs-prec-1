@@ -3,9 +3,13 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import nodemailer from 'nodemailer';
-import { uploadBufferToR2 } from '@/lib/r2/upload';
+import { uploadFileToR2, uploadFilesInParallel } from '@/lib/utils/fileUpload';
+import { prepareContactInsertData } from '@/lib/utils/contactDataProcessor';
+import { logger } from '@/lib/utils/logger';
+import { FILE_SIZE_LIMITS } from '@/lib/utils/constants';
 
-interface ContactFormData {
+export interface ContactFormData {
+  inquiry_title: string;
   company_name: string;
   name: string;
   position: string;
@@ -44,6 +48,8 @@ async function sendEmail(
   drawingFileName?: string,
   referencePhotosUrls?: string[]
 ) {
+  const contactLogger = logger.createLogger('CONTACT');
+  
   // Gmail 중복 제거 문제 해결을 위한 이메일 처리 방식:
   // 1. from: SMTP 인증 계정과 동일하게 설정 (Gmail 중복 제거 방지)
   //    - Gmail은 SMTP 인증 계정과 받는 사람이 같으면 from이 달라도 중복 제거할 수 있음
@@ -75,21 +81,19 @@ async function sendEmail(
   // 이렇게 하면 Cloudflare를 거치지 않고 직접 수신하므로 중복 제거 문제가 발생하지 않음
   let finalAdminEmail = adminEmail;
   if (adminEmail === 'service@yjlaser.net' && smtpUser) {
-    console.error('[CONTACT] ❌ ERROR: ADMIN_EMAIL is set to service@yjlaser.net');
-    console.error('[CONTACT] This causes Gmail deduplication: same account sends → Cloudflare forwards back → Gmail deduplicates');
-    console.error('[CONTACT] 🔧 FIXING: Automatically using SMTP_USER as adminEmail to bypass Cloudflare routing');
+    contactLogger.error('ADMIN_EMAIL is set to service@yjlaser.net - This causes Gmail deduplication');
+    contactLogger.info('FIXING: Automatically using SMTP_USER as adminEmail to bypass Cloudflare routing');
     finalAdminEmail = smtpUser; // 자동으로 SMTP 인증 계정 사용
   } else if (adminEmail.includes('service@yjlaser.net')) {
-    console.warn('[CONTACT] ⚠️ WARNING: ADMIN_EMAIL contains service@yjlaser.net');
-    console.warn('[CONTACT] This may cause Gmail deduplication issues');
-    console.warn('[CONTACT] Recommendation: Set ADMIN_EMAIL to yjlaserbusiness@gmail.com in .env.local');
+    contactLogger.warn('ADMIN_EMAIL contains service@yjlaser.net - This may cause Gmail deduplication issues');
+    contactLogger.warn('Recommendation: Set ADMIN_EMAIL to yjlaserbusiness@gmail.com in .env.local');
   }
   
   // Gmail 중복 제거 방지: from을 SMTP 인증 계정과 동일하게 설정
   // 이렇게 하면 Gmail이 자가 메일로 인식하지 않음
   const fromEmail = smtpUser; // SMTP 인증 계정 사용
 
-  console.log('[CONTACT] Email configuration check:', {
+  contactLogger.debug('Email configuration check', {
     smtpHost: smtpHost ? '[OK]' : '[MISSING]',
     smtpPort: smtpPort ? smtpPort : '[MISSING]',
     smtpUser: smtpUser ? '[OK]' : '[MISSING]',
@@ -100,7 +104,7 @@ async function sendEmail(
   });
 
   if (!smtpHost || !smtpPort || !smtpUser || !smtpPassword) {
-    console.warn('[CONTACT] Email not configured. Skipping email send.');
+    contactLogger.warn('Email not configured. Skipping email send.');
     return { success: false, error: 'Email not configured' };
   }
 
@@ -118,13 +122,21 @@ async function sendEmail(
 
     // SMTP 연결 테스트
     await transporter.verify();
-    console.log('[CONTACT] SMTP connection verified successfully');
+    contactLogger.debug('SMTP connection verified successfully');
 
     // 관리자에게 전송할 이메일 내용
     // from: SMTP 인증 계정 (Gmail 중복 제거 방지)
     // to: 관리자 이메일 주소 (실제 수신 주소)
     // replyTo: 회사 공식 이메일 + 문의자 이메일 (답장 시 선택 가능)
-    const mailOptions: any = {
+    const mailOptions: {
+      from: string;
+      to: string;
+      replyTo: string;
+      subject: string;
+      html: string;
+      text: string;
+      attachments?: Array<{ filename: string; content: Buffer }>;
+    } = {
       from: `"${fromName}" <${fromEmail}>`, // SMTP 인증 계정으로 설정 (Gmail 중복 제거 방지)
       to: finalAdminEmail, // 관리자 이메일 주소 (직접 수신 주소 사용하여 Cloudflare 우회)
       replyTo: `${replyToEmail}, ${data.email}`, // 답장 주소: 회사 공식 이메일과 문의자 이메일
@@ -281,22 +293,15 @@ ${referencePhotosUrls.map((url, idx) => `사진 ${idx + 1}: ${url}`).join('\n')}
       ];
     }
 
-    const info = await transporter.sendMail(mailOptions);
-    // 로그 최소화
-    // console.log('[CONTACT] ✅ Email sent successfully');
+    await transporter.sendMail(mailOptions);
+    contactLogger.debug('Email sent successfully');
     return { success: true };
   } catch (error) {
-    console.error('[CONTACT] Email send error:', error);
-    if (error instanceof Error) {
-      console.error('[CONTACT] Error details:', {
-        message: error.message,
-        code: (error as any).code,
-        command: (error as any).command,
-        response: (error as any).response,
-        responseCode: (error as any).responseCode,
-      });
-    }
-    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    contactLogger.error('Email send error', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    };
   }
 }
 
@@ -304,6 +309,7 @@ export async function submitContact(formData: FormData) {
   'use server';
 
   // 폼 데이터 추출 및 검증
+  const inquiry_title = String(formData.get('inquiry_title') || '').trim();
   const contact_type = String(formData.get('contact_type') || 'company').trim();
   const service_mold_request = formData.get('service_mold_request') === '1' || formData.get('service_mold_request') === 'true';
   const service_delivery_brokerage = formData.get('service_delivery_brokerage') === '1' || formData.get('service_delivery_brokerage') === 'true';
@@ -329,6 +335,7 @@ export async function submitContact(formData: FormData) {
   
   // 일정 조율 필드
   const receipt_method_raw = formData.get('receipt_method');
+  const visit_location_raw = formData.get('visit_location');
   const visit_date_raw = formData.get('visit_date');
   const visit_time_slot_raw = formData.get('visit_time_slot');
   const delivery_type_raw = formData.get('delivery_type');
@@ -338,6 +345,7 @@ export async function submitContact(formData: FormData) {
   
   // 빈 문자열이나 null을 null로 변환 (빈 문자열도 null로 처리)
   const receipt_method = (receipt_method_raw && String(receipt_method_raw).trim()) ? String(receipt_method_raw).trim() : null;
+  const visit_location = visit_location_raw && String(visit_location_raw).trim() ? String(visit_location_raw).trim() : null;
   const visit_date = visit_date_raw && String(visit_date_raw).trim() ? String(visit_date_raw).trim() : null;
   const visit_time_slot = visit_time_slot_raw && String(visit_time_slot_raw).trim() ? String(visit_time_slot_raw).trim() : null;
   const delivery_type = delivery_type_raw && String(delivery_type_raw).trim() ? String(delivery_type_raw).trim() : null;
@@ -364,7 +372,7 @@ export async function submitContact(formData: FormData) {
   // 필수 필드 검증
   // 개인일 때는 name과 position이 자동으로 설정되므로 company_name만 확인
   const isIndividual = contact_type === 'individual';
-  if (!company_name || (!isIndividual && (!name || !position)) || !phone || !email) {
+  if (!inquiry_title || !company_name || (!isIndividual && (!name || !position)) || !phone || !email) {
     redirect('/contact?error=invalid');
   }
   
@@ -379,53 +387,40 @@ export async function submitContact(formData: FormData) {
     redirect('/contact?error=invalid_email');
   }
 
-  // 파일 업로드 처리 (R2에 병렬 업로드)
+  // 파일 크기 검증 (빠른 검증)
+  if (attachment && attachment.size > FILE_SIZE_LIMITS.ATTACHMENT) {
+    return { success: false, error: `첨부 파일 크기가 너무 큽니다. (최대 ${FILE_SIZE_LIMITS.ATTACHMENT / 1024 / 1024}MB)` };
+  }
+  if (drawing_file && drawing_file.size > FILE_SIZE_LIMITS.DRAWING) {
+    return { success: false, error: `도면 파일 크기가 너무 큽니다. (최대 ${FILE_SIZE_LIMITS.DRAWING / 1024 / 1024}MB)` };
+  }
+  const oversizedPhoto = reference_photos.find(p => p && p.size > FILE_SIZE_LIMITS.REFERENCE_PHOTO);
+  if (oversizedPhoto) {
+    return { success: false, error: `참고 사진 크기가 너무 큽니다. (최대 ${FILE_SIZE_LIMITS.REFERENCE_PHOTO / 1024 / 1024}MB)` };
+  }
+  
+  // 파일 업로드 처리 (병렬 처리로 성능 개선)
   let attachmentUrl: string | undefined;
   let attachmentFilename: string | undefined;
+  let attachmentBuffer: Buffer | undefined;
   let drawingFileUrl: string | undefined;
   let drawingFileName: string | undefined;
-  let referencePhotosUrls: string[] = [];
+  const referencePhotosUrls: string[] = [];
   
-  // 기존 attachment 처리 (이메일 첨부용 - 이메일에는 여전히 첨부)
-  let attachmentBuffer: Buffer | undefined;
-  
-  // 파일 크기 검증 (빠른 검증)
-  if (attachment && attachment.size > 10 * 1024 * 1024) {
-    return { success: false, error: '첨부 파일 크기가 너무 큽니다. (최대 10MB)' };
-  }
-  if (drawing_file && drawing_file.size > 50 * 1024 * 1024) {
-    return { success: false, error: '도면 파일 크기가 너무 큽니다. (최대 50MB)' };
-  }
-  const oversizedPhoto = reference_photos.find(p => p && p.size > 10 * 1024 * 1024);
-  if (oversizedPhoto) {
-    return { success: false, error: '참고 사진 크기가 너무 큽니다. (최대 10MB)' };
-  }
-  
-  // 파일 업로드 작업을 병렬로 처리
+  // 모든 파일 업로드를 병렬로 처리
   const uploadPromises: Promise<void>[] = [];
   
-  // Attachment 처리
+  // Attachment 처리 (이메일 첨부용 버퍼도 함께 생성)
   if (attachment && attachment.size > 0) {
     uploadPromises.push(
       (async () => {
         try {
-          const bytes = await attachment.arrayBuffer();
-          attachmentBuffer = Buffer.from(bytes);
-          attachmentFilename = attachment.name;
-          
-          // R2에 업로드
-          const timestamp = Date.now();
-          const randomId = Math.random().toString(36).slice(2, 10);
-          const objectKey = `contacts/attachments/${timestamp}-${randomId}-${attachment.name}`;
-          const { url } = await uploadBufferToR2(
-            attachmentBuffer,
-            attachment.type || 'application/octet-stream',
-            objectKey
-          );
-          attachmentUrl = url;
-        } catch (r2Error) {
-          console.error('[CONTACT] R2 upload error for attachment:', r2Error);
-          // R2 업로드 실패해도 계속 진행
+          const result = await uploadFileToR2(attachment, 'attachments');
+          if (result.url) attachmentUrl = result.url;
+          if (result.filename) attachmentFilename = result.filename;
+          if (result.buffer) attachmentBuffer = result.buffer;
+        } catch (error) {
+          logger.createLogger('CONTACT').error('Attachment upload error', error);
         }
       })()
     );
@@ -436,21 +431,11 @@ export async function submitContact(formData: FormData) {
     uploadPromises.push(
       (async () => {
         try {
-          const bytes = await drawing_file.arrayBuffer();
-          const buffer = Buffer.from(bytes);
-          drawingFileName = drawing_file.name;
-          
-          const timestamp = Date.now();
-          const randomId = Math.random().toString(36).slice(2, 10);
-          const objectKey = `contacts/drawings/${timestamp}-${randomId}-${drawing_file.name}`;
-          const { url } = await uploadBufferToR2(
-            buffer,
-            drawing_file.type || 'application/octet-stream',
-            objectKey
-          );
-          drawingFileUrl = url;
+          const result = await uploadFileToR2(drawing_file, 'drawings');
+          if (result.url) drawingFileUrl = result.url;
+          if (result.filename) drawingFileName = result.filename;
         } catch (error) {
-          console.error('[CONTACT] Drawing file upload error:', error);
+          logger.createLogger('CONTACT').error('Drawing file upload error', error);
           drawingFileName = drawing_file.name;
         }
       })()
@@ -458,36 +443,26 @@ export async function submitContact(formData: FormData) {
   }
 
   // 참고 사진 업로드 (병렬 처리)
-  reference_photos.forEach((photo, index) => {
-    if (photo && photo.size > 0) {
-      uploadPromises.push(
-        (async () => {
-          try {
-            const bytes = await photo.arrayBuffer();
-            const buffer = Buffer.from(bytes);
-            
-            const timestamp = Date.now();
-            const randomId = Math.random().toString(36).slice(2, 10);
-            const objectKey = `contacts/reference-photos/${timestamp}-${randomId}-${index}-${photo.name}`;
-            const { url } = await uploadBufferToR2(
-              buffer,
-              photo.type || 'image/jpeg',
-              objectKey
-            );
-            referencePhotosUrls.push(url);
-          } catch (error) {
-            console.error('[CONTACT] Reference photo upload error:', error);
-            // 하나 실패해도 계속 진행
-          }
-        })()
-      );
-    }
-  });
+  if (reference_photos.length > 0) {
+    uploadPromises.push(
+      (async () => {
+        try {
+          const results = await uploadFilesInParallel(reference_photos, 'reference-photos');
+          results.forEach((result: { url?: string; filename?: string; buffer?: Buffer }) => {
+            if (result.url) referencePhotosUrls.push(result.url);
+          });
+        } catch (error) {
+          logger.createLogger('CONTACT').error('Reference photos upload error', error);
+        }
+      })()
+    );
+  }
   
   // 모든 파일 업로드를 병렬로 실행
   await Promise.all(uploadPromises);
 
   const contactData: ContactFormData = {
+    inquiry_title,
     company_name,
     name,
     position,
@@ -516,60 +491,50 @@ export async function submitContact(formData: FormData) {
   };
 
   try {
-    // Supabase 연결 (테이블 체크 제거하여 성능 향상)
+    // Supabase 연결
     const supabase = await createSupabaseServerClient();
     
-    // 저장할 데이터 준비 (undefined 값 제거)
-    const insertData: any = {
-      company_name: contactData.company_name,
-      name: contactData.name,
-      position: contactData.position,
-      phone: contactData.phone,
-      email: contactData.email,
-      referral_source: referral_source || null,
-      // 연락처 정보 추가 필드
-      contact_type: contact_type || null,
-      service_mold_request: service_mold_request || false,
-      service_delivery_brokerage: service_delivery_brokerage || false,
-      // 도면 및 샘플
-      drawing_type: contactData.drawing_type || null,
-      has_physical_sample: contactData.has_physical_sample || false,
-      has_reference_photos: contactData.has_reference_photos || false,
-      drawing_modification: contactData.drawing_modification || null,
-      box_shape: contactData.box_shape || null,
-      length: contactData.length || null,
-      width: contactData.width || null,
-      height: contactData.height || null,
-      material: contactData.material || null,
-      drawing_notes: contactData.drawing_notes || null,
-      sample_notes: contactData.sample_notes || null,
-      // 일정 조율
-      receipt_method: receipt_method || null,
-      visit_date: visit_date || null,
-      visit_time_slot: visit_time_slot || null,
-      delivery_type: delivery_type || null,
-      delivery_address: delivery_address || null,
-      delivery_name: delivery_name || null,
-      delivery_phone: delivery_phone || null,
-      attachment_filename: attachmentFilename || null,
-      attachment_url: attachmentUrl || null,
-      drawing_file_url: drawingFileUrl || null,
-      drawing_file_name: drawingFileName || null,
-      reference_photos_urls: referencePhotosUrls.length > 0 ? JSON.stringify(referencePhotosUrls) : null,
-      status: 'new',
-    };
-
-    // undefined 값 제거 (Supabase에서 undefined는 에러를 발생시킬 수 있음)
-    Object.keys(insertData).forEach(key => {
-      if (insertData[key] === undefined) {
-        delete insertData[key];
-      }
+    // 문의번호 생성 (YYMMDD-순번 형식)
+    const now = new Date();
+    const year = now.getFullYear().toString().slice(-2); // 마지막 2자리
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const datePrefix = `${year}${month}${day}`;
+    
+    // 오늘 날짜의 문의 개수 조회
+    const { count } = await supabase
+      .from('contacts')
+      .select('*', { count: 'exact', head: true })
+      .like('inquiry_number', `${datePrefix}-%`);
+    
+    const sequenceNumber = (count || 0) + 1;
+    const inquiryNumber = `${datePrefix}-${sequenceNumber}`;
+    
+    // 저장할 데이터 준비 (유틸리티 함수 사용)
+    const insertData = prepareContactInsertData(contactData, {
+      contact_type,
+      service_mold_request,
+      service_delivery_brokerage,
+      receipt_method,
+      visit_location,
+      visit_date,
+      visit_time_slot,
+      delivery_type,
+      delivery_address,
+      delivery_name,
+      delivery_phone,
+      attachmentFilename,
+      attachmentUrl,
+      drawingFileUrl,
+      drawingFileName,
+      referencePhotosUrls,
+      inquiryNumber,
     });
 
     // 로그 최소화 (필요시에만 주석 해제)
     // console.log('[CONTACT] Inserting contact data...');
     
-    const { data: insertResult, error: dbError } = await supabase
+    const { error: dbError } = await supabase
       .from('contacts')
       .insert(insertData)
       .select();
@@ -594,14 +559,16 @@ export async function submitContact(formData: FormData) {
         console.error('[CONTACT] ⚠️ 에러된 컬럼:', dbError.message);
         console.error(`
 -- 필수 컬럼 추가 SQL:
-ALTER TABLE public.contacts 
+ALTER TABLE public.contacts
+ADD COLUMN IF NOT EXISTS inquiry_title TEXT,
+ADD COLUMN IF NOT EXISTS referral_source TEXT,        
 ADD COLUMN IF NOT EXISTS contact_type TEXT,
 ADD COLUMN IF NOT EXISTS service_mold_request BOOLEAN DEFAULT FALSE,
 ADD COLUMN IF NOT EXISTS service_delivery_brokerage BOOLEAN DEFAULT FALSE,
 ADD COLUMN IF NOT EXISTS drawing_type TEXT,
 ADD COLUMN IF NOT EXISTS has_physical_sample BOOLEAN DEFAULT FALSE,
 ADD COLUMN IF NOT EXISTS has_reference_photos BOOLEAN DEFAULT FALSE,
-ADD COLUMN IF NOT EXISTS drawing_modification TEXT,
+ADD COLUMN IF NOT EXISTS drawing_modification TEXT,   
 ADD COLUMN IF NOT EXISTS box_shape TEXT,
 ADD COLUMN IF NOT EXISTS length TEXT,
 ADD COLUMN IF NOT EXISTS width TEXT,
@@ -611,17 +578,23 @@ ADD COLUMN IF NOT EXISTS drawing_notes TEXT,
 ADD COLUMN IF NOT EXISTS sample_notes TEXT,
 ADD COLUMN IF NOT EXISTS receipt_method TEXT,
 ADD COLUMN IF NOT EXISTS visit_date TEXT,
-ADD COLUMN IF NOT EXISTS visit_time_slot TEXT,
+ADD COLUMN IF NOT EXISTS visit_time_slot TEXT,        
+ADD COLUMN IF NOT EXISTS visit_location TEXT,
 ADD COLUMN IF NOT EXISTS delivery_type TEXT,
-ADD COLUMN IF NOT EXISTS delivery_address TEXT,
+ADD COLUMN IF NOT EXISTS delivery_address TEXT,       
 ADD COLUMN IF NOT EXISTS delivery_name TEXT,
 ADD COLUMN IF NOT EXISTS delivery_phone TEXT,
-ADD COLUMN IF NOT EXISTS attachment_filename TEXT,
+ADD COLUMN IF NOT EXISTS attachment_filename TEXT,    
 ADD COLUMN IF NOT EXISTS attachment_url TEXT,
-ADD COLUMN IF NOT EXISTS drawing_file_url TEXT,
-ADD COLUMN IF NOT EXISTS drawing_file_name TEXT,
-ADD COLUMN IF NOT EXISTS reference_photos_urls TEXT,
-ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'new';
+ADD COLUMN IF NOT EXISTS drawing_file_url TEXT,       
+ADD COLUMN IF NOT EXISTS drawing_file_name TEXT,      
+ADD COLUMN IF NOT EXISTS reference_photos_urls TEXT,  
+ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'new',
+ADD COLUMN IF NOT EXISTS process_stage TEXT,
+ADD COLUMN IF NOT EXISTS inquiry_number TEXT;
+
+-- 인덱스 생성 (검색 성능 향상)
+CREATE INDEX IF NOT EXISTS idx_contacts_inquiry_number ON contacts(inquiry_number);
         `);
       }
       
@@ -640,14 +613,37 @@ ALTER TABLE public.contacts DISABLE ROW LEVEL SECURITY;
         `);
       }
       // DB 저장 실패해도 이메일은 시도
-    } else {
-      // 로그 최소화 - 성공 시에만 간단히 로깅
-      console.log('[CONTACT] ✅ Contact saved successfully');
     }
 
-    // 이메일 전송 (비동기로 처리하여 응답 빠르게)
-    // DB 저장이 성공하면 바로 성공 응답, 이메일은 백그라운드에서 처리
-    const emailPromise = sendEmail(
+    // DB 저장 실패 시 처리
+    if (dbError) {
+      // DB 저장 실패해도 이메일은 전송 시도
+      try {
+        await sendEmail(
+          contactData, 
+          attachmentBuffer, 
+          attachmentFilename,
+          attachmentUrl,
+          drawingFileUrl,
+          drawingFileName,
+          referencePhotosUrls.length > 0 ? referencePhotosUrls : undefined
+        );
+        return { 
+          success: false, 
+          error: '데이터베이스 저장에 실패했습니다. 이메일은 전송되었습니다.' 
+        };
+      } catch (emailError) {
+        logger.createLogger('CONTACT').error('Email send also failed', emailError);
+        return { 
+          success: false, 
+          error: '데이터베이스 저장에 실패했습니다.' 
+        };
+      }
+    }
+
+    // DB 저장 성공 - 이메일은 비동기로 전송 (응답 속도 개선)
+    const contactLogger = logger.createLogger('CONTACT');
+    sendEmail(
       contactData, 
       attachmentBuffer, 
       attachmentFilename,
@@ -656,33 +652,22 @@ ALTER TABLE public.contacts DISABLE ROW LEVEL SECURITY;
       drawingFileName,
       referencePhotosUrls.length > 0 ? referencePhotosUrls : undefined
     ).catch((error) => {
-      console.error('[CONTACT] Email send failed (non-blocking):', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      contactLogger.error('Email send failed (non-blocking)', error);
     });
 
-    // DB 저장 성공 여부에 따라 결과 반환
-    if (dbError) {
-      // DB 저장 실패 시 이메일 전송 결과도 확인
-      const emailResult = await emailPromise;
-      return { 
-        success: false, 
-        error: emailResult.success ? '데이터베이스 저장에 실패했습니다. 이메일은 전송되었습니다.' : '데이터베이스 저장에 실패했습니다.' 
-      };
-    }
-
-    // DB 저장 성공 - 이메일은 백그라운드에서 처리하고 바로 성공 응답
-    emailPromise.then((emailResult) => {
-      if (!emailResult.success) {
-        console.warn('[CONTACT] Email send failed but DB save succeeded:', emailResult.error);
-      }
-    });
-
+    contactLogger.info('Contact saved successfully');
     return { success: true };
-  } catch (e: any) {
-    console.error('[CONTACT] Exception:', e);
+  } catch (error) {
+    // Next.js redirect 에러는 다시 throw
+    if (error instanceof Error && (error.message === 'NEXT_REDIRECT' || (error as { digest?: string }).digest?.startsWith('NEXT_REDIRECT'))) {
+      throw error;
+    }
+    
+    const contactLogger = logger.createLogger('CONTACT');
+    contactLogger.error('Exception', error);
     return { 
       success: false, 
-      error: e instanceof Error ? e.message : '알 수 없는 오류가 발생했습니다.' 
+      error: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.' 
     };
   }
 }

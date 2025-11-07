@@ -9,13 +9,16 @@ const SESSION_SECRET = process.env.SESSION_SECRET || 'change-this-in-production'
 
 /**
  * 세션 토큰을 생성하고 쿠키에 저장합니다
+ * @param userType - 사용자 타입 ('admin' | 'company')
+ * @param userId - 사용자 ID (company의 경우 company id)
  */
-export async function createSession(): Promise<string> {
+export async function createSession(userType: 'admin' | 'company' = 'admin', userId?: number): Promise<string> {
   const token = generateSessionToken();
   const cookieStore = await cookies();
 
-  // 토큰을 서명하여 저장 (간단한 해시 기반 서명)
-  const signedToken = signToken(token);
+  // 토큰에 사용자 타입과 ID를 포함하여 서명
+  const sessionData = JSON.stringify({ userType, userId });
+  const signedToken = signToken(`${token}:${sessionData}`);
 
   cookieStore.set(SESSION_COOKIE_NAME, signedToken, {
     httpOnly: true,
@@ -26,6 +29,43 @@ export async function createSession(): Promise<string> {
   });
 
   return token;
+}
+
+/**
+ * 세션에서 사용자 타입과 ID를 가져옵니다
+ */
+export async function getSessionUser(): Promise<{ userType: 'admin' | 'company'; userId?: number } | null> {
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get(SESSION_COOKIE_NAME);
+
+  if (!sessionCookie?.value) {
+    return null;
+  }
+
+  try {
+    const isValid = verifySignedToken(sessionCookie.value);
+    if (!isValid) {
+      return null;
+    }
+
+    // 토큰에서 사용자 정보 추출
+    const [token] = sessionCookie.value.split('.');
+    if (!token) return null;
+
+    const parts = token.split(':');
+    if (parts.length < 2) {
+      // 기존 세션 (userType 정보 없음) - admin으로 간주
+      return { userType: 'admin' };
+    }
+
+    const sessionData = JSON.parse(parts.slice(1).join(':'));
+    return {
+      userType: sessionData.userType || 'admin',
+      userId: sessionData.userId,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -59,6 +99,7 @@ export async function destroySession(): Promise<void> {
  * 토큰에 서명을 추가합니다 (간단한 해시 기반)
  */
 function signToken(token: string): string {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const crypto = require('crypto');
   const hash = crypto.createHash('sha256')
     .update(token + SESSION_SECRET)

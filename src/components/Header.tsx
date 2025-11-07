@@ -7,22 +7,23 @@ import { FaMoon, FaSun, FaSignOutAlt, FaUserCog } from "react-icons/fa";
 import { useTheme } from '@/store/useStore';
 import { useEffect, useState } from 'react';
 import { logoutAction } from '@/app/actions/auth';
+import { usePathname } from 'next/navigation';
 
 interface HeaderProps {
   isAuthenticated?: boolean;
+  userType?: 'admin' | 'company' | null;
+  companyName?: string | null;
 }
 
-export default function Header({ isAuthenticated = false }: HeaderProps) {
+export default function Header({ 
+  isAuthenticated = false, 
+  userType = null,
+  companyName = null 
+}: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
   
-  const navItems = [
-    { href: "/about", label: "소개" },
-    { href: "/portfolio", label: "포트폴리오" },
-    { href: "/notice", label: "공지사항" },
-    { href: "/contact", label: "문의하기" },
-  ];
-
   // 마운트 확인
   useEffect(() => {
     setMounted(true);
@@ -49,6 +50,19 @@ export default function Header({ isAuthenticated = false }: HeaderProps) {
       root.style.colorScheme = 'light';
     }
   }, [theme, mounted]);
+  
+  // 공정관리페이지(/company/)에서는 Header를 표시하지 않음
+  // 모든 hooks 호출 후에 조건부 return
+  if (pathname?.startsWith('/company/')) {
+    return null;
+  }
+  
+  const navItems = [
+    { href: "/about", label: "소개" },
+    { href: "/portfolio", label: "포트폴리오" },
+    { href: "/notice", label: "공지사항" },
+    { href: "/contact", label: "문의하기" },
+  ];
 
   return (
     <motion.header
@@ -105,15 +119,15 @@ export default function Header({ isAuthenticated = false }: HeaderProps) {
             className="ml-6 md:ml-8 flex items-center gap-2"
           >
             <span className="text-gray-900 dark:text-gray-300 text-xs px-2 py-2">
-              관리자
+              {userType === 'company' && companyName ? companyName : '관리자'}
             </span>
             <Link
-              href="/admin"
+              href={userType === 'company' ? "/company/dashboard" : "/admin"}
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-orange-100 dark:hover:bg-orange-900/30 text-gray-900 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 transition-all duration-300 text-xs"
-              title="관리자 페이지"
+              title={userType === 'company' ? "공정관리페이지" : "관리자 페이지"}
             >
               <FaUserCog className="text-xs" />
-              <span>관리자 페이지</span>
+              <span>{userType === 'company' ? '공정관리페이지' : '관리자 페이지'}</span>
             </Link>
             <form action={logoutAction}>
               <motion.button

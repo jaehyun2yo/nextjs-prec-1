@@ -3,13 +3,36 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { uploadFileToR2 } from "@/lib/r2/upload";
 import { createAndUploadVariants } from "@/lib/images/process";
 import Image from "next/image";
 import { transparentBlurDataURL } from "@/lib/images/placeholder";
+import { logger } from "@/lib/utils/logger";
+
+interface UploadedImage {
+  original: string;
+  thumbnail?: string;
+  medium?: string;
+}
+
+interface PortfolioItem {
+  id: number;
+  title: string;
+  field: string;
+  purpose: string;
+  type: string;
+  format: string;
+  size: string;
+  paper: string;
+  printing: string;
+  finishing: string;
+  description: string;
+  images: string[] | UploadedImage[];
+  created_at: string;
+}
 
 async function savePortfolio(formData: FormData) {
   "use server";
+  const portfolioLogger = logger.createLogger('PORTFOLIO_ADMIN');
   // 간단 검증
   const required = [
     "title",
@@ -32,7 +55,7 @@ async function savePortfolio(formData: FormData) {
 
   // 이미지 업로드 (여러장)
   const images = formData.getAll("images");
-  let uploaded: any[] = [];
+  const uploaded: UploadedImage[] = [];
   try {
     for (const f of images) {
       if (typeof f === "object" && "arrayBuffer" in f) {
@@ -40,7 +63,8 @@ async function savePortfolio(formData: FormData) {
         uploaded.push(res);
       }
     }
-  } catch (e) {
+  } catch (error) {
+    portfolioLogger.error("R2 upload error", error);
     // R2 설정/업로드 실패 시 경고로 안내
     redirect("/admin/portfolio?warn=r2config");
   }
@@ -62,7 +86,7 @@ async function savePortfolio(formData: FormData) {
 
   try {
     const supabase = await createSupabaseServerClient();
-    const { error, data } = await supabase.from("portfolio").insert(payload as any);
+    const { error, data } = await supabase.from("portfolio").insert(payload as Record<string, unknown>);
     if (error) {
       console.error("[PORTFOLIO INSERT ERROR]", error);
       console.error("[PORTFOLIO INSERT ERROR DETAILS]", {
@@ -76,23 +100,20 @@ async function savePortfolio(formData: FormData) {
     console.log("[PORTFOLIO INSERT SUCCESS]", data);
     // Next.js redirect는 예외를 throw하므로 catch에서 잡히면 안됨
     redirect("/admin/portfolio?success=1");
-  } catch (e: any) {
+  } catch (error: unknown) {
     // Next.js redirect는 NEXT_REDIRECT 에러를 throw하므로 이를 무시해야 함
-    if (e?.digest?.startsWith("NEXT_REDIRECT")) {
-      throw e; // redirect 예외는 다시 throw
+    if (error instanceof Error && (error.message === "NEXT_REDIRECT" || (error as { digest?: string }).digest?.startsWith("NEXT_REDIRECT"))) {
+      throw error; // redirect 예외는 다시 throw
     }
     // 실제 에러만 catch
-    console.error("[PORTFOLIO INSERT EXCEPTION]", e);
-    if (e instanceof Error) {
-      console.error("[PORTFOLIO INSERT EXCEPTION MESSAGE]", e.message);
-      console.error("[PORTFOLIO INSERT EXCEPTION STACK]", e.stack);
-    }
+    portfolioLogger.error("Portfolio insert exception", error);
     redirect("/admin/portfolio?warn=noconfig");
   }
 }
 
 async function deletePortfolio(formData: FormData) {
   "use server";
+  const portfolioLogger = logger.createLogger('PORTFOLIO_ADMIN');
   const id = formData.get("id");
   if (!id) {
     redirect("/admin/portfolio?error=invalid");
@@ -101,16 +122,17 @@ async function deletePortfolio(formData: FormData) {
     const supabase = await createSupabaseServerClient();
     const { error } = await supabase.from("portfolio").delete().eq("id", id as string);
     if (error) {
-      console.error("[PORTFOLIO DELETE ERROR]", error);
+      portfolioLogger.error("Portfolio delete error", error);
       redirect("/admin/portfolio?error=supabase");
     }
+    portfolioLogger.debug("Portfolio delete success");
     redirect("/admin/portfolio?success=1");
-  } catch (e: any) {
+  } catch (error: unknown) {
     // Next.js redirect는 NEXT_REDIRECT 에러를 throw하므로 이를 무시해야 함
-    if (e?.digest?.startsWith("NEXT_REDIRECT")) {
-      throw e; // redirect 예외는 다시 throw
+    if (error instanceof Error && (error.message === "NEXT_REDIRECT" || (error as { digest?: string }).digest?.startsWith("NEXT_REDIRECT"))) {
+      throw error; // redirect 예외는 다시 throw
     }
-    console.error("[PORTFOLIO DELETE EXCEPTION]", e);
+    portfolioLogger.error("Portfolio delete exception", error);
     redirect("/admin/portfolio?warn=noconfig");
   }
 }
@@ -126,7 +148,8 @@ export default async function AdminPortfolioPage({
   const warnNoConfig = params.warn === "noconfig";
 
   // 목록 조회 (Supabase가 설정되어 있을 때만)
-  let items: any[] = [];
+  const portfolioLogger = logger.createLogger('PORTFOLIO_ADMIN');
+  let items: PortfolioItem[] = [];
   try {
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase
@@ -134,13 +157,13 @@ export default async function AdminPortfolioPage({
       .select("id, title, field, purpose, type, format, size, paper, printing, finishing, images, created_at")
       .order("created_at", { ascending: false });
     if (error) {
-      console.error("[PORTFOLIO SELECT ERROR]", error);
+      portfolioLogger.error("Portfolio select error", error);
     } else {
-      items = data || [];
+      items = (data || []) as PortfolioItem[];
     }
-  } catch (e) {
+  } catch (error) {
+    portfolioLogger.error("Portfolio select exception", error);
     // 미구성 시 목록은 비움
-    console.error("[PORTFOLIO SELECT EXCEPTION]", e);
   }
 
   // 선택 옵션 (문자열로 저장)
@@ -349,7 +372,7 @@ export default async function AdminPortfolioPage({
               <li key={it.id} className="py-3 flex items-start gap-4">
                 {Array.isArray(it.images) && it.images[0] && (
                   <Image
-                    src={typeof it.images[0] === "string" ? it.images[0] : (it.images[0].thumb || it.images[0].medium || it.images[0].original)}
+                    src={typeof it.images[0] === "string" ? it.images[0] : (it.images[0].thumbnail || it.images[0].medium || it.images[0].original)}
                     alt={it.title}
                     width={96}
                     height={72}

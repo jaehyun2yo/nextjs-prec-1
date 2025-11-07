@@ -38,18 +38,31 @@ export function ConfirmButton({ contactId, currentStatus }: ConfirmButtonProps) 
     }
   };
 
-  if (currentStatus === 'read' || currentStatus === 'completed') {
-    return null;
-  }
+  const isAlreadyConfirmed = currentStatus === 'read' || currentStatus === 'in_progress' || currentStatus === 'revision_in_progress' || currentStatus === 'completed';
 
   return (
-    <button
-      onClick={handleConfirm}
-      disabled={isUpdating}
-      className="w-full px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-    >
-      {isUpdating ? '처리중...' : '확인완료'}
-    </button>
+    <div className="space-y-2">
+      {isAlreadyConfirmed ? (
+        <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+          <p className="text-sm text-green-800 dark:text-green-200 font-medium">
+            ✓ {currentStatus === 'completed' ? '완료됨' : '확인완료됨'}
+          </p>
+          <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+            {currentStatus === 'completed' 
+              ? '이 문의는 완료 처리되었습니다.' 
+              : '이 문의는 확인 완료되었습니다. 공정 단계를 관리할 수 있습니다.'}
+          </p>
+        </div>
+      ) : (
+        <button
+          onClick={handleConfirm}
+          disabled={isUpdating}
+          className="w-full px-4 py-3 bg-[#ED6C00] hover:bg-[#d15f00] text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isUpdating ? '처리중...' : '확인완료'}
+        </button>
+      )}
+    </div>
   );
 }
 

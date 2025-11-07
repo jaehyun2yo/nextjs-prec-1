@@ -1,10 +1,18 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { FaFileAlt, FaUsers, FaEye, FaChartLine, FaEnvelope, FaEdit, FaCalendarAlt } from "react-icons/fa";
+import { FaFileAlt, FaEye, FaChartLine, FaEnvelope, FaEdit, FaCalendarAlt } from "react-icons/fa";
 import Link from "next/link";
+import { logger } from "@/lib/utils/logger";
+
+interface Post {
+  id: number;
+  title: string;
+  created_at: string;
+}
 
 export default async function AdminDashboardPage() {
+  const adminLogger = logger.createLogger('ADMIN');
   let postCount = 0;
-  let posts: any[] = [];
+  let posts: Post[] = [];
   let contactCount = 0;
   let newContactCount = 0;
   
@@ -16,7 +24,7 @@ export default async function AdminDashboardPage() {
       .from("posts")
       .select("*");
     
-    posts = postsData || [];
+    posts = (postsData || []) as Post[];
     postCount = posts.length;
 
     // 문의하기 통계
@@ -32,7 +40,7 @@ export default async function AdminDashboardPage() {
     contactCount = totalContacts || 0;
     newContactCount = newContacts || 0;
   } catch (error) {
-    console.error("Supabase connection error:", error);
+    adminLogger.error("Supabase connection error", error);
     // Supabase 설정이 없는 경우에도 페이지는 표시되도록 함
   }
 

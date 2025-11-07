@@ -11,7 +11,7 @@ function getR2Host() {
 }
 
 const r2Host = getR2Host();
-const staticRemotePatterns = [
+const staticRemotePatterns: Array<{ protocol: "https" | "http"; hostname: string }> = [
   { protocol: "https", hostname: "yjlaser.net" },
   { protocol: "http", hostname: "yjlaser.net" },
 ];
@@ -25,8 +25,8 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       ...(r2Host
         ? [
-            { protocol: "https", hostname: r2Host },
-            { protocol: "http", hostname: r2Host },
+            { protocol: "https" as const, hostname: r2Host },
+            { protocol: "http" as const, hostname: r2Host },
           ]
         : []),
       ...staticRemotePatterns,

@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react';
 import { submitContact } from '@/app/actions/contact';
 import SuccessModal from '@/components/SuccessModal';
+import ErrorModal from '@/components/ErrorModal';
+import StepIndicator from '@/components/contact/StepIndicator';
+import { INPUT_STYLES, BUTTON_STYLES, CHECKBOX_STYLES, FILE_INPUT_STYLES } from '@/lib/styles';
+import { getErrorMessage } from '@/lib/utils/contactValidation';
+import type { ContactFormProps } from '@/types/contact';
 
-interface ContactFormProps {
-  success?: boolean;
-  error?: string;
-}
-
-export default function ContactForm({ success, error }: ContactFormProps) {
+export default function ContactForm({ success, error, initialValues }: ContactFormProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [contactType, setContactType] = useState<'company' | 'individual'>('company');
   const [serviceTypes, setServiceTypes] = useState<{
@@ -27,12 +27,12 @@ export default function ContactForm({ success, error }: ContactFormProps) {
   const [drawingModification, setDrawingModification] = useState<'needed' | 'not_needed' | ''>('');
   
   // 일정 조율 섹션 state
-  const [selectedDate, setSelectedDate] = useState<string>('');
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
+  // const [selectedDate, setSelectedDate] = useState<string>(''); // 미사용
+  // const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>(''); // 미사용
   
   // 수령방법 선택 state
   const [receiptMethod, setReceiptMethod] = useState<'visit' | 'delivery' | ''>('');
-  const [visitLocation, setVisitLocation] = useState<string>('');
+  const [visitLocation] = useState<string>('');
   const [visitDate, setVisitDate] = useState<string>('');
   const [visitTimeSlot, setVisitTimeSlot] = useState<string>('');
   const [deliveryAddress, setDeliveryAddress] = useState<string>('');
@@ -40,13 +40,15 @@ export default function ContactForm({ success, error }: ContactFormProps) {
   const [deliveryPhone, setDeliveryPhone] = useState<string>('');
   const [deliveryType, setDeliveryType] = useState<'parcel' | 'quick' | ''>('');
 
-  // Step 1, 2의 입력값을 state로 관리
-  const [companyName, setCompanyName] = useState('');
-  const [name, setName] = useState('');
-  const [position, setPosition] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [referralSource, setReferralSource] = useState<string>('');
+  // Step 1, 2의 입력값을 state로 관리 (초기값 설정)
+  const [inquiryTitle, setInquiryTitle] = useState('');
+  const [companyName, setCompanyName] = useState(initialValues?.companyName || '');
+  const [name, setName] = useState(initialValues?.name || '');
+  const [position, setPosition] = useState(initialValues?.position || '');
+  const [phone, setPhone] = useState(initialValues?.phone || '');
+  const [email, setEmail] = useState(initialValues?.email || '');
+  // 업체 로그인 시 "기존업체"를 기본값으로 설정
+  const [referralSource, setReferralSource] = useState<string>(initialValues ? '기존업체' : '');
   const [referralSourceOther, setReferralSourceOther] = useState('');
   const [boxShape, setBoxShape] = useState('');
   const [length, setLength] = useState('');
@@ -58,7 +60,24 @@ export default function ContactForm({ success, error }: ContactFormProps) {
   
   // 모달 상태
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [, setIsSubmitting] = useState(false); // isSubmitting은 내부에서만 사용
+
+  // 초기값이 변경되면 state 업데이트 (업체 로그인 시 자동 채우기)
+  useEffect(() => {
+    if (initialValues) {
+      if (initialValues.companyName) setCompanyName(initialValues.companyName);
+      if (initialValues.name) setName(initialValues.name);
+      if (initialValues.position) setPosition(initialValues.position);
+      if (initialValues.phone) setPhone(initialValues.phone);
+      if (initialValues.email) setEmail(initialValues.email);
+      // 업체 정보가 있으면 contactType을 'company'로 설정
+      setContactType('company');
+      // 업체 로그인 시 유입경로를 "기존업체"로 설정
+      setReferralSource('기존업체');
+    }
+  }, [initialValues]);
   
   // 내용 확인 페이지에서 파일 정보만 읽기 (나머지는 state에서 직접 사용)
   useEffect(() => {
@@ -80,28 +99,6 @@ export default function ContactForm({ success, error }: ContactFormProps) {
     }
   }, [currentStep, drawingType]);
 
-  const getErrorMessage = (errorType?: string) => {
-    switch (errorType) {
-      case 'invalid':
-        return '모든 필드를 올바르게 입력해주세요.';
-      case 'invalid_email':
-        return '올바른 이메일 주소를 입력해주세요.';
-      case 'db_failed':
-        return '저장 중 오류가 발생했습니다. 이메일은 전송되었을 수 있습니다.';
-      case 'email_failed':
-        return '이메일 전송에 실패했습니다. 문의 내용은 저장되었습니다.';
-      case 'both_failed':
-        return '저장 및 이메일 전송에 실패했습니다. 잠시 후 다시 시도해주세요.';
-      case 'exception':
-        return '오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
-      case 'file_too_large':
-        return '파일 크기가 10MB를 초과합니다. 더 작은 파일을 선택해주세요.';
-      case 'file_read_error':
-        return '파일을 읽는 중 오류가 발생했습니다. 다시 시도해주세요.';
-      default:
-        return null;
-    }
-  };
 
   const handleServiceTypeChange = (type: 'moldRequest' | 'deliveryBrokerage') => {
     setServiceTypes(prev => ({
@@ -127,47 +124,45 @@ export default function ContactForm({ success, error }: ContactFormProps) {
       )}
 
       {/* 진행 단계 표시 */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <div className={`flex items-center ${currentStep >= 1 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-400'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${currentStep >= 1 ? 'bg-orange-600 text-white dark:bg-orange-500' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'}`}>
-              1
-            </div>
-            <span className="ml-2 font-medium">연락처</span>
-          </div>
-          <div className="flex-1 h-0.5 bg-gray-200 dark:bg-gray-700 mx-4"></div>
-          <div className={`flex items-center ${currentStep >= 2 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-400'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${currentStep >= 2 ? 'bg-orange-600 text-white dark:bg-orange-500' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'}`}>
-              2
-            </div>
-            <span className="ml-2 font-medium">도면 및 샘플</span>
-          </div>
-          <div className="flex-1 h-0.5 bg-gray-200 dark:bg-gray-700 mx-4"></div>
-          <div className={`flex items-center ${currentStep >= 3 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-400'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${currentStep >= 3 ? 'bg-orange-600 text-white dark:bg-orange-500' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'}`}>
-              3
-            </div>
-            <span className="ml-2 font-medium">일정 조율</span>
-          </div>
-          <div className="flex-1 h-0.5 bg-gray-200 dark:bg-gray-700 mx-4"></div>
-          <div className={`flex items-center ${currentStep >= 4 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-400'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${currentStep >= 4 ? 'bg-orange-600 text-white dark:bg-orange-500' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'}`}>
-              4
-            </div>
-            <span className="ml-2 font-medium">내용 확인</span>
-          </div>
-        </div>
-      </div>
+      <StepIndicator currentStep={currentStep} />
       
       <div className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 p-8 rounded-xl shadow-md">
         <form className="space-y-6">
-          {/* 첫 번째 섹션: 연락처 */}
-          <div style={{ display: currentStep === 1 ? 'block' : 'none' }} className="space-y-6">
-              <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-gray-100">연락처 정보</h2>
+          {/* 첫 번째 섹션: 패키지명 */}
+          <div style={{ display: currentStep === 1 ? 'block' : 'none' }} className="space-y-8">
+              {/* 패키지명 섹션 */}
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+                {/* 패키지명 입력 */}
+                <div>
+                  <label htmlFor="inquiry_title" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                    패키지명 <span className="text-red-500">*</span>
+                  </label>
+                  
+                  <input
+                    type="text"
+                    id="inquiry_title"
+                    name="inquiry_title"
+                    value={inquiryTitle}
+                    onChange={(e) => setInquiryTitle(e.target.value)}
+                    placeholder="제작하고자하는 패키지명"
+                    className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
+                    required
+                  />
+                  
+                  {/* 패키지명 작성 힌트 */}
+                  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    패키지명을 작성시에는 추후에 작업현황을 확인하실수있도록 알아보기쉽게 작성하면 편리합니다!
+                  </p>
+                </div>
+              </div>
+              
+              {/* 연락처 정보 섹션 */}
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+                <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-gray-100">연락처 정보</h2>
               
               {/* 업체/개인 선택 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
                   문의 유형 <span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-6">
@@ -178,7 +173,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                       value="company"
                       checked={contactType === 'company'}
                       onChange={(e) => setContactType(e.target.value as 'company' | 'individual')}
-                      className="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 focus:ring-orange-500 dark:focus:ring-orange-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                      className={`${CHECKBOX_STYLES.base} ${CHECKBOX_STYLES.primary}`}
                     />
                     <span className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-100">업체</span>
                   </label>
@@ -189,7 +184,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                       value="individual"
                       checked={contactType === 'individual'}
                       onChange={(e) => setContactType(e.target.value as 'company' | 'individual')}
-                      className="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 focus:ring-orange-500 dark:focus:ring-orange-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                      className={`${CHECKBOX_STYLES.base} ${CHECKBOX_STYLES.primary}`}
                     />
                     <span className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-100">개인</span>
                   </label>
@@ -198,8 +193,8 @@ export default function ContactForm({ success, error }: ContactFormProps) {
 
               {/* 개인 선택 시 서비스 유형 */}
               {contactType === 'individual' && (
-                <div className="pl-4 border-l-2 border-orange-200 dark:border-orange-800/50">
-                  <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
+                <div className="pl-4 border-l-2 border-[#fed7aa] dark:border-[#ED6C00]/50 mb-6">
+                  <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
                     서비스 유형 <span className="text-gray-500 text-xs">(선택사항)</span>
                   </label>
                   <div className="space-y-3">
@@ -208,7 +203,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                         type="checkbox"
                         checked={serviceTypes.moldRequest}
                         onChange={() => handleServiceTypeChange('moldRequest')}
-                        className="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 rounded focus:ring-orange-500 dark:focus:ring-orange-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                        className={`${CHECKBOX_STYLES.base} ${CHECKBOX_STYLES.primary} rounded`}
                       />
                       <span className="ml-2 text-sm text-gray-900 dark:text-gray-100">목형 제작 의뢰</span>
                     </label>
@@ -217,7 +212,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                         type="checkbox"
                         checked={serviceTypes.deliveryBrokerage}
                         onChange={() => handleServiceTypeChange('deliveryBrokerage')}
-                        className="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 rounded focus:ring-orange-500 dark:focus:ring-orange-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                        className={`${CHECKBOX_STYLES.base} ${CHECKBOX_STYLES.primary} rounded`}
                       />
                       <span className="ml-2 text-sm text-gray-900 dark:text-gray-100">납품까지 중개</span>
                     </label>
@@ -225,7 +220,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                 </div>
               )}
 
-              <div>
+              <div className="mb-6">
                 <label htmlFor="company_name" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
                   {contactType === 'company' ? '업체명' : '이름'} <span className="text-red-500">*</span>
                 </label>
@@ -236,14 +231,14 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
                   required
-                  className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                  className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
                   placeholder={contactType === 'company' ? '업체명을 입력하세요' : '이름을 입력하세요'}
                 />
               </div>
 
               {contactType === 'company' && (
                 <>
-                  <div>
+                  <div className="mb-6">
                     <label htmlFor="name" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
                       담당자명 <span className="text-red-500">*</span>
                     </label>
@@ -254,12 +249,12 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       required
-                      className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                      className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
                       placeholder="담당자명을 입력하세요"
                     />
                   </div>
 
-                  <div>
+                  <div className="mb-6">
                     <label htmlFor="position" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
                       담당자 직책 <span className="text-red-500">*</span>
                     </label>
@@ -270,7 +265,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                       value={position}
                       onChange={(e) => setPosition(e.target.value)}
                       required
-                      className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                      className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
                       placeholder="예: 대표, 팀장, 매니저 등"
                     />
                   </div>
@@ -278,7 +273,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
               )}
 
 
-              <div>
+              <div className="mb-6">
                 <label htmlFor="phone" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
                   연락처 <span className="text-red-500">*</span>
                 </label>
@@ -289,12 +284,12 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   required
-                  className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                  className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
                   placeholder="010-1234-5678"
                 />
               </div>
               
-              <div>
+              <div className="mb-6">
                 <label htmlFor="email" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
                   이메일 <span className="text-red-500">*</span>
                 </label>
@@ -305,12 +300,12 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                  className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
                   placeholder="email@example.com"
                 />
               </div>
 
-              <div>
+              <div className="mb-6">
                 <label htmlFor="referralSource" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
                   유입경로 <span className="text-red-500">*</span>
                 </label>
@@ -320,9 +315,10 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                   value={referralSource}
                   onChange={(e) => setReferralSource(e.target.value)}
                   required
-                  className="w-1/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                  className={`${INPUT_STYLES.oneThird} ${INPUT_STYLES.base} ${INPUT_STYLES.focus} text-sm`}
                 >
                   <option value="">선택해주세요</option>
+                  {initialValues && <option value="기존업체">기존업체</option>}
                   <option value="구글">구글</option>
                   <option value="네이버">네이버</option>
                   <option value="블로그">블로그</option>
@@ -334,7 +330,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
               </div>
 
               {(referralSource === '기타' || referralSource === '거래처 소개') && (
-                <div>
+                <div className="mb-6">
                   <label htmlFor="referralSourceOther" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
                     {referralSource === '기타' ? '유입경로 (기타)' : '거래처명'} <span className="text-red-500">*</span>
                   </label>
@@ -345,7 +341,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                     value={referralSourceOther}
                     onChange={(e) => setReferralSourceOther(e.target.value)}
                     required
-                    className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                    className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
                     placeholder={referralSource === '기타' ? '유입경로를 입력해주세요' : '거래처명을 입력해주세요'}
                   />
                 </div>
@@ -355,6 +351,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
               <input type="hidden" name="contact_type" value={contactType} />
               <input type="hidden" name="service_mold_request" value={serviceTypes.moldRequest ? '1' : '0'} />
               <input type="hidden" name="service_delivery_brokerage" value={serviceTypes.deliveryBrokerage ? '1' : '0'} />
+              </div>
 
               {/* 다음 단계 버튼 */}
               <div className="flex justify-end pt-4">
@@ -371,8 +368,12 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                       return;
                     }
                     setCurrentStep(2);
+                    // 화면 상단으로 스크롤
+                    setTimeout(() => {
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }, 100);
                   }}
-                  className="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors duration-300 shadow-md hover:shadow-lg"
+                  className={BUTTON_STYLES.primary}
                 >
                   다음 단계
                 </button>
@@ -401,7 +402,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                         setHasPhysicalSample(false);
                         setHasReferencePhotos(false);
                       }}
-                      className="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 focus:ring-orange-500 dark:focus:ring-orange-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                      className={`${CHECKBOX_STYLES.base} ${CHECKBOX_STYLES.primary}`}
                     />
                     <span className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-100">도면 제작이 필요합니다</span>
                   </label>
@@ -416,7 +417,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                         // 초기화
                         setDrawingModification('');
                       }}
-                      className="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 focus:ring-orange-500 dark:focus:ring-orange-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                      className={`${CHECKBOX_STYLES.base} ${CHECKBOX_STYLES.primary}`}
                     />
                     <span className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-100">도면을 가지고 있습니다</span>
                   </label>
@@ -425,7 +426,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
 
               {/* 도면 제작이 필요합니다 선택 시 */}
               {drawingType === 'create' && (
-                <div className="pl-4 border-l-2 border-orange-200 dark:border-orange-800 space-y-4">
+                <div className="pl-4 border-l-2 border-[#fed7aa] dark:border-[#ED6C00]/50 space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
                       샘플/사진 정보 <span className="text-gray-500 text-xs">(선택사항)</span>
@@ -434,7 +435,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                       {/* 실물 샘플이 있습니다 - 레이아웃 연장되는 느낌으로 */}
                       <div className={`overflow-hidden transition-all duration-300 ${
                         hasPhysicalSample 
-                          ? 'border border-orange-300 dark:border-orange-800/50 rounded-lg' 
+                          ? 'border border-[#fb923c] dark:border-[#ED6C00]/50 rounded-lg' 
                           : ''
                       }`}>
                         {/* 실물 샘플이 있습니다 토글 버튼 */}
@@ -445,14 +446,14 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                           }}
                           className={`w-full flex items-center justify-between px-4 py-3 transition-all duration-300 ${
                             hasPhysicalSample
-                              ? 'bg-orange-50 border-b border-orange-200 dark:bg-orange-900/20 dark:border-orange-800/50'
+                              ? 'bg-[#fff7ed] border-b border-[#fed7aa] dark:bg-[#ED6C00]/20 dark:border-[#ED6C00]/50'
                               : 'bg-white border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
                           }`}
                         >
                           <div className="flex items-center">
                             <div className={`w-5 h-5 rounded border-2 flex items-center justify-center mr-3 transition-colors ${
                               hasPhysicalSample
-                                ? 'bg-orange-600 border-orange-600'
+                                ? 'bg-[#ED6C00] border-[#ED6C00]'
                                 : 'border-gray-300 dark:border-gray-500'
                             }`}>
                               {hasPhysicalSample && (
@@ -464,7 +465,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                             <span className="text-sm font-medium text-gray-900 dark:text-gray-100">실물 샘플이 있습니다</span>
                           </div>
                           <svg
-                            className={`w-5 h-5 text-orange-600 dark:text-orange-400 transition-transform duration-200 ${
+                            className={`w-5 h-5 text-[#ED6C00] dark:text-[#ff8533] transition-transform duration-200 ${
                               hasPhysicalSample ? 'rotate-180' : ''
                             }`}
                             fill="none"
@@ -477,7 +478,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
 
                         {/* 실물 샘플이 있습니다 선택 시 - 체크되면 바로 아래 내용 표시 */}
                         {hasPhysicalSample && (
-                          <div className="space-y-4 p-4 bg-orange-50/50 dark:bg-orange-900/10 transition-all duration-300">
+                          <div className="space-y-4 p-4 bg-[#fff7ed]/50 dark:bg-[#ED6C00]/10 transition-all duration-300">
                             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                               <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">샘플 발송 주소</h4>
                               <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
@@ -499,7 +500,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                                 value={sampleNotes}
                                 onChange={(e) => setSampleNotes(e.target.value)}
                                 rows={3}
-                                className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300 resize-none"
+                                className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus} resize-none`}
                                 placeholder="샘플에 대한 특이사항이나 주의사항을 입력해주세요"
                               />
                             </div>
@@ -510,7 +511,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                       {/* 제작에 필요한 내용 자료가 있을까요 - 동일한 레이아웃으로 */}
                       <div className={`overflow-hidden transition-all duration-300 ${
                         hasReferencePhotos 
-                          ? 'border border-orange-300 dark:border-orange-800/50 rounded-lg' 
+                          ? 'border border-[#fb923c] dark:border-[#ED6C00]/50 rounded-lg' 
                           : ''
                       }`}>
                         {/* 제작에 필요한 내용 자료가 있을까요 토글 버튼 */}
@@ -521,14 +522,14 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                           }}
                           className={`w-full flex items-center justify-between px-4 py-3 transition-all duration-300 ${
                             hasReferencePhotos
-                              ? 'bg-orange-50 border-b border-orange-200 dark:bg-orange-900/20 dark:border-orange-800/50'
+                              ? 'bg-[#fff7ed] border-b border-[#fed7aa] dark:bg-[#ED6C00]/20 dark:border-[#ED6C00]/50'
                               : 'bg-white border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
                           }`}
                         >
                           <div className="flex items-center">
                             <div className={`w-5 h-5 rounded border-2 flex items-center justify-center mr-3 transition-colors ${
                               hasReferencePhotos
-                                ? 'bg-orange-600 border-orange-600'
+                                ? 'bg-[#ED6C00] border-[#ED6C00]'
                                 : 'border-gray-300 dark:border-gray-500'
                             }`}>
                               {hasReferencePhotos && (
@@ -540,7 +541,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                             <span className="text-sm font-medium text-gray-900 dark:text-gray-100">제작에 필요한 내용 자료가 있을까요?</span>
                           </div>
                           <svg
-                            className={`w-5 h-5 text-orange-600 dark:text-orange-400 transition-transform duration-200 ${
+                            className={`w-5 h-5 text-[#ED6C00] dark:text-[#ff8533] transition-transform duration-200 ${
                               hasReferencePhotos ? 'rotate-180' : ''
                             }`}
                             fill="none"
@@ -553,7 +554,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
 
                         {/* 제작에 필요한 내용 자료 업로드 - 체크되면 바로 아래 내용 표시 */}
                         {hasReferencePhotos && (
-                          <div className="space-y-4 p-4 bg-orange-50/50 dark:bg-orange-900/10 transition-all duration-300">
+                          <div className="space-y-4 p-4 bg-[#fff7ed]/50 dark:bg-[#ED6C00]/10 transition-all duration-300">
                             <div>
                               <label htmlFor="reference_photos" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
                                 제작에 필요한 내용 자료 업로드 <span className="text-gray-500 text-xs">(선택사항)</span>
@@ -564,7 +565,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                                 name="reference_photos"
                                 multiple
                                 accept="image/*,.pdf,.doc,.docx"
-                                className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 dark:file:bg-orange-900/20 dark:file:text-orange-300"
+                                className={`${FILE_INPUT_STYLES.base} ${FILE_INPUT_STYLES.fileButton}`}
                               />
                               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                                 이미지 파일 또는 문서 파일 업로드 가능 (JPG, PNG, GIF, PDF, DOC, DOCX 등)
@@ -580,7 +581,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
 
               {/* 도면을 가지고 있습니다 선택 시 */}
               {drawingType === 'have' && (
-                <div className="pl-4 border-l-2 border-orange-200 dark:border-orange-800 space-y-4">
+                <div className="pl-4 border-l-2 border-[#fed7aa] dark:border-[#ED6C00]/50 space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
                       도면 수정 필요 여부 <span className="text-red-500">*</span>
@@ -593,7 +594,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                           value="needed"
                           checked={drawingModification === 'needed'}
                           onChange={(e) => setDrawingModification(e.target.value as 'needed')}
-                          className="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 focus:ring-orange-500 dark:focus:ring-orange-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                          className={`${CHECKBOX_STYLES.base} ${CHECKBOX_STYLES.primary}`}
                         />
                         <span className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-100">도면의 수정이 필요합니다</span>
                       </label>
@@ -604,7 +605,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                           value="not_needed"
                           checked={drawingModification === 'not_needed'}
                           onChange={(e) => setDrawingModification(e.target.value as 'not_needed')}
-                          className="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 focus:ring-orange-500 dark:focus:ring-orange-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                          className={`${CHECKBOX_STYLES.base} ${CHECKBOX_STYLES.primary}`}
                         />
                         <span className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-100">도면의 수정이 필요없습니다</span>
                       </label>
@@ -621,7 +622,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                       name="drawing_file"
                       accept=".pdf,.dwg,.dxf,.jpg,.jpeg,.png,.gif,.zip,.rar"
                       required={drawingType === 'have'}
-                      className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 dark:file:bg-orange-900/20 dark:file:text-orange-300"
+                      className={`${INPUT_STYLES.twoThirds} ${FILE_INPUT_STYLES.base} ${FILE_INPUT_STYLES.fileButton}`}
                     />
                     <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                       지원 형식: PDF, DWG, DXF, JPG, PNG, GIF, ZIP, RAR (최대 10MB)
@@ -644,7 +645,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                     name="box_shape"
                     value={boxShape}
                     onChange={(e) => setBoxShape(e.target.value)}
-                    className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                    className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
                     placeholder="예: 직사각형, 정사각형, 원형 등"
                   />
                 </div>
@@ -653,7 +654,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                   <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
                     장폭고 <span className="text-gray-500 text-xs">(선택사항)</span>
                   </label>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-3 gap-2">
                     <div>
                       <label htmlFor="length" className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                         장 (길이)
@@ -664,7 +665,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                         name="length"
                         value={length}
                         onChange={(e) => setLength(e.target.value)}
-                        className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                        className={`${INPUT_STYLES.full} px-3 py-2 ${INPUT_STYLES.base.replace('px-4', '')} ${INPUT_STYLES.focus}`}
                         placeholder="mm"
                       />
                     </div>
@@ -678,7 +679,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                         name="width"
                         value={width}
                         onChange={(e) => setWidth(e.target.value)}
-                        className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                        className={`${INPUT_STYLES.full} px-3 py-2 ${INPUT_STYLES.base.replace('px-4', '')} ${INPUT_STYLES.focus}`}
                         placeholder="mm"
                       />
                     </div>
@@ -692,7 +693,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                         name="height"
                         value={height}
                         onChange={(e) => setHeight(e.target.value)}
-                        className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                        className={`${INPUT_STYLES.full} px-3 py-2 ${INPUT_STYLES.base.replace('px-4', '')} ${INPUT_STYLES.focus}`}
                         placeholder="mm"
                       />
                     </div>
@@ -709,7 +710,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                     name="material"
                     value={material}
                     onChange={(e) => setMaterial(e.target.value)}
-                    className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                    className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
                     placeholder="예: 종이, 플라스틱, 천 등"
                   />
                 </div>
@@ -726,7 +727,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                   value={drawingNotes}
                   onChange={(e) => setDrawingNotes(e.target.value)}
                   rows={4}
-                  className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300 resize-none"
+                  className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus} resize-none`}
                   placeholder="도면 및 샘플 제작시 특별히 주의해야 할 사항을 입력해주세요"
                 />
               </div>
@@ -749,7 +750,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                 <button
                   type="button"
                   onClick={() => setCurrentStep(1)}
-                  className="bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 font-semibold py-3 px-8 rounded-lg transition-colors duration-300"
+                  className={BUTTON_STYLES.secondary}
                 >
                   이전
                 </button>
@@ -773,8 +774,12 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                       }
                     }
                     setCurrentStep(3);
+                    // 화면 상단으로 스크롤
+                    setTimeout(() => {
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }, 100);
                   }}
-                  className="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors duration-300 shadow-md hover:shadow-lg"
+                  className={BUTTON_STYLES.primary}
                 >
                   다음 단계
                 </button>
@@ -883,14 +888,14 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                                 today.setHours(0, 0, 0, 0);
                                 
                                 // 현재 날짜 + 2일 이후의 첫 번째 평일 찾기
-                                let startDate = new Date(today);
+                                const startDate = new Date(today);
                                 startDate.setDate(startDate.getDate() + 2);
                                 while (startDate.getDay() === 0 || startDate.getDay() === 6) {
                                   startDate.setDate(startDate.getDate() + 1);
                                 }
                                 
                                 // 평일 7일 범위 계산 (주말 제외)
-                                let endDate = new Date(startDate);
+                                const endDate = new Date(startDate);
                                 let weekdaysCount = 0;
                                 while (weekdaysCount < 6) { // 7일이므로 6일 더 추가
                                   endDate.setDate(endDate.getDate() + 1);
@@ -913,7 +918,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                               min={(() => {
                                 const today = new Date();
                                 today.setHours(0, 0, 0, 0);
-                                let date = new Date(today);
+                                const date = new Date(today);
                                 date.setDate(date.getDate() + 2); // 현재 날짜 + 2일
                                 
                                 // 첫 번째 평일 찾기
@@ -928,14 +933,14 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                                 today.setHours(0, 0, 0, 0);
                                 
                                 // 현재 날짜 + 2일 이후의 첫 번째 평일 찾기
-                                let startDate = new Date(today);
+                                const startDate = new Date(today);
                                 startDate.setDate(startDate.getDate() + 2);
                                 while (startDate.getDay() === 0 || startDate.getDay() === 6) {
                                   startDate.setDate(startDate.getDate() + 1);
                                 }
                                 
                                 // 평일 7일 범위 계산 (주말 제외)
-                                let endDate = new Date(startDate);
+                                const endDate = new Date(startDate);
                                 let weekdaysCount = 0;
                                 while (weekdaysCount < 6) { // 7일이므로 6일 더 추가
                                   endDate.setDate(endDate.getDate() + 1);
@@ -946,7 +951,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                                 
                                 return endDate.toISOString().split('T')[0];
                               })()}
-                              className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                              className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
                               required
                             />
                           </div>
@@ -1049,7 +1054,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                                 value="parcel"
                                 checked={deliveryType === 'parcel'}
                                 onChange={(e) => setDeliveryType(e.target.value as 'parcel' | 'quick')}
-                                className="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 focus:ring-orange-500 dark:focus:ring-orange-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                                className={`${CHECKBOX_STYLES.base} ${CHECKBOX_STYLES.primary}`}
                               />
                               <span className="ml-2 text-sm text-gray-900 dark:text-gray-100">택배</span>
                             </label>
@@ -1060,7 +1065,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                                 value="quick"
                                 checked={deliveryType === 'quick'}
                                 onChange={(e) => setDeliveryType(e.target.value as 'parcel' | 'quick')}
-                                className="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 focus:ring-orange-500 dark:focus:ring-orange-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                                className={`${CHECKBOX_STYLES.base} ${CHECKBOX_STYLES.primary}`}
                               />
                               <span className="ml-2 text-sm text-gray-900 dark:text-gray-100">퀵</span>
                             </label>
@@ -1077,7 +1082,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                             name="delivery_address"
                             value={deliveryAddress}
                             onChange={(e) => setDeliveryAddress(e.target.value)}
-                            className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                            className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
                             placeholder="택배 받을 주소를 입력해주세요"
                             required
                           />
@@ -1093,7 +1098,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                             name="delivery_name"
                             value={deliveryName}
                             onChange={(e) => setDeliveryName(e.target.value)}
-                            className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                            className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
                             placeholder="이름을 입력해주세요"
                             required
                           />
@@ -1109,7 +1114,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                             name="delivery_phone"
                             value={deliveryPhone}
                             onChange={(e) => setDeliveryPhone(e.target.value)}
-                            className="w-2/3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-300"
+                            className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
                             placeholder="010-1234-5678"
                             required
                           />
@@ -1125,7 +1130,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                 <button
                   type="button"
                   onClick={() => setCurrentStep(2)}
-                  className="bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 font-semibold py-3 px-8 rounded-lg transition-colors duration-300"
+                  className={BUTTON_STYLES.secondary}
                 >
                   이전
                 </button>
@@ -1164,8 +1169,12 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                       }
                     }
                     setCurrentStep(4);
+                    // 화면 상단으로 스크롤
+                    setTimeout(() => {
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }, 100);
                   }}
-                  className="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors duration-300 shadow-md hover:shadow-lg"
+                  className={BUTTON_STYLES.primary}
                 >
                   다음 단계
                 </button>
@@ -1191,6 +1200,10 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                   </button>
                 </div>
                 <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                  <div>
+                    <span className="font-medium text-gray-600 dark:text-gray-400">패키지명:</span>
+                    <span className="ml-2">{inquiryTitle || '-'}</span>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <span className="font-medium text-gray-600 dark:text-gray-400">문의 유형:</span>
@@ -1393,7 +1406,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                 <button
                   type="button"
                   onClick={() => setCurrentStep(3)}
-                  className="bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 font-semibold py-3 px-8 rounded-lg transition-colors duration-300"
+                  className={BUTTON_STYLES.secondary}
                 >
                   이전
                 </button>
@@ -1490,12 +1503,6 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                           firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
                           setTimeout(() => firstErrorField.focus(), 300);
                         } else {
-                          // 해당 단계의 섹션으로 이동
-                          const stepSelectors: { [key: number]: string } = {
-                            1: 'h2:contains("연락처 정보")',
-                            2: 'h2:contains("도면 및 샘플")',
-                            3: 'h2:contains("일정 조율")',
-                          };
                           // 직접 단계별 헤더 찾기
                           const headings = document.querySelectorAll('h2');
                           let targetHeading: Element | null = null;
@@ -1522,6 +1529,7 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                       const formData = new FormData();
                       
                       // Step 1: 연락처 정보
+                      formData.append('inquiry_title', inquiryTitle);
                       formData.append('contact_type', contactType);
                       formData.append('service_mold_request', serviceTypes.moldRequest ? '1' : '0');
                       formData.append('service_delivery_brokerage', serviceTypes.deliveryBrokerage ? '1' : '0');
@@ -1579,17 +1587,24 @@ export default function ContactForm({ success, error }: ContactFormProps) {
                         // 성공 모달 표시
                         setShowSuccessModal(true);
                       } else {
-                        // 실패 시 에러 메시지 표시
-                        alert(result?.error || '문의 제출에 실패했습니다. 다시 시도해주세요.');
+                        // 실패 시 에러 모달 표시
+                        setErrorMessage(result?.error || '문의 제출에 실패했습니다. 다시 시도해주세요.');
+                        setShowErrorModal(true);
                         setIsSubmitting(false);
                       }
                     } catch (error) {
+                      // Next.js redirect 에러는 무시 (정상적인 리다이렉트)
+                      if (error instanceof Error && (error.message === 'NEXT_REDIRECT' || (error as { digest?: string }).digest?.startsWith('NEXT_REDIRECT'))) {
+                        // 리다이렉트는 정상 동작이므로 에러로 처리하지 않음
+                        return;
+                      }
                       console.error('[CONTACT FORM] Form submission error:', error);
-                      alert(`폼 제출 중 오류가 발생했습니다: ${error instanceof Error ? error.message : String(error)}`);
+                      setErrorMessage(`폼 제출 중 오류가 발생했습니다: ${error instanceof Error ? error.message : String(error)}`);
+                      setShowErrorModal(true);
                       setIsSubmitting(false);
                     }
                   }}
-                  className="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors duration-300 shadow-md hover:shadow-lg"
+                  className={BUTTON_STYLES.primary}
                 >
                   문의하기
                 </button>
@@ -1619,6 +1634,16 @@ export default function ContactForm({ success, error }: ContactFormProps) {
         title="문의가 전송되었습니다"
         message="빠른 시일 내에 연락드리겠습니다."
         redirectUrl="/contact"
+      />
+
+      {/* 에러 모달 */}
+      <ErrorModal
+        isOpen={showErrorModal}
+        onClose={() => {
+          setShowErrorModal(false);
+        }}
+        title="문의 제출 실패"
+        message={errorMessage}
       />
     </div>
   );

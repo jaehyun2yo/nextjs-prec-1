@@ -1,5 +1,7 @@
 'use client';
 
+import { BUTTON_STYLES } from '@/lib/styles';
+
 interface SuccessModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -42,12 +44,12 @@ export default function SuccessModal({
           <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-3">
             {title}
           </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-8">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-8 whitespace-pre-line">
             {message}
           </p>
           <button
             onClick={handleClose}
-            className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2.5 px-6 rounded-lg transition-colors duration-300"
+            className={`w-full ${BUTTON_STYLES.primary}`}
           >
             확인
           </button>

@@ -5,7 +5,9 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Providers } from './providers';
 import { Toaster } from 'sonner';
-import { verifySession } from '@/lib/auth/session';
+import { verifySession, getSessionUser } from '@/lib/auth/session';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { headers } from 'next/headers';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,6 +31,40 @@ export default async function RootLayout({
 }>) {
   // 세션 확인 (관리자 페이지가 아닌 경우에도 로그인 상태 확인)
   const isAuthenticated = await verifySession();
+  const user = await getSessionUser();
+  
+  // 현재 경로 확인 (업체 전용 페이지인지 확인)
+  // middleware에서 설정한 x-pathname 헤더를 확인
+  let isCompanyPage = false;
+  try {
+    const headersList = await headers();
+    const pathname = headersList.get('x-pathname') || '';
+    // /company/로 시작하는 모든 경로는 업체 전용 페이지 (공정관리페이지)
+    // 이 경우 메인 네비게이션바(Header)를 숨김
+    isCompanyPage = pathname.startsWith('/company/');
+  } catch {
+    // headers() 호출 실패 시 기본값 사용
+    isCompanyPage = false;
+  }
+  
+  // 업체 정보 가져오기 (업체 로그인인 경우)
+  let companyName: string | null = null;
+  if (user?.userType === 'company' && user?.userId) {
+    try {
+      const supabase = await createSupabaseServerClient();
+      const { data: companyData } = await supabase
+        .from('companies')
+        .select('company_name')
+        .eq('id', user.userId)
+        .single();
+      
+      if (companyData) {
+        companyName = companyData.company_name;
+      }
+    } catch (error) {
+      console.error('Error fetching company name:', error);
+    }
+  }
 
   return (
     <html lang="ko" suppressHydrationWarning>
@@ -73,11 +109,19 @@ export default async function RootLayout({
           }}
         />
         <Providers>
-          <Header isAuthenticated={isAuthenticated} />
+          {/* 업체 전용 페이지가 아닐 때만 Header 표시 */}
+          {!isCompanyPage && (
+            <Header 
+              isAuthenticated={isAuthenticated} 
+              userType={user?.userType || null}
+              companyName={companyName}
+            />
+          )}
           <main className="flex-1 bg-white dark:bg-gray-900 min-h-[calc(100vh-80px)] transition-colors duration-300" suppressHydrationWarning>
             {children}
           </main>
-          <Footer />
+          {/* 업체 전용 페이지가 아닐 때만 Footer 표시 */}
+          {!isCompanyPage && <Footer />}
           <Toaster position="top-right" richColors />
         </Providers>
       </body>

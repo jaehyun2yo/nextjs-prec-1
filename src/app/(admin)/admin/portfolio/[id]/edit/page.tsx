@@ -1,11 +1,33 @@
 // src/app/(admin)/admin/portfolio/[id]/edit/page.tsx
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { uploadFileToR2 } from "@/lib/r2/upload";
 import { createAndUploadVariants } from "@/lib/images/process";
 import Image from "next/image";
 import { transparentBlurDataURL } from "@/lib/images/placeholder";
 import { redirect } from "next/navigation";
+import { logger } from "@/lib/utils/logger";
+
+interface UploadedImage {
+  original: string;
+  thumbnail?: string;
+  medium?: string;
+}
+
+interface PortfolioItem {
+  id: number;
+  title: string;
+  field: string;
+  purpose: string;
+  type: string;
+  format: string;
+  size: string;
+  paper: string;
+  printing: string;
+  finishing: string;
+  description: string;
+  images: string[] | UploadedImage[];
+  created_at: string;
+}
 
 async function updatePortfolio(formData: FormData) {
   "use server";
@@ -24,18 +46,18 @@ async function updatePortfolio(formData: FormData) {
   // 삭제 선택된 이미지들 (URL 값)
   const removeList = formData.getAll("remove").map((v) => String(v));
   // existing may be string[] or object[]
-  const kept = (existing as any[]).filter((item) => {
+  const kept = (existing as (string | UploadedImage)[]).filter((item) => {
     if (typeof item === "string") {
       return !removeList.includes(item);
     }
     // object with variants
-    const urls = [item.thumb, item.medium, item.original].filter(Boolean);
-    return urls.every((u: string) => !removeList.includes(u));
+    const urls = [item.thumbnail, item.medium, item.original].filter(Boolean) as string[];
+    return urls.every((u) => !removeList.includes(u));
   });
 
   // 새 이미지 업로드
   const newFiles = formData.getAll("newImages");
-  const uploaded: any[] = [];
+  const uploaded: UploadedImage[] = [];
   try {
     for (const f of newFiles) {
       if (typeof f === "object" && "arrayBuffer" in f) {
@@ -64,14 +86,21 @@ async function updatePortfolio(formData: FormData) {
     updated_at: new Date().toISOString(),
   };
 
+  const portfolioLogger = logger.createLogger('PORTFOLIO_ADMIN');
   try {
     const supabase = await createSupabaseServerClient();
-    const { error } = await supabase.from("portfolio").update(payload as any).eq("id", id);
+    const { error } = await supabase.from("portfolio").update(payload).eq("id", id);
     if (error) {
+      portfolioLogger.error("Portfolio update error", error);
       redirect(`/admin/portfolio/${id}/edit?error=supabase`);
     }
+    portfolioLogger.debug("Portfolio update success");
     redirect(`/admin/portfolio/${id}/edit?success=1`);
-  } catch {
+  } catch (error: unknown) {
+    if (error instanceof Error && (error.message === "NEXT_REDIRECT" || (error as { digest?: string }).digest?.startsWith("NEXT_REDIRECT"))) {
+      throw error;
+    }
+    portfolioLogger.error("Portfolio update exception", error);
     redirect(`/admin/portfolio/${id}/edit?warn=noconfig`);
   }
 }
@@ -89,7 +118,7 @@ export default async function EditPortfolioPage({
   const error = sp.error === "supabase";
   const warnNoConfig = sp.warn === "noconfig";
 
-  let item: any | null = null;
+  let item: PortfolioItem | null = null;
   try {
     const supabase = await createSupabaseServerClient();
     const { data } = await supabase
@@ -97,7 +126,7 @@ export default async function EditPortfolioPage({
       .select("id, title, field, purpose, type, format, size, paper, printing, finishing, description, images, created_at")
       .eq("id", id)
       .maybeSingle();
-    item = data || null;
+    item = (data || null) as PortfolioItem | null;
   } catch {
     // ignore when not configured
   }
@@ -201,25 +230,29 @@ export default async function EditPortfolioPage({
           <label className="block text-sm font-medium">기존 이미지</label>
           {Array.isArray(item.images) && item.images.length > 0 ? (
             <ul className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {item.images.map((url: string) => (
-                <li key={typeof url === "string" ? url : url.original}
-                  className="space-y-2">
-                  <Image
-                    src={typeof url === "string" ? url : (url.thumb || url.medium || url.original)}
-                    alt="image"
-                    width={320}
-                    height={160}
-                    className="w-full h-28 object-cover rounded-md border border-gray-200 dark:border-gray-700"
-                    sizes="(max-width: 768px) 50vw, 320px"
-                    placeholder="blur"
-                    blurDataURL={transparentBlurDataURL}
-                  />
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" name="remove" value={typeof url === "string" ? url : (url.thumb || url.medium || url.original)} />
-                    삭제하기
-                  </label>
-                </li>
-              ))}
+              {item.images.map((img: string | UploadedImage, idx: number) => {
+                const url = typeof img === "string" ? img : img.original;
+                const thumbnailUrl = typeof img === "string" ? img : (img.thumbnail || img.medium || img.original);
+                return (
+                  <li key={typeof img === "string" ? img : img.original || idx}
+                    className="space-y-2">
+                    <Image
+                      src={thumbnailUrl}
+                      alt="image"
+                      width={320}
+                      height={160}
+                      className="w-full h-28 object-cover rounded-md border border-gray-200 dark:border-gray-700"
+                      sizes="(max-width: 768px) 50vw, 320px"
+                      placeholder="blur"
+                      blurDataURL={transparentBlurDataURL}
+                    />
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" name="remove" value={url} />
+                      삭제하기
+                    </label>
+                  </li>
+                );
+              })}
             </ul>
           ) : (
             <p className="text-sm text-gray-500">등록된 이미지가 없습니다.</p>

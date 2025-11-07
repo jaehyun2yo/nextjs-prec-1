@@ -50,7 +50,10 @@ export function UpdateStatusButton({ contactId, currentStatus }: UpdateStatusBut
       >
         <option value="new">신규</option>
         <option value="read">읽음</option>
-        <option value="completed">완료</option>
+        <option value="in_progress">작업중</option>
+        <option value="revision_in_progress">수정작업중</option>
+        <option value="completed">납품완료</option>
+        <option value="on_hold">보류</option>
       </select>
     </div>
   );

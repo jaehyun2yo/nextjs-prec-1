@@ -30,13 +30,13 @@ export async function createPost(title: string, contentJson: string) {
   // 클라이언트에서 받은 JSON 문자열을 실제 JSON 객체로 변환합니다.
   const content = JSON.parse(contentJson);
 
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from("posts")
     .insert([{ title, content }]) // content 컬럼에 JSON 객체를 직접 저장
     .select();
 
   if (error) {
-    console.error("Error creating post:", error);
+    // 에러는 상위에서 처리
     // 실제 서비스에서는 에러 처리를 더 정교하게 할 수 있습니다.
     return { success: false, error };
   }

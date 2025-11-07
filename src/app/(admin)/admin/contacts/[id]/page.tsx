@@ -4,6 +4,9 @@ import Link from "next/link";
 import { UpdateStatusButton } from "./update-status-button";
 import { DeleteButton } from "./delete-button";
 import { ConfirmButton } from "./confirm-button";
+import { UpdateProcessStageButton } from "./update-process-stage-button";
+import { ProcessStageIndicator } from "@/components/ProcessStageIndicator";
+import type { ProcessStage } from "@/lib/utils/processStages";
 
 interface Contact {
   id: number;
@@ -39,6 +42,7 @@ interface Contact {
   drawing_file_name: string | null;
   reference_photos_urls: string | null;
   status: string;
+  process_stage: ProcessStage;
   created_at: string;
   updated_at: string;
 }
@@ -416,11 +420,25 @@ export default async function ContactDetailPage({
                       contactData.status === 'new'
                         ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
                         : contactData.status === 'read'
+                        ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+                        : contactData.status === 'in_progress'
                         ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'
-                        : 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
+                        : contactData.status === 'revision_in_progress'
+                        ? 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200'
+                        : contactData.status === 'completed'
+                        ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
+                        : contactData.status === 'on_hold'
+                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
                     }`}
                   >
-                    {contactData.status === 'new' ? '신규' : contactData.status === 'read' ? '읽음' : '완료'}
+                    {contactData.status === 'new' ? '신규' 
+                      : contactData.status === 'read' ? '읽음'
+                      : contactData.status === 'in_progress' ? '작업중'
+                      : contactData.status === 'revision_in_progress' ? '수정작업중'
+                      : contactData.status === 'completed' ? '납품완료'
+                      : contactData.status === 'on_hold' ? '보류'
+                      : contactData.status}
                   </span>
                 </p>
               </div>
@@ -441,7 +459,24 @@ export default async function ContactDetailPage({
 
           {/* 확인완료 버튼 */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">확인 상태</h3>
             <ConfirmButton contactId={contactData.id} currentStatus={contactData.status} />
+          </div>
+
+          {/* 공정 단계 관리 */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">공정 단계 관리</h3>
+            <UpdateProcessStageButton 
+              contactId={contactData.id} 
+              currentStage={contactData.process_stage} 
+              status={contactData.status}
+            />
+            <div className="mt-4">
+              <ProcessStageIndicator 
+                currentStage={contactData.process_stage} 
+                status={contactData.status} 
+              />
+            </div>
           </div>
         </div>
       </div>

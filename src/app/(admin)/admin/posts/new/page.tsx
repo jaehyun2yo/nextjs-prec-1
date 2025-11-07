@@ -65,7 +65,7 @@ export default function NewPostPage() {
       } else {
         toast.success('게시물이 생성되었습니다!');
       }
-    } catch (error) {
+    } catch {
       toast.error('오류가 발생했습니다', {
         description: '잠시 후 다시 시도해주세요.',
       });

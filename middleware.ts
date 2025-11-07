@@ -4,8 +4,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
-  // /admin 경로로 접근을 시도하는지 확인합니다.
-  if (request.nextUrl.pathname.startsWith("/admin")) {
+  // /admin 또는 /company 경로로 접근을 시도하는지 확인합니다.
+  if (request.nextUrl.pathname.startsWith("/admin") || request.nextUrl.pathname.startsWith("/company")) {
     // 서명된 세션 쿠키가 있는지 확인합니다.
     const sessionCookie = request.cookies.get("admin-session")?.value;
 
@@ -22,11 +22,24 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // 인증되었거나 /admin 경로가 아니면, 요청을 그대로 통과시킵니다.
-  return NextResponse.next();
+  // 경로 정보를 헤더에 추가 (레이아웃에서 사용)
+  const response = NextResponse.next();
+  response.headers.set('x-pathname', request.nextUrl.pathname);
+
+  // 인증되었거나 보호된 경로가 아니면, 요청을 그대로 통과시킵니다.
+  return response;
 }
 
 // 미들웨어가 어떤 경로에서 실행될지 지정합니다.
 export const config = {
-  matcher: "/admin/:path*",
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
 };

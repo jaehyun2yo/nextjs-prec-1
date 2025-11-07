@@ -1,14 +1,9 @@
--- contacts 테이블에 누락된 필수 컬럼 추가
--- ⚠️ 중요: company_name, position, phone 컬럼이 없어서 에러가 발생합니다!
+-- contacts 테이블에 누락된 컬럼 추가
+-- Supabase SQL Editor에서 실행하세요.
 
--- 1. 필수 연락처 정보 컬럼 추가 (가장 중요!)
 ALTER TABLE public.contacts 
-ADD COLUMN IF NOT EXISTS company_name TEXT,
-ADD COLUMN IF NOT EXISTS position TEXT,
-ADD COLUMN IF NOT EXISTS phone TEXT;
-
--- 2. 기타 필수 컬럼 추가
-ALTER TABLE public.contacts 
+ADD COLUMN IF NOT EXISTS inquiry_title TEXT,
+ADD COLUMN IF NOT EXISTS referral_source TEXT,
 ADD COLUMN IF NOT EXISTS contact_type TEXT,
 ADD COLUMN IF NOT EXISTS service_mold_request BOOLEAN DEFAULT FALSE,
 ADD COLUMN IF NOT EXISTS service_delivery_brokerage BOOLEAN DEFAULT FALSE,
@@ -26,6 +21,7 @@ ADD COLUMN IF NOT EXISTS sample_notes TEXT,
 ADD COLUMN IF NOT EXISTS receipt_method TEXT,
 ADD COLUMN IF NOT EXISTS visit_date TEXT,
 ADD COLUMN IF NOT EXISTS visit_time_slot TEXT,
+ADD COLUMN IF NOT EXISTS visit_location TEXT,
 ADD COLUMN IF NOT EXISTS delivery_type TEXT,
 ADD COLUMN IF NOT EXISTS delivery_address TEXT,
 ADD COLUMN IF NOT EXISTS delivery_name TEXT,
@@ -35,5 +31,10 @@ ADD COLUMN IF NOT EXISTS attachment_url TEXT,
 ADD COLUMN IF NOT EXISTS drawing_file_url TEXT,
 ADD COLUMN IF NOT EXISTS drawing_file_name TEXT,
 ADD COLUMN IF NOT EXISTS reference_photos_urls TEXT,
-ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'new';
+ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'new',
+ADD COLUMN IF NOT EXISTS process_stage TEXT,
+ADD COLUMN IF NOT EXISTS inquiry_number TEXT;
+
+-- 문의번호 인덱스 생성 (검색 성능 향상)
+CREATE INDEX IF NOT EXISTS idx_contacts_inquiry_number ON contacts(inquiry_number);
 
