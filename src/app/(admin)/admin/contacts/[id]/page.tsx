@@ -6,6 +6,7 @@ import { DeleteButton } from "./delete-button";
 import { ConfirmButton } from "./confirm-button";
 import { UpdateProcessStageButton } from "./update-process-stage-button";
 import { ProcessStageIndicator } from "@/components/ProcessStageIndicator";
+import { DownloadButton } from "@/components/DownloadButton";
 import type { ProcessStage } from "@/lib/utils/processStages";
 
 interface Contact {
@@ -45,6 +46,12 @@ interface Contact {
   process_stage: ProcessStage;
   created_at: string;
   updated_at: string;
+  revision_request_title?: string | null;
+  revision_request_content?: string | null;
+  revision_requested_at?: string | null;
+  revision_request_file_url?: string | null;
+  revision_request_file_name?: string | null;
+  revision_request_history?: any;
 }
 
 export default async function ContactDetailPage({
@@ -59,6 +66,7 @@ export default async function ContactDetailPage({
     .from('contacts')
     .select('*')
     .eq('id', id)
+    .neq('status', 'deleting')
     .single();
 
   if (error || !contact) {
@@ -320,6 +328,129 @@ export default async function ContactDetailPage({
             </div>
           </div>
 
+          {/* 수정요청서 */}
+          {contactData.revision_request_title && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border-l-4 border-red-500">
+              <div className="flex items-center gap-2 mb-4">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-700 pb-2 flex-1">
+                  수정요청서
+                </h2>
+                <span className="px-3 py-1 text-xs font-medium rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">
+                  수정요청
+                </span>
+              </div>
+              <div className="space-y-4">
+                {/* 최신 수정요청 */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                    최신 수정요청
+                  </h3>
+                  <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg border border-gray-200 dark:border-gray-600">
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400">요청 제목</label>
+                        <p className="mt-1 text-sm text-gray-900 dark:text-gray-100 font-medium">
+                          {contactData.revision_request_title || '-'}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400">요청 내용</label>
+                        <div className="mt-1 p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
+                          <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
+                            {contactData.revision_request_content || '-'}
+                          </p>
+                        </div>
+                      </div>
+                      {contactData.revision_requested_at && (
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 dark:text-gray-400">요청 일시</label>
+                          <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                            {new Date(contactData.revision_requested_at).toLocaleString('ko-KR')}
+                          </p>
+                        </div>
+                      )}
+                      {contactData.revision_request_file_url && (
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 dark:text-gray-400">첨부 파일</label>
+                          <div className="mt-1 flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
+                            <p className="text-xs text-gray-900 dark:text-gray-100 flex-1 truncate mr-2">
+                              {contactData.revision_request_file_name || '파일명 없음'}
+                            </p>
+                            <DownloadButton
+                              url={contactData.revision_request_file_url}
+                              fileName={contactData.revision_request_file_name}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 이전 수정요청 히스토리 */}
+                {contactData.revision_request_history && 
+                 Array.isArray(contactData.revision_request_history) && 
+                 contactData.revision_request_history.length > 0 && (
+                  <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                      이전 수정요청 기록 ({contactData.revision_request_history.length}건)
+                    </h3>
+                    <div className="space-y-4">
+                      {contactData.revision_request_history
+                        .slice()
+                        .reverse()
+                        .map((historyItem: any, index: number) => (
+                          <div
+                            key={index}
+                            className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg border border-gray-200 dark:border-gray-600"
+                          >
+                            <div className="space-y-3">
+                              <div>
+                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400">요청 제목</label>
+                                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100 font-medium">
+                                  {historyItem.title || '-'}
+                                </p>
+                              </div>
+                              <div>
+                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400">요청 내용</label>
+                                <div className="mt-1 p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
+                                  <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
+                                    {historyItem.content || '-'}
+                                  </p>
+                                </div>
+                              </div>
+                              {historyItem.requested_at && (
+                                <div>
+                                  <label className="text-xs font-medium text-gray-500 dark:text-gray-400">요청 일시</label>
+                                  <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                                    {new Date(historyItem.requested_at).toLocaleString('ko-KR')}
+                                  </p>
+                                </div>
+                              )}
+                              {historyItem.file_url && (
+                                <div>
+                                  <label className="text-xs font-medium text-gray-500 dark:text-gray-400">첨부 파일</label>
+                                  <div className="mt-1 flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
+                                    <p className="text-xs text-gray-900 dark:text-gray-100 flex-1 truncate mr-2">
+                                      {historyItem.file_name || '파일명 없음'}
+                                    </p>
+                                    <DownloadButton
+                                      url={historyItem.file_url}
+                                      fileName={historyItem.file_name}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* 첨부 파일 */}
           {(contactData.attachment_url || contactData.attachment_filename || 
             contactData.drawing_file_url || contactData.drawing_file_name || 
@@ -337,15 +468,10 @@ export default async function ContactDetailPage({
                         {contactData.attachment_filename || '파일명 없음'}
                       </p>
                       {contactData.attachment_url && (
-                        <a
-                          href={contactData.attachment_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          download={contactData.attachment_filename || undefined}
-                          className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 whitespace-nowrap"
-                        >
-                          📥 다운로드
-                        </a>
+                        <DownloadButton
+                          url={contactData.attachment_url}
+                          fileName={contactData.attachment_filename}
+                        />
                       )}
                     </div>
                   </div>
@@ -359,15 +485,10 @@ export default async function ContactDetailPage({
                         {contactData.drawing_file_name || '파일명 없음'}
                       </p>
                       {contactData.drawing_file_url && (
-                        <a
-                          href={contactData.drawing_file_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          download={contactData.drawing_file_name || undefined}
-                          className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 whitespace-nowrap"
-                        >
-                          📥 다운로드
-                        </a>
+                        <DownloadButton
+                          url={contactData.drawing_file_url}
+                          fileName={contactData.drawing_file_name}
+                        />
                       )}
                     </div>
                   </div>
@@ -384,15 +505,10 @@ export default async function ContactDetailPage({
                           return urls.map((url, idx) => (
                             <div key={idx} className="flex items-center justify-between bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-600">
                               <span className="text-gray-900 dark:text-gray-100 text-sm">사진 {idx + 1}</span>
-                              <a
-                                href={url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                download={`reference-photo-${idx + 1}.jpg`}
-                                className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors duration-200"
-                              >
-                                📥 다운로드
-                              </a>
+                              <DownloadButton
+                                url={url}
+                                fileName={`reference-photo-${idx + 1}.jpg`}
+                              />
                             </div>
                           ));
                         } catch {

@@ -20,7 +20,7 @@ export async function PATCH(
     const body = await request.json();
     const { status } = body;
 
-    if (!status || !['new', 'read', 'in_progress', 'revision_in_progress', 'completed', 'on_hold', 'replied'].includes(status)) {
+    if (!status || !['new', 'read', 'in_progress', 'revision_in_progress', 'completed', 'on_hold', 'replied', 'deleting'].includes(status)) {
       return NextResponse.json(
         { error: 'Invalid status' },
         { status: 400 }

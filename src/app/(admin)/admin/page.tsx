@@ -1,177 +1,186 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { FaFileAlt, FaEye, FaChartLine, FaEnvelope, FaEdit, FaCalendarAlt } from "react-icons/fa";
+import { FaEnvelope, FaBuilding, FaChartLine } from "react-icons/fa";
 import Link from "next/link";
 import { logger } from "@/lib/utils/logger";
+import { DashboardClient } from "./DashboardClient";
 
-interface Post {
+interface Company {
   id: number;
-  title: string;
+  company_name: string;
   created_at: string;
+  referrer?: string | null;
+}
+
+interface ContactReferral {
+  referral_source: string | null;
+  count: number;
 }
 
 export default async function AdminDashboardPage() {
   const adminLogger = logger.createLogger('ADMIN');
-  let postCount = 0;
-  let posts: Post[] = [];
-  let contactCount = 0;
   let newContactCount = 0;
+  let newCompanyCount = 0;
+  let yesterdayContactCount = 0;
+  let yesterdayCompanyCount = 0;
+  let todayContactCount = 0;
+  let dailyContactsData: { date: string; count: number; fullDate: string }[] = [];
+  let newCompanies: Company[] = [];
+  let referralSources: ContactReferral[] = [];
   
   try {
     const supabase = await createSupabaseServerClient();
-    
-    // 게시물 통계
-    const { data: postsData } = await supabase
-      .from("posts")
-      .select("*");
-    
-    posts = (postsData || []) as Post[];
-    postCount = posts.length;
 
-    // 문의하기 통계
-    const { count: totalContacts } = await supabase
-      .from("contacts")
-      .select("*", { count: 'exact', head: true });
-    
+    // 신규 문의 개수
     const { count: newContacts } = await supabase
       .from("contacts")
       .select("*", { count: 'exact', head: true })
-      .eq('status', 'new');
+      .eq('status', 'new')
+      .neq('status', 'deleting');
     
-    contactCount = totalContacts || 0;
     newContactCount = newContacts || 0;
+
+    // 어제 생성된 문의 개수 (어제 대비 비교용)
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
+    const yesterdayEnd = new Date(yesterday);
+    yesterdayEnd.setHours(23, 59, 59, 999);
+
+    const { count: yesterdayContacts } = await supabase
+      .from("contacts")
+      .select("*", { count: 'exact', head: true })
+      .gte("created_at", yesterday.toISOString())
+      .lte("created_at", yesterdayEnd.toISOString())
+      .neq('status', 'deleting');
+    
+    yesterdayContactCount = yesterdayContacts || 0;
+
+    // 오늘 생성된 문의 개수
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const { count: todayContacts } = await supabase
+      .from("contacts")
+      .select("*", { count: 'exact', head: true })
+      .gte("created_at", today.toISOString())
+      .lte("created_at", todayEnd.toISOString())
+      .neq('status', 'deleting');
+    
+    todayContactCount = todayContacts || 0;
+
+    // 최근 30일간 신규 업체 등록
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    thirtyDaysAgo.setHours(0, 0, 0, 0);
+
+    const { data: companiesData } = await supabase
+      .from("companies")
+      .select("id, company_name, created_at, referrer")
+      .gte("created_at", thirtyDaysAgo.toISOString())
+      .order("created_at", { ascending: false });
+    
+    newCompanies = (companiesData || []) as Company[];
+    newCompanyCount = newCompanies.length;
+
+    // 어제 업체 등록 개수
+    const { count: yesterdayCompanies } = await supabase
+      .from("companies")
+      .select("*", { count: 'exact', head: true })
+      .gte("created_at", yesterday.toISOString())
+      .lte("created_at", yesterdayEnd.toISOString());
+    
+    yesterdayCompanyCount = yesterdayCompanies || 0;
+
+    // 최근 30일간의 날짜별 문의 건수 조회 (위에서 정의한 thirtyDaysAgo 사용)
+    const { data: contactsData, error: contactsError } = await supabase
+      .from("contacts")
+      .select("created_at")
+      .gte("created_at", thirtyDaysAgo.toISOString())
+      .neq('status', 'deleting')
+      .order("created_at", { ascending: true });
+
+    if (contactsError) {
+      adminLogger.error("Error fetching contacts for chart", contactsError);
+    } else if (contactsData) {
+      // 날짜별로 그룹화
+      const dateMap = new Map<string, number>();
+      
+      contactsData.forEach((contact) => {
+        const date = new Date(contact.created_at);
+        const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        dateMap.set(dateKey, (dateMap.get(dateKey) || 0) + 1);
+      });
+
+      // 최근 30일의 모든 날짜 생성
+      const dates: { date: string; count: number; fullDate: string }[] = [];
+      for (let i = 29; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        date.setHours(0, 0, 0, 0);
+        const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        const formattedDate = `${date.getMonth() + 1}/${date.getDate()}`;
+        dates.push({
+          date: formattedDate,
+          count: dateMap.get(dateKey) || 0,
+          fullDate: dateKey,
+        });
+      }
+
+      dailyContactsData = dates;
+    }
+
+    // 최근 30일간 유입경로별 통계
+    const { data: referralData, error: referralError } = await supabase
+      .from("contacts")
+      .select("referral_source")
+      .gte("created_at", thirtyDaysAgo.toISOString())
+      .neq('status', 'deleting');
+
+    if (!referralError && referralData) {
+      // 유입경로별 집계
+      const referralMap = new Map<string, number>();
+      referralData.forEach((contact) => {
+        const source = contact.referral_source || '기타';
+        referralMap.set(source, (referralMap.get(source) || 0) + 1);
+      });
+
+      referralSources = Array.from(referralMap.entries())
+        .map(([referral_source, count]) => ({ referral_source, count }))
+        .sort((a, b) => b.count - a.count);
+    }
   } catch (error) {
     adminLogger.error("Supabase connection error", error);
-    // Supabase 설정이 없는 경우에도 페이지는 표시되도록 함
   }
 
-  // 통계 카드 데이터
-  const stats = [
-    {
-      title: "전체 게시물",
-      value: postCount,
-      icon: FaFileAlt,
-      color: "bg-blue-500",
-      borderColor: "border-blue-500",
-      href: "/admin/posts",
-    },
-    {
-      title: "전체 문의",
-      value: contactCount,
-      icon: FaEnvelope,
-      color: "bg-orange-500",
-      borderColor: "border-orange-500",
-      href: "/admin/contacts",
-      badge: newContactCount > 0 ? `${newContactCount}건 신규` : undefined,
-    },
-    {
-      title: "조회수",
-      value: "0",
-      icon: FaEye,
-      color: "bg-yellow-500",
-      borderColor: "border-yellow-500",
-      href: "#",
-    },
-    {
-      title: "성장률",
-      value: "+12%",
-      icon: FaChartLine,
-      color: "bg-purple-500",
-      borderColor: "border-purple-500",
-      href: "#",
-    },
-  ];
+  // 어제 대비 변화 계산 (오늘 생성된 문의 - 어제 생성된 문의)
+  const contactChange = todayContactCount - yesterdayContactCount;
+  
+  // 어제 대비 업체 등록 변화 계산
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayEnd = new Date();
+  todayEnd.setHours(23, 59, 59, 999);
+  
+  // 오늘 등록된 업체 개수는 이미 계산됨 (newCompanies에서 오늘 것만 필터링)
+  const todayCompanies = newCompanies.filter(company => {
+    const createdDate = new Date(company.created_at);
+    return createdDate >= today && createdDate <= todayEnd;
+  }).length;
+  
+  const companyChange = todayCompanies - yesterdayCompanyCount;
 
   return (
-    <div className="space-y-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-gray-100">관리자 대시보드</h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          웹사이트의 전반적인 현황을 한눈에 파악하세요
-        </p>
-      </div>
-
-      {/* 통계 카드 그리드 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <Link
-              key={stat.title}
-              href={stat.href}
-              className={`bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border-l-4 ${stat.borderColor} relative border border-gray-200 dark:border-gray-700`}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">{stat.title}</p>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                    {stat.value}
-                  </p>
-                  {stat.badge && (
-                    <p className="text-xs text-orange-600 dark:text-orange-400 mt-1 font-medium">
-                      {stat.badge}
-                    </p>
-                  )}
-                </div>
-                <div className={`${stat.color} p-4 rounded-full`}>
-                  <Icon className="text-white text-2xl" />
-                </div>
-              </div>
-            </Link>
-          );
-        })}
-      </div>
-
-      {/* 최근 활동 영역 */}
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border-2 border-gray-200 dark:border-gray-700">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">최근 게시물</h2>
-          <Link
-            href="/admin/posts"
-            className="text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-500 font-medium transition-colors duration-300"
-          >
-            전체 보기 →
-          </Link>
-        </div>
-        
-        {posts && posts.length > 0 ? (
-          <ul className="space-y-3">
-            {posts.slice(0, 5).map((post) => (
-              <li
-                key={post.id}
-                className="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-300 border border-gray-200 dark:border-gray-600"
-              >
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1 truncate">
-                    {post.title}
-                  </h3>
-                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                    <FaCalendarAlt className="text-xs" />
-                    <span>
-                      {new Date(post.created_at).toLocaleDateString("ko-KR", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </span>
-                  </div>
-                </div>
-                <Link
-                  href={`/admin/posts/${post.id}/edit`}
-                  className="ml-4 flex items-center gap-2 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-500 font-medium transition-colors duration-300 whitespace-nowrap"
-                >
-                  <FaEdit className="text-sm" />
-                  <span>편집</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div className="text-center py-12">
-            <FaFileAlt className="mx-auto text-4xl text-gray-400 dark:text-gray-500 mb-3" />
-            <p className="text-gray-500 dark:text-gray-400">등록된 게시물이 없습니다</p>
-          </div>
-        )}
-      </div>
-    </div>
+    <DashboardClient
+      newContactCount={newContactCount}
+      todayContactCount={todayContactCount}
+      newCompanyCount={newCompanyCount}
+      contactChange={contactChange}
+      companyChange={companyChange}
+      dailyContactsData={dailyContactsData}
+      newCompanies={newCompanies}
+      referralSources={referralSources}
+    />
   );
 }

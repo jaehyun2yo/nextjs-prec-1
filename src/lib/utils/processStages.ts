@@ -92,7 +92,11 @@ export function getProcessStageInfo(stage: ProcessStage): ProcessStageInfo | nul
  * 공정 단계가 시작되었는지 확인 (status가 'read' 이상이면 공정 시작)
  */
 export function isProcessStarted(status: string): boolean {
-  return status === 'read' || status === 'replied' || status === 'completed';
+  return status === 'read' || 
+         status === 'in_progress' || 
+         status === 'revision_in_progress' ||
+         status === 'replied' || 
+         status === 'completed';
 }
 
 /**
@@ -104,4 +108,6 @@ export function getProcessProgress(stage: ProcessStage): number {
   if (!stageInfo) return 0;
   return Math.round((stageInfo.order / PROCESS_STAGES_ARRAY.length) * 100);
 }
+
+
 

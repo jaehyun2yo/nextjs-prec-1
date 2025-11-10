@@ -13,7 +13,7 @@ export interface FileUploadResult {
  */
 export async function uploadFileToR2(
   file: File,
-  folder: 'attachments' | 'drawings' | 'reference-photos',
+  folder: 'attachments' | 'drawings' | 'reference-photos' | 'revision-requests' | 'companies',
   index?: number
 ): Promise<FileUploadResult> {
   try {
@@ -26,7 +26,9 @@ export async function uploadFileToR2(
       ? `${timestamp}-${randomId}-${index}-${file.name}`
       : `${timestamp}-${randomId}-${file.name}`;
     
-    const objectKey = `contacts/${folder}/${filename}`;
+    const objectKey = folder === 'companies' 
+      ? `companies/${filename}`
+      : `contacts/${folder}/${filename}`;
     const { url } = await uploadBufferToR2(
       buffer,
       file.type || (folder === 'reference-photos' ? 'image/jpeg' : 'application/octet-stream'),
@@ -53,4 +55,6 @@ export async function uploadFilesInParallel(
   
   return Promise.all(uploadPromises);
 }
+
+
 

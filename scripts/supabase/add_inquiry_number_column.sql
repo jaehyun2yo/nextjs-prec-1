@@ -7,3 +7,5 @@ ADD COLUMN IF NOT EXISTS inquiry_number TEXT;
 -- 문의번호 인덱스 생성 (검색 성능 향상)
 CREATE INDEX IF NOT EXISTS idx_contacts_inquiry_number ON contacts(inquiry_number);
 
+
+

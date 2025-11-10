@@ -32,6 +32,9 @@ const nextConfig: NextConfig = {
       ...staticRemotePatterns,
     ],
   },
+  serverActions: {
+    bodySizeLimit: '10mb', // 파일 업로드를 위해 10MB로 설정
+  },
 };
 
 export default nextConfig;

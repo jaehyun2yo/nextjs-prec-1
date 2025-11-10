@@ -42,7 +42,7 @@ export function DeleteButton({ contactId, contactName }: DeleteButtonProps) {
     <button
       onClick={handleDelete}
       disabled={isDeleting}
-      className="px-3 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      className="px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
     >
       {isDeleting ? '삭제 중...' : '삭제'}
     </button>

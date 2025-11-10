@@ -30,10 +30,10 @@ BEGIN
     END LOOP;
 END $$;
 
--- 3. 새로운 CHECK 제약 조건 추가 (6가지 상태 + replied 허용)
+-- 3. 새로운 CHECK 제약 조건 추가 (7가지 상태 + replied + deleting 허용)
 ALTER TABLE public.contacts
 ADD CONSTRAINT contacts_status_check 
-CHECK (status IN ('new', 'read', 'in_progress', 'revision_in_progress', 'completed', 'on_hold', 'replied'));
+CHECK (status IN ('new', 'read', 'in_progress', 'revision_in_progress', 'completed', 'on_hold', 'replied', 'deleting'));
 
 -- 4. 제약 조건 확인
 SELECT 

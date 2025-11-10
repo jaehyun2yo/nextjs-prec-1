@@ -14,3 +14,5 @@ ADD COLUMN IF NOT EXISTS process_stage TEXT;
 -- 'delivery' - 납품
 -- NULL - 공정 시작 전
 
+
+

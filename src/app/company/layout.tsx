@@ -2,8 +2,9 @@ import { verifySession, getSessionUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { logoutAction } from "@/app/actions/auth";
-import { FaSignOutAlt, FaHome } from "react-icons/fa";
+import { FaSignOutAlt } from "react-icons/fa";
 import Link from "next/link";
+import Image from "next/image";
 import { logger } from "@/lib/utils/logger";
 
 interface Company {
@@ -54,41 +55,54 @@ export default async function CompanyLayout({
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* 독립적인 헤더 */}
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-6">
-              <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                {company.company_name}
-              </h1>
-              <nav className="hidden md:flex items-center gap-4">
-                <Link
-                  href="/company/dashboard"
-                  className="text-sm text-gray-700 dark:text-gray-300 hover:text-[#ED6C00] dark:hover:text-[#ff8533] font-medium transition-colors"
-                >
-                  진행상황
-                </Link>
-              </nav>
+      <header className="flex justify-between items-center px-4 py-3 md:px-6 md:py-4 bg-white/90 dark:bg-gray-900 backdrop-blur-lg border-b border-gray-300 dark:border-gray-700 sticky top-0 z-50 shadow-md dark:shadow-lg transition-all duration-300">
+        <div className="flex items-center gap-2 md:gap-3">
+          <Link href="/" className="flex items-center">
+            <div className="h-8 md:h-10 w-auto overflow-hidden flex items-center">
+              <Image 
+                src="/logobox.svg" 
+                alt="LOGOBOX Logo" 
+                width={120} 
+                height={40}
+                className="max-h-full max-w-full object-contain"
+                priority
+              />
             </div>
-            <div className="flex items-center gap-4">
-              <Link
-                href="/"
-                className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors flex items-center gap-1"
-              >
-                <FaHome className="text-xs" />
-                <span className="hidden sm:inline">메인 사이트</span>
-              </Link>
-              <form action={logoutAction}>
-                <button
-                  type="submit"
-                  className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                >
-                  <FaSignOutAlt className="text-xs" />
-                  <span>로그아웃</span>
-                </button>
-              </form>
-            </div>
-          </div>
+          </Link>
+          <nav className="hidden md:flex items-center gap-2 md:gap-3">
+            <Link
+              href="/company/dashboard"
+              className="text-sm text-gray-900 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-500 transition-colors duration-300 px-3 py-2 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20"
+            >
+              진행상황
+            </Link>
+            <Link
+              href="/company/billing"
+              className="text-sm text-gray-900 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-500 transition-colors duration-300 px-3 py-2 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20"
+            >
+              청구서 / 전자세금계산서 발행
+            </Link>
+          </nav>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-gray-900 dark:text-gray-300 text-xs px-2 py-2">
+            {company.company_name}
+          </span>
+          <Link
+            href="/company/profile"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-orange-100 dark:hover:bg-orange-900/30 text-gray-900 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 transition-all duration-300 text-xs"
+          >
+            정보 수정
+          </Link>
+          <form action={logoutAction}>
+            <button
+              type="submit"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-900 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-all duration-300 text-xs"
+            >
+              <FaSignOutAlt className="text-xs" />
+              <span>로그아웃</span>
+            </button>
+          </form>
         </div>
       </header>
 

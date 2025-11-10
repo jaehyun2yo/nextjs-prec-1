@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { ConfirmButton } from './[id]/confirm-button';
 import { DeleteButton } from './delete-button';
 import { UpdateStatusButton } from './[id]/update-status-button';
+import { DownloadButton } from '@/components/DownloadButton';
 
 interface Contact {
   id: number;
@@ -104,6 +105,20 @@ export function ContactDetailModal({ contactId, isOpen, onClose }: ContactDetail
     };
   }, [isOpen]);
 
+  // ESC 키로 모달 닫기
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
+
   // handleUpdate는 필요시 사용
   // const handleUpdate = () => {
   //   fetchContactDetail();
@@ -114,7 +129,7 @@ export function ContactDetailModal({ contactId, isOpen, onClose }: ContactDetail
 
   return (
     <div 
-      className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn p-4 overflow-y-auto"
+      className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn p-4 overflow-y-auto modal-scrollbar-hide"
       onClick={onClose}
     >
       <div 
@@ -418,9 +433,9 @@ export function ContactDetailModal({ contactId, isOpen, onClose }: ContactDetail
                               target="_blank"
                               rel="noopener noreferrer"
                               download={contact.attachment_filename || undefined}
-                              className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1.5 rounded text-sm font-medium transition-colors duration-200 whitespace-nowrap"
+                              className="bg-[#ED6C00] hover:bg-[#ED6C00]/90 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors duration-200 whitespace-nowrap"
                             >
-                              📥 다운로드
+                              다운로드
                             </a>
                           )}
                         </div>
@@ -435,15 +450,10 @@ export function ContactDetailModal({ contactId, isOpen, onClose }: ContactDetail
                             {contact.drawing_file_name || '파일명 없음'}
                           </p>
                           {contact.drawing_file_url && (
-                            <a
-                              href={contact.drawing_file_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              download={contact.drawing_file_name || undefined}
-                              className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1.5 rounded text-sm font-medium transition-colors duration-200 whitespace-nowrap"
-                            >
-                              📥 다운로드
-                            </a>
+                            <DownloadButton
+                              url={contact.drawing_file_url}
+                              fileName={contact.drawing_file_name}
+                            />
                           )}
                         </div>
                       </div>
@@ -460,15 +470,10 @@ export function ContactDetailModal({ contactId, isOpen, onClose }: ContactDetail
                               return urls.map((url, idx) => (
                                 <div key={idx} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 p-2 rounded border border-gray-200 dark:border-gray-600">
                                   <span className="text-sm text-gray-900 dark:text-gray-100">사진 {idx + 1}</span>
-                                  <a
-                                    href={url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    download={`reference-photo-${idx + 1}.jpg`}
-                                    className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors duration-200"
-                                  >
-                                    📥 다운로드
-                                  </a>
+                                  <DownloadButton
+                                    url={url}
+                                    fileName={`reference-photo-${idx + 1}.jpg`}
+                                  />
                                 </div>
                               ));
                             } catch {

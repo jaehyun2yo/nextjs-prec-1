@@ -50,3 +50,5 @@ export function QuickApproveButton({ companyId, currentStatus }: QuickApproveBut
   );
 }
 
+
+

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { updateProcessStage } from '@/app/actions/contacts';
 import { PROCESS_STAGES_ARRAY, getProcessStageInfo, type ProcessStage } from '@/lib/utils/processStages';
+import { ConfirmModal } from '@/components/modals/ConfirmModal';
 
 interface QuickProcessStageSelectProps {
   contactId: number;
@@ -80,12 +81,12 @@ export function QuickProcessStageSelect({ contactId, currentStage, status }: Qui
                 disabled={!isClickable}
                 className={`
                   flex items-center gap-1.5 px-2 py-1.5 rounded-lg transition-all duration-200
-                  ${isClickable ? 'cursor-pointer hover:scale-105' : 'cursor-not-allowed opacity-50'}
+                  ${isClickable ? 'cursor-pointer hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#ED6C00] focus:ring-offset-2' : 'cursor-not-allowed opacity-50'}
                   ${isCompleted 
                     ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' 
                     : isCurrent
                     ? 'bg-[#ED6C00] text-white border-2 border-[#ED6C00] font-medium'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-[#ED6C00]/10 hover:text-[#ED6C00] dark:hover:bg-[#ED6C00]/20 dark:hover:text-[#ED6C00]'
                   }
                 `}
                 title={stageInfo.label}
@@ -104,45 +105,26 @@ export function QuickProcessStageSelect({ contactId, currentStage, status }: Qui
       </div>
 
       {/* 확인 모달 */}
-      {showConfirmModal && selectedStageInfo && (
-        <div 
-          className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn"
-          onClick={handleCancel}
-        >
-          <div 
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-600 p-6 max-w-md w-full mx-8 animate-scaleIn"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="text-center">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-orange-100 dark:bg-orange-900 mb-4">
-                <svg className="h-6 w-6 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-2">
-                공정 단계 변경
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                공정 단계를 <strong className="text-orange-600 dark:text-orange-400">{selectedStageInfo.label}</strong>로 변경하시겠습니까?
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={handleCancel}
-                  className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm"
-                >
-                  취소
-                </button>
-                <button
-                  onClick={handleConfirm}
-                  disabled={isUpdating}
-                  className="flex-1 px-4 py-2 bg-[#ED6C00] hover:bg-[#d15f00] text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                >
-                  {isUpdating ? '변경 중...' : '변경'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      {selectedStageInfo && (
+        <ConfirmModal
+          isOpen={showConfirmModal}
+          onClose={handleCancel}
+          onConfirm={handleConfirm}
+          title="공정 단계 변경"
+          message={
+            <>
+              공정 단계를 <strong className="text-orange-600 dark:text-orange-400">{selectedStageInfo.label}</strong>로 변경하시겠습니까?
+            </>
+          }
+          confirmLabel="변경"
+          cancelLabel="취소"
+          isSubmitting={isUpdating}
+          icon={
+            <svg className="h-6 w-6 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          }
+        />
       )}
     </>
   );

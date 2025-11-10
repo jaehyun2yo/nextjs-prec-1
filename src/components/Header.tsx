@@ -8,6 +8,7 @@ import { useTheme } from '@/store/useStore';
 import { useEffect, useState } from 'react';
 import { logoutAction } from '@/app/actions/auth';
 import { usePathname } from 'next/navigation';
+import { AdminBadge } from './AdminBadge';
 
 interface HeaderProps {
   isAuthenticated?: boolean;
@@ -123,11 +124,12 @@ export default function Header({
             </span>
             <Link
               href={userType === 'company' ? "/company/dashboard" : "/admin"}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-orange-100 dark:hover:bg-orange-900/30 text-gray-900 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 transition-all duration-300 text-xs"
+              className="relative flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-orange-100 dark:hover:bg-orange-900/30 text-gray-900 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 transition-all duration-300 text-xs"
               title={userType === 'company' ? "공정관리페이지" : "관리자 페이지"}
             >
               <FaUserCog className="text-xs" />
               <span>{userType === 'company' ? '공정관리페이지' : '관리자 페이지'}</span>
+              {userType === 'admin' && <AdminBadge userType={userType} />}
             </Link>
             <form action={logoutAction}>
               <motion.button

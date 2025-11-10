@@ -35,3 +35,5 @@ export default function StepIndicator({ currentStep }: StepIndicatorProps) {
   );
 }
 
+
+

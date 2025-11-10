@@ -35,21 +35,21 @@ export function ProcessStageIndicatorToggle({ currentStage, status, defaultExpan
 
   // 요약본: 현재 단계만 표시
   const SummaryView = () => (
-    <div className="flex items-center gap-2 flex-wrap">
+    <div className="flex items-center gap-2 flex-wrap overflow-x-auto pb-2 -mx-2 px-2">
       {PROCESS_STAGES_ARRAY.map((stageInfo, index) => {
         const isCompleted = stageInfo.order < currentOrder;
         const isCurrent = stageInfo.order === currentOrder;
 
         return (
-          <div key={stageInfo.id} className="flex items-center">
+          <div key={stageInfo.id} className="flex items-center flex-shrink-0">
             <div
               className={`
-                flex items-center gap-1.5 px-2 py-1.5 rounded-lg
+                flex items-center gap-1.5 px-2 py-1.5 rounded-lg transition-colors
                 ${isCompleted 
                   ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' 
                   : isCurrent
                   ? 'bg-[#ED6C00] text-white border-2 border-[#ED6C00] font-medium'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-[#ED6C00]/10 hover:text-[#ED6C00] dark:hover:bg-[#ED6C00]/20 dark:hover:text-[#ED6C00]'
                 }
               `}
             >
@@ -59,7 +59,7 @@ export function ProcessStageIndicatorToggle({ currentStage, status, defaultExpan
               </span>
             </div>
             {index < PROCESS_STAGES_ARRAY.length - 1 && (
-              <div className="w-2 h-0.5 bg-gray-300 dark:bg-gray-600 mx-1" />
+              <div className="w-2 h-0.5 bg-gray-300 dark:bg-gray-600 mx-1 flex-shrink-0" />
             )}
           </div>
         );

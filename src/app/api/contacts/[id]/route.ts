@@ -20,11 +20,12 @@ export async function GET(
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
 
-    // 문의 조회
+    // 문의 조회 (삭제중이 아닌 것만)
     const { data: contact, error } = await supabase
       .from('contacts')
       .select('*')
       .eq('id', id)
+      .neq('status', 'deleting')
       .single();
 
     if (error) {
@@ -53,6 +54,8 @@ export async function GET(
 }
 
 // DELETE: 문의 삭제
+// - permanent=true: 영구 삭제 (실제 DB에서 삭제)
+// - permanent 없음: status를 'deleting'으로 변경 (삭제중 상태)
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -70,18 +73,49 @@ export async function DELETE(
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
 
-    // 문의 삭제
-    const { error } = await supabase
-      .from('contacts')
-      .delete()
-      .eq('id', id);
+    // 요청 본문 확인 (영구 삭제인지 확인)
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      body = {};
+    }
 
-    if (error) {
-      console.error('[DELETE CONTACT] Error:', error);
-      return NextResponse.json(
-        { error: error.message, details: error.details },
-        { status: 500 }
-      );
+    const isPermanent = body.permanent === true;
+
+    if (isPermanent) {
+      // 영구 삭제: 실제 DB에서 삭제
+      const { error } = await supabase
+        .from('contacts')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('[PERMANENT DELETE CONTACT] Error:', error);
+        return NextResponse.json(
+          { error: error.message, details: error.details },
+          { status: 500 }
+        );
+      }
+    } else {
+      // 삭제중 상태로 변경: status를 'deleting'으로, deleted_at 설정
+      const { error } = await supabase
+        .from('contacts')
+        .update({ 
+          status: 'deleting',
+          deleted_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .neq('status', 'deleting'); // 이미 삭제중인 것은 제외
+
+      if (error) {
+        console.error('[DELETE CONTACT] Error:', error);
+        return NextResponse.json(
+          { error: error.message, details: error.details },
+          { status: 500 }
+        );
+      }
     }
 
     return NextResponse.json({ success: true });
