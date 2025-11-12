@@ -66,12 +66,7 @@ export default function Header({
   ];
 
   return (
-    <motion.header
-      initial={{ y: -100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ type: "spring", stiffness: 100 }}
-      className="flex justify-between items-center px-4 py-3 md:px-6 md:py-4 bg-white/90 dark:bg-gray-900 backdrop-blur-lg border-b border-gray-300 dark:border-gray-700 sticky top-0 z-50 shadow-md dark:shadow-lg transition-all duration-300"
-    >
+    <header className="flex justify-between items-center px-4 py-3 md:px-6 md:py-4 bg-white/90 dark:bg-gray-900 backdrop-blur-lg border-b border-gray-300 dark:border-gray-700 sticky top-0 z-50 shadow-md dark:shadow-lg transition-all duration-300">
        <motion.div
          whileHover={{ scale: 1.05 }}
          whileTap={{ scale: 0.95 }}
@@ -91,13 +86,10 @@ export default function Header({
          </Link>
        </motion.div>
       <nav className="flex gap-2 md:gap-3 items-center">
-        {navItems.map((item, index) => {
+        {navItems.map((item) => {
           return (
             <motion.div
               key={item.href}
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
               whileHover={{ y: -2 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -113,12 +105,7 @@ export default function Header({
         
         {/* 로그인 상태에 따른 UI */}
         {isAuthenticated ? (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: navItems.length * 0.1 }}
-            className="ml-6 md:ml-8 flex items-center gap-2"
-          >
+          <div className="ml-6 md:ml-8 flex items-center gap-2">
             <span className="text-gray-900 dark:text-gray-300 text-xs px-2 py-2">
               {userType === 'company' && companyName ? companyName : '관리자'}
             </span>
@@ -143,14 +130,9 @@ export default function Header({
                 <span>로그아웃</span>
               </motion.button>
             </form>
-          </motion.div>
+          </div>
         ) : (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: navItems.length * 0.1 }}
-            className="ml-6 md:ml-8"
-          >
+          <div className="ml-6 md:ml-8">
             <Link
               href="/login"
               className="text-sm transition-colors duration-300 px-3 py-2 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 font-medium"
@@ -166,7 +148,7 @@ export default function Header({
             >
               기업 로그인
             </Link>
-          </motion.div>
+          </div>
         )}
         
         {/* 테마 토글 버튼 */}
@@ -184,6 +166,6 @@ export default function Header({
           )}
         </motion.button>
       </nav>
-    </motion.header>
+    </header>
   );
 }

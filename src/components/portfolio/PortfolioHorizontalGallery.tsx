@@ -818,7 +818,12 @@ export function PortfolioHorizontalGallery({ items, filteredItems }: PortfolioHo
         <div 
           data-portfolio-modal
           ref={modalImageRef}
-          className="fixed inset-0 bg-white dark:bg-gray-900 z-[100] overflow-y-auto"
+          className="fixed inset-0 z-[100] overflow-y-auto"
+          style={{
+            background: 'rgba(255, 255, 255, 0.1)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          }}
         >
           {/* 헤더 이미지 영역 - 배경 없음 */}
           <div 
@@ -859,11 +864,18 @@ export function PortfolioHorizontalGallery({ items, filteredItems }: PortfolioHo
             </button>
           </div>
 
-          {/* 콘텐츠 영역 - 메인홈 배경색 */}
-          <div className="bg-white dark:bg-gray-900 text-black dark:text-white">
+          {/* 콘텐츠 영역 - 포트폴리오 네비게이션과 동일한 배경색 */}
+          <div 
+            className="text-white"
+            style={{
+              background: 'rgba(255, 255, 255, 0.1)',
+              backdropFilter: 'blur(20px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+            }}
+          >
             <div className="max-w-4xl mx-auto px-6 py-12 space-y-8">
               <div>
-                <h1 className="text-3xl font-bold mb-4">{selectedItem.title}</h1>
+                <h1 className="text-3xl font-bold mb-4 text-white">{selectedItem.title}</h1>
               </div>
 
               {Array.isArray(selectedItem.images) && selectedItem.images.length > 1 && (
@@ -890,27 +902,27 @@ export function PortfolioHorizontalGallery({ items, filteredItems }: PortfolioHo
               <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <label className="text-sm text-gray-600 dark:text-gray-400 block mb-2">분야</label>
-                    <p className="text-base text-gray-900 dark:text-gray-100">{selectedItem.field}</p>
+                    <label className="text-sm text-white/70 block mb-2">분야</label>
+                    <p className="text-base text-white">{selectedItem.field}</p>
                   </div>
                   <div>
-                    <label className="text-sm text-gray-600 dark:text-gray-400 block mb-2">목적</label>
-                    <p className="text-base text-gray-900 dark:text-gray-100">{selectedItem.purpose}</p>
+                    <label className="text-sm text-white/70 block mb-2">목적</label>
+                    <p className="text-base text-white">{selectedItem.purpose}</p>
                   </div>
                   <div>
-                    <label className="text-sm text-gray-600 dark:text-gray-400 block mb-2">종류</label>
-                    <p className="text-base text-gray-900 dark:text-gray-100">{selectedItem.type}</p>
+                    <label className="text-sm text-white/70 block mb-2">종류</label>
+                    <p className="text-base text-white">{selectedItem.type}</p>
                   </div>
                   <div>
-                    <label className="text-sm text-gray-600 dark:text-gray-400 block mb-2">형태</label>
-                    <p className="text-base text-gray-900 dark:text-gray-100">{selectedItem.format}</p>
+                    <label className="text-sm text-white/70 block mb-2">형태</label>
+                    <p className="text-base text-white">{selectedItem.format}</p>
                   </div>
                 </div>
                 
                 {selectedItem.description && (
                   <div>
-                    <label className="text-sm text-gray-600 dark:text-gray-400 block mb-2">설명</label>
-                    <p className="text-base text-gray-900 dark:text-gray-100 whitespace-pre-line leading-relaxed">{selectedItem.description}</p>
+                    <label className="text-sm text-white/70 block mb-2">설명</label>
+                    <p className="text-base text-white whitespace-pre-line leading-relaxed">{selectedItem.description}</p>
                   </div>
                 )}
               </div>

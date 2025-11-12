@@ -89,7 +89,7 @@ export function PortfolioTagFilter({ items, onFilterChange }: PortfolioTagFilter
   }, [openCategory]);
 
   return (
-    <div className="fixed top-28 left-1/2 transform -translate-x-1/2 z-[90] max-w-5xl w-full px-4">
+    <div className="fixed top-28 md:top-32 lg:top-36 left-1/2 transform -translate-x-1/2 z-[90] max-w-5xl w-full px-4">
       <div ref={containerRef} className="flex items-start justify-center gap-2">
         {/* 분야 토글 버튼 */}
         {categories.fields.length > 0 && (
@@ -98,11 +98,18 @@ export function PortfolioTagFilter({ items, onFilterChange }: PortfolioTagFilter
               onClick={() => setOpenCategory(openCategory === 'field' ? null : 'field')}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className={`px-4 py-2 rounded-full text-xs font-medium transition-all bg-black/80 backdrop-blur-xl shadow-2xl border border-white/10 ${
+              className={`px-4 py-2 rounded-full text-xs font-medium transition-all shadow-2xl border ${
                 openCategory === 'field'
                   ? 'bg-white text-black border-white'
-                  : 'bg-black/80 text-white/70 hover:bg-black/90 hover:text-white'
+                  : 'text-white/70 hover:text-white border-white/20'
               }`}
+              style={{
+                background: openCategory === 'field' 
+                  ? 'rgba(255, 255, 255, 1)' 
+                  : 'rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(20px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+              }}
             >
               분야
             </motion.button>
@@ -135,11 +142,18 @@ export function PortfolioTagFilter({ items, onFilterChange }: PortfolioTagFilter
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => handleTagClick('field', field)}
-                      className={`px-2.5 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
+                      className={`px-2.5 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap border ${
                         selectedTags.field === field
-                          ? 'bg-white text-black'
-                          : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
+                          ? 'bg-white text-black border-white'
+                          : 'text-white/70 hover:text-white border-white/20'
                       }`}
+                      style={{
+                        background: selectedTags.field === field
+                          ? 'rgba(255, 255, 255, 1)'
+                          : 'rgba(255, 255, 255, 0.1)',
+                        backdropFilter: 'blur(20px) saturate(180%)',
+                        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                      }}
                     >
                       {field}
                     </motion.button>
@@ -157,11 +171,18 @@ export function PortfolioTagFilter({ items, onFilterChange }: PortfolioTagFilter
               onClick={() => setOpenCategory(openCategory === 'format' ? null : 'format')}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className={`px-4 py-2 rounded-full text-xs font-medium transition-all bg-black/80 backdrop-blur-xl shadow-2xl border border-white/10 ${
+              className={`px-4 py-2 rounded-full text-xs font-medium transition-all shadow-2xl border ${
                 openCategory === 'format'
                   ? 'bg-white text-black border-white'
-                  : 'bg-black/80 text-white/70 hover:bg-black/90 hover:text-white'
+                  : 'text-white/70 hover:text-white border-white/20'
               }`}
+              style={{
+                background: openCategory === 'format' 
+                  ? 'rgba(255, 255, 255, 1)' 
+                  : 'rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(20px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+              }}
             >
               박스형태
             </motion.button>
@@ -194,11 +215,18 @@ export function PortfolioTagFilter({ items, onFilterChange }: PortfolioTagFilter
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => handleTagClick('format', format)}
-                      className={`px-2.5 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
+                      className={`px-2.5 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap border ${
                         selectedTags.format === format
-                          ? 'bg-white text-black'
-                          : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
+                          ? 'bg-white text-black border-white'
+                          : 'text-white/70 hover:text-white border-white/20'
                       }`}
+                      style={{
+                        background: selectedTags.format === format
+                          ? 'rgba(255, 255, 255, 1)'
+                          : 'rgba(255, 255, 255, 0.1)',
+                        backdropFilter: 'blur(20px) saturate(180%)',
+                        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                      }}
                     >
                       {format}
                     </motion.button>
@@ -216,11 +244,18 @@ export function PortfolioTagFilter({ items, onFilterChange }: PortfolioTagFilter
               onClick={() => setOpenCategory(openCategory === 'type' ? null : 'type')}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className={`px-4 py-2 rounded-full text-xs font-medium transition-all bg-black/80 backdrop-blur-xl shadow-2xl border border-white/10 ${
+              className={`px-4 py-2 rounded-full text-xs font-medium transition-all shadow-2xl border ${
                 openCategory === 'type'
                   ? 'bg-white text-black border-white'
-                  : 'bg-black/80 text-white/70 hover:bg-black/90 hover:text-white'
+                  : 'text-white/70 hover:text-white border-white/20'
               }`}
+              style={{
+                background: openCategory === 'type' 
+                  ? 'rgba(255, 255, 255, 1)' 
+                  : 'rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(20px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+              }}
             >
               박스 종류
             </motion.button>
@@ -253,11 +288,18 @@ export function PortfolioTagFilter({ items, onFilterChange }: PortfolioTagFilter
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => handleTagClick('type', type)}
-                      className={`px-2.5 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
+                      className={`px-2.5 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap border ${
                         selectedTags.type === type
-                          ? 'bg-white text-black'
-                          : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
+                          ? 'bg-white text-black border-white'
+                          : 'text-white/70 hover:text-white border-white/20'
                       }`}
+                      style={{
+                        background: selectedTags.type === type
+                          ? 'rgba(255, 255, 255, 1)'
+                          : 'rgba(255, 255, 255, 0.1)',
+                        backdropFilter: 'blur(20px) saturate(180%)',
+                        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                      }}
                     >
                       {type}
                     </motion.button>
