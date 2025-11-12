@@ -36,15 +36,19 @@ export default async function RootLayout({
   // 현재 경로 확인 (업체 전용 페이지인지 확인)
   // middleware에서 설정한 x-pathname 헤더를 확인
   let isCompanyPage = false;
+  let isPortfolioPage = false;
   try {
     const headersList = await headers();
     const pathname = headersList.get('x-pathname') || '';
     // /company/로 시작하는 모든 경로는 업체 전용 페이지 (공정관리페이지)
     // 이 경우 메인 네비게이션바(Header)를 숨김
     isCompanyPage = pathname.startsWith('/company/');
+    // /portfolio 페이지는 자체 네비게이션바를 사용하므로 일반 Header 숨김
+    isPortfolioPage = pathname === '/portfolio';
   } catch {
     // headers() 호출 실패 시 기본값 사용
     isCompanyPage = false;
+    isPortfolioPage = false;
   }
   
   // 업체 정보 가져오기 (업체 로그인인 경우)
@@ -109,19 +113,19 @@ export default async function RootLayout({
           }}
         />
         <Providers>
-          {/* 업체 전용 페이지가 아닐 때만 Header 표시 */}
-          {!isCompanyPage && (
+          {/* 업체 전용 페이지와 포트폴리오 페이지가 아닐 때만 Header 표시 */}
+          {!isCompanyPage && !isPortfolioPage && (
             <Header 
               isAuthenticated={isAuthenticated} 
               userType={user?.userType || null}
               companyName={companyName}
             />
           )}
-          <main className="flex-1 bg-white dark:bg-gray-900 min-h-[calc(100vh-80px)] transition-colors duration-300" suppressHydrationWarning>
+          <main className={`flex-1 bg-white dark:bg-gray-900 transition-colors duration-300 ${!isPortfolioPage ? 'min-h-[calc(100vh-80px)]' : ''}`} suppressHydrationWarning>
             {children}
           </main>
-          {/* 업체 전용 페이지가 아닐 때만 Footer 표시 */}
-          {!isCompanyPage && <Footer />}
+          {/* 업체 전용 페이지와 포트폴리오 페이지가 아닐 때만 Footer 표시 */}
+          {!isCompanyPage && !isPortfolioPage && <Footer />}
           <Toaster position="top-right" richColors />
         </Providers>
       </body>

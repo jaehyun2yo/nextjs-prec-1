@@ -52,9 +52,9 @@ export default function Header({
     }
   }, [theme, mounted]);
   
-  // 공정관리페이지(/company/)에서는 Header를 표시하지 않음
+  // 공정관리페이지(/company/)와 포트폴리오 페이지(/portfolio)에서는 Header를 표시하지 않음
   // 모든 hooks 호출 후에 조건부 return
-  if (pathname?.startsWith('/company/')) {
+  if (pathname?.startsWith('/company/') || pathname === '/portfolio') {
     return null;
   }
   

@@ -1,5 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { PortfolioGrid } from "@/components/PortfolioGrid";
+import { PortfolioPageClient } from "./PortfolioPageClient";
 import { logger } from "@/lib/utils/logger";
 
 interface PortfolioItem {
@@ -38,21 +38,7 @@ export default async function PortfolioPage() {
     portfolioLogger.error("Portfolio page select exception", error);
   }
 
-  return (
-    <div className="w-full py-8 px-4 md:px-8 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold mb-8 text-gray-900 dark:text-gray-100">포트폴리오</h1>
-      
-      {items.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-sm text-gray-600 dark:text-gray-300">
-            등록된 포트폴리오가 없습니다.
-          </p>
-        </div>
-      ) : (
-        <PortfolioGrid items={items} />
-      )}
-    </div>
-  );
+  return <PortfolioPageClient items={items} />;
 }
 
 

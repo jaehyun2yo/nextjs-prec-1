@@ -14,6 +14,7 @@ const r2Host = getR2Host();
 const staticRemotePatterns: Array<{ protocol: "https" | "http"; hostname: string }> = [
   { protocol: "https", hostname: "yjlaser.net" },
   { protocol: "http", hostname: "yjlaser.net" },
+  { protocol: "https", hostname: "images.unsplash.com" },
 ];
 
 const nextConfig: NextConfig = {
