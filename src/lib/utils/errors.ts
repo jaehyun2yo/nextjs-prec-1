@@ -91,5 +91,38 @@ export function isNextRedirectError(error: unknown): boolean {
   return false;
 }
 
+/**
+ * API 라우트에서 에러를 NextResponse로 변환
+ */
+export function toApiErrorResponse(error: unknown): {
+  status: number;
+  body: { error: string; code?: string; details?: unknown };
+} {
+  const handled = handleError(error);
+  return {
+    status: handled.statusCode,
+    body: {
+      error: handled.message,
+      code: handled.code,
+      ...(handled.statusCode >= 500 ? {} : { details: error instanceof AppError ? error.details : undefined }),
+    },
+  };
+}
+
+/**
+ * Supabase 에러를 DatabaseError로 변환
+ */
+export function convertSupabaseError(error: { message?: string; code?: string; details?: unknown; hint?: string }): DatabaseError {
+  return new DatabaseError(
+    error.message || '데이터베이스 오류가 발생했습니다.',
+    {
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    }
+  );
+}
+
+
 
 

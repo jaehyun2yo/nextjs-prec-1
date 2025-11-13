@@ -32,6 +32,10 @@ export interface ProcessedContactData {
   delivery_address?: string | null;
   delivery_name?: string | null;
   delivery_phone?: string | null;
+  delivery_method?: string | null;
+  delivery_company_name?: string | null;
+  delivery_company_phone?: string | null;
+  delivery_company_address?: string | null;
   attachment_filename?: string | null;
   attachment_url?: string | null;
   drawing_file_url?: string | null;
@@ -76,6 +80,10 @@ export function prepareContactInsertData(
     delivery_address?: string | null;
     delivery_name?: string | null;
     delivery_phone?: string | null;
+    delivery_method?: string | null;
+    delivery_company_name?: string | null;
+    delivery_company_phone?: string | null;
+    delivery_company_address?: string | null;
     attachmentFilename?: string | null;
     attachmentUrl?: string | null;
     drawingFileUrl?: string | null;
@@ -114,6 +122,10 @@ export function prepareContactInsertData(
     delivery_address: metadata.delivery_address || null,
     delivery_name: metadata.delivery_name || null,
     delivery_phone: metadata.delivery_phone || null,
+    delivery_method: metadata.delivery_method || null,
+    delivery_company_name: metadata.delivery_company_name || null,
+    delivery_company_phone: metadata.delivery_company_phone || null,
+    delivery_company_address: metadata.delivery_company_address || null,
     attachment_filename: metadata.attachmentFilename || null,
     attachment_url: metadata.attachmentUrl || null,
     drawing_file_url: metadata.drawingFileUrl || null,

@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useRef, Suspense } from 'react';
+import { useState, Suspense } from 'react';
 import { registerCompany, createTestAccount } from '@/app/actions/register';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import SuccessModal from '@/components/SuccessModal';
 import { INPUT_STYLES, BUTTON_STYLES, CHECKBOX_STYLES } from '@/lib/styles';
-import { FaPaperclip, FaTrash } from 'react-icons/fa';
+import { FileUpload } from '@/components/FileUpload';
+import { RadioButton } from '@/components/RadioButton';
 
 function RegisterForm() {
   const router = useRouter();
@@ -17,8 +18,8 @@ function RegisterForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCreatingTest, setIsCreatingTest] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [quoteMethod, setQuoteMethod] = useState<string>('email');
 
   const getErrorMessage = (errorType: string | null) => {
     switch (errorType) {
@@ -245,70 +246,17 @@ function RegisterForm() {
                 />
               </div>
               <div className="my-6">
-                <label htmlFor="business_registration_file" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
-                  사업자등록증 <span className="text-gray-500 text-xs">(선택사항)</span>
-                </label>
-                <div className="space-y-3">
-                  <input
-                    type="file"
+                <FileUpload
+                  name="business_registration_file"
                     id="business_registration_file"
-                    name="business_registration_file"
-                    ref={fileInputRef}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        if (file.size > 10 * 1024 * 1024) {
-                          alert('파일 크기는 10MB 이하여야 합니다.');
-                          if (fileInputRef.current) {
-                            fileInputRef.current.value = '';
-                          }
-                          return;
-                        }
-                        setSelectedFile(file);
-                      }
-                    }}
                     accept=".pdf,.jpg,.jpeg,.png"
-                    className="hidden"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isSubmitting}
-                    className="w-full px-6 py-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    <FaPaperclip className="text-base" />
-                    <span className="text-sm font-medium">파일 선택 (최대 10MB)</span>
-                  </button>
-                  {selectedFile && (
-                    <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <FaPaperclip className="text-gray-500 dark:text-gray-400 flex-shrink-0 text-base" />
-                        <span className="text-sm text-gray-900 dark:text-gray-100 truncate font-medium">
-                          {selectedFile.name}
-                        </span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
-                          ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedFile(null);
-                          if (fileInputRef.current) {
-                            fileInputRef.current.value = '';
-                          }
-                        }}
-                        disabled={isSubmitting}
-                        className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors disabled:opacity-50"
-                      >
-                        <FaTrash className="text-sm" />
-                      </button>
-                    </div>
-                  )}
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    PDF, JPG, PNG 파일만 업로드 가능합니다.
-                  </p>
-                </div>
+                  maxSize={10 * 1024 * 1024}
+                  disabled={isSubmitting}
+                  files={selectedFiles}
+                  onChange={setSelectedFiles}
+                  label="사업자등록증"
+                  helpText="PDF, JPG, PNG 파일만 업로드 가능합니다."
+                />
               </div>
             </div>
           </div>
@@ -443,33 +391,30 @@ function RegisterForm() {
                   견적서 제공받을 방법
                 </h3>
                 <div className="flex flex-wrap gap-6">
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="radio"
-                      name="quote_method"
-                      value="email"
-                      className={`${CHECKBOX_STYLES.base} ${CHECKBOX_STYLES.primary}`}
-                    />
-                    <span className="ml-2 text-sm text-gray-900 dark:text-gray-100">이메일</span>
-                  </label>
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="radio"
-                      name="quote_method"
-                      value="fax"
-                      className={`${CHECKBOX_STYLES.base} ${CHECKBOX_STYLES.primary}`}
-                    />
-                    <span className="ml-2 text-sm text-gray-900 dark:text-gray-100">팩스</span>
-                  </label>
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="radio"
-                      name="quote_method"
-                      value="sms"
-                      className={`${CHECKBOX_STYLES.base} ${CHECKBOX_STYLES.primary}`}
-                    />
-                    <span className="ml-2 text-sm text-gray-900 dark:text-gray-100">휴대폰문자</span>
-                  </label>
+                  <RadioButton
+                    name="quote_method"
+                    value="email"
+                    checked={quoteMethod === 'email'}
+                    onChange={(e) => setQuoteMethod(e.target.value)}
+                    label="이메일"
+                    showUnderline={false}
+                  />
+                  <RadioButton
+                    name="quote_method"
+                    value="fax"
+                    checked={quoteMethod === 'fax'}
+                    onChange={(e) => setQuoteMethod(e.target.value)}
+                    label="팩스"
+                    showUnderline={false}
+                  />
+                  <RadioButton
+                    name="quote_method"
+                    value="sms"
+                    checked={quoteMethod === 'sms'}
+                    onChange={(e) => setQuoteMethod(e.target.value)}
+                    label="휴대폰문자"
+                    showUnderline={false}
+                  />
                 </div>
               </div>
             </div>

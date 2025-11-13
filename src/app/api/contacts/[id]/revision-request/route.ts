@@ -3,6 +3,7 @@ import { verifySession } from '@/lib/auth/session';
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { uploadFileToR2 } from '@/lib/utils/fileUpload';
+import type { RevisionRequestHistory } from '@/types/database.types';
 
 export async function POST(
   request: NextRequest,
@@ -66,7 +67,7 @@ export async function POST(
       .single();
 
     // 기존 수정요청이 있으면 히스토리에 추가
-    let history: any[] = [];
+    let history: RevisionRequestHistory = [];
     if (currentContact?.revision_request_history) {
       try {
         history = Array.isArray(currentContact.revision_request_history) 
@@ -97,7 +98,7 @@ export async function POST(
       updated_at: string;
       revision_request_file_url?: string | null;
       revision_request_file_name?: string | null;
-      revision_request_history?: any;
+      revision_request_history?: RevisionRequestHistory;
     } = {
       revision_request_title: title.trim(),
       revision_request_content: content.trim(),

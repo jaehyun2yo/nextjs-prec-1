@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { logger } from "@/lib/utils/logger";
 import { CompanyDashboardClient } from './CompanyDashboardClient';
 import type { ProcessStage } from '@/lib/utils/processStages';
+import type { RevisionRequestHistory } from '@/types/database.types';
 
 interface Company {
   id: number;
@@ -30,7 +31,7 @@ interface Contact {
   revision_requested_at?: string | null;
   revision_request_file_url?: string | null;
   revision_request_file_name?: string | null;
-  revision_request_history?: any;
+  revision_request_history?: RevisionRequestHistory | null;
 }
 
 export default async function CompanyDashboardPage() {

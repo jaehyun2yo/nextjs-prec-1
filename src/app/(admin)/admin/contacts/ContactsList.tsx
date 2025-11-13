@@ -11,6 +11,7 @@ import { UpdateStatusButton } from './[id]/update-status-button';
 import { ConfirmButton } from './[id]/confirm-button';
 import { DownloadButton } from '@/components/DownloadButton';
 import type { ProcessStage } from '@/lib/utils/processStages';
+import type { RevisionRequestHistory } from '@/types/database.types';
 
 interface Contact {
   id: number;
@@ -40,6 +41,10 @@ interface Contact {
   delivery_address: string | null;
   delivery_name: string | null;
   delivery_phone: string | null;
+  delivery_method: string | null;
+  delivery_company_name: string | null;
+  delivery_company_phone: string | null;
+  delivery_company_address: string | null;
   attachment_filename: string | null;
   attachment_url: string | null;
   drawing_file_url: string | null;
@@ -55,7 +60,7 @@ interface Contact {
   revision_requested_at?: string | null;
   revision_request_file_url?: string | null;
   revision_request_file_name?: string | null;
-  revision_request_history?: any;
+  revision_request_history?: RevisionRequestHistory | null;
   deleted_at?: string | null;
 }
 
@@ -329,11 +334,7 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
       const wasExpanded = newSet.has(contactId);
       
       if (wasExpanded) {
-        newSet.delete(contactId);
-      } else {
-        newSet.add(contactId);
-        
-        // 신규 상태에서 토글을 열면 읽음으로 변경
+        // 창을 닫을 때 신규 상태인 경우 읽음으로 변경
         const contact = contacts.find(c => c.id === contactId);
         if (contact && contact.status === 'new') {
           // 비동기로 상태 업데이트 (UI 블로킹 방지)
@@ -349,6 +350,9 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
             console.error('Error updating status to read:', error);
           });
         }
+        newSet.delete(contactId);
+      } else {
+        newSet.add(contactId);
       }
       
       return newSet;
@@ -1040,6 +1044,50 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                         )}
                       </div>
                     </div>
+
+                    {/* 납품업체 정보 */}
+                    {contact.delivery_method && (
+                      <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 mb-4">
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3 border-b border-gray-200 dark:border-gray-700 pb-2">
+                          납품업체 정보
+                        </h3>
+                        <div className="space-y-3">
+                          <div>
+                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">납품 방법</label>
+                            <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                              {contact.delivery_method === 'company_address' 
+                                ? '회사주소로 납품' 
+                                : contact.delivery_method === 'delivery_company'
+                                ? '납품받을 업체가 있습니다'
+                                : contact.delivery_method || '-'}
+                            </p>
+                          </div>
+                          
+                          {contact.delivery_method === 'delivery_company' && (
+                            <>
+                              <div>
+                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">납품업체명</label>
+                                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{contact.delivery_company_name || '-'}</p>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">연락처</label>
+                                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                                  {contact.delivery_company_phone ? (
+                                    <a href={`tel:${contact.delivery_company_phone}`} className="text-orange-600 hover:underline">
+                                      {contact.delivery_company_phone}
+                                    </a>
+                                  ) : '-'}
+                                </p>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">주소</label>
+                                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{contact.delivery_company_address || '-'}</p>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                     {/* 일정 조율 정보 */}
                     {contact.receipt_method && (

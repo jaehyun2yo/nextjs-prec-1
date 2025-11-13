@@ -1,16 +1,18 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { verifySession } from '@/lib/auth/session';
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/utils/logger';
+import { toApiErrorResponse, convertSupabaseError, AuthenticationError } from '@/lib/utils/errors';
+
+const adminContactsLogger = logger.createLogger('ADMIN_CONTACTS');
 
 export async function GET(request: NextRequest) {
   try {
     // 세션 확인
     const isAuthenticated = await verifySession();
     if (!isAuthenticated) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      const errorResponse = toApiErrorResponse(new AuthenticationError());
+      return NextResponse.json(errorResponse.body, { status: errorResponse.status });
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -45,11 +47,10 @@ export async function GET(request: NextRequest) {
       .range(offset, offset + itemsPerPage - 1);
 
     if (error) {
-      console.error('Error fetching contacts:', error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      adminContactsLogger.error('Error fetching contacts', error, { statusFilter, page, searchQuery });
+      const dbError = convertSupabaseError(error);
+      const errorResponse = toApiErrorResponse(dbError);
+      return NextResponse.json(errorResponse.body, { status: errorResponse.status });
     }
 
     return NextResponse.json({
@@ -58,11 +59,9 @@ export async function GET(request: NextRequest) {
       hasMore: (count || 0) > offset + itemsPerPage,
     });
   } catch (error) {
-    console.error('Error in GET /api/admin/contacts:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    adminContactsLogger.error('Exception in GET admin contacts', error);
+    const errorResponse = toApiErrorResponse(error);
+    return NextResponse.json(errorResponse.body, { status: errorResponse.status });
   }
 }
 

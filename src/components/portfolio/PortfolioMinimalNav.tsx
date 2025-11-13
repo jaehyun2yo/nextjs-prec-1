@@ -74,7 +74,7 @@ export function PortfolioMinimalNav() {
               duration: 0.4, 
               ease: [0.25, 0.1, 0.25, 1],
             }}
-            className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[80] pointer-events-auto w-[calc(33.333%-2rem)] max-w-[400px] min-w-[280px]"
+            className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[80] pointer-events-auto w-[280px]"
           >
         <motion.div 
           className="bg-white/10 backdrop-blur-2xl rounded-full px-8 py-4 shadow-2xl border border-white/20"
@@ -89,20 +89,20 @@ export function PortfolioMinimalNav() {
           }}
           transition={{ duration: 0.3 }}
         >
-          <div className="flex items-center justify-between gap-6">
+          <div className="flex items-center justify-between gap-6 w-full">
             {/* 로고 */}
             <Link href="/" className="flex items-center flex-shrink-0">
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="h-6 w-auto overflow-hidden flex items-center"
+                className="h-6 w-[100px] overflow-hidden flex items-center flex-shrink-0"
               >
                 <Image 
                   src="/mainLogo.svg" 
                   alt="My Company Logo" 
-                  width={120} 
-                  height={40}
-                  className="max-h-full max-w-full object-contain brightness-0 invert"
+                  width={100} 
+                  height={24}
+                  className="w-full h-full object-contain brightness-0 invert"
                   priority
                 />
               </motion.div>
@@ -112,7 +112,7 @@ export function PortfolioMinimalNav() {
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all duration-300"
+              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all duration-300 flex-shrink-0"
               aria-label="메뉴 열기"
             >
               {isMobileMenuOpen ? (
@@ -139,10 +139,10 @@ export function PortfolioMinimalNav() {
               duration: 0.4, 
               ease: [0.25, 0.1, 0.25, 1],
             }}
-            className="fixed top-5 left-1/2 transform -translate-x-1/2 z-[80] pointer-events-auto w-[60%] max-w-[700px] min-w-[400px]"
+            className="fixed top-5 left-1/2 transform -translate-x-1/2 z-[80] pointer-events-auto w-[450px]"
           >
         <motion.div 
-          className="bg-white/10 backdrop-blur-2xl rounded-full px-8 py-4 shadow-2xl border border-white/20 mx-auto"
+          className="bg-white/10 backdrop-blur-2xl rounded-full px-8 py-4 shadow-2xl border border-white/20"
           style={{
             background: 'rgba(255, 255, 255, 0.1)',
             backdropFilter: 'blur(20px) saturate(180%)',
@@ -154,42 +154,43 @@ export function PortfolioMinimalNav() {
           }}
           transition={{ duration: 0.3 }}
         >
-          <div className="flex items-center justify-center gap-8 w-full">
+          <div className="flex items-center justify-between gap-8 w-full">
             {/* 로고 */}
             <Link href="/" className="flex items-center flex-shrink-0">
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="h-7 w-auto overflow-hidden flex items-center"
+                className="h-7 w-[110px] overflow-hidden flex items-center flex-shrink-0"
               >
                 <Image 
                   src="/mainLogo.svg" 
                   alt="My Company Logo" 
-                  width={120} 
-                  height={40}
-                  className="max-h-full max-w-full object-contain brightness-0 invert"
+                  width={110} 
+                  height={28}
+                  className="w-full h-full object-contain brightness-0 invert"
                   priority
                 />
               </motion.div>
             </Link>
             
             {/* 태블릿 메뉴 */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               {/* 구분선 */}
-              <div className="h-5 w-px bg-white/30" />
+              {/* <div className="h-5 w-px bg-white/30 flex-shrink-0" /> */}
               
               {/* 메뉴 항목들 - 태블릿은 더 작은 간격 */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 flex-shrink-0">
                 {navItems.map((item, index) => (
                   <motion.div
                     key={item.href}
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05, duration: 0.3 }}
+                    className="flex-shrink-0"
                   >
                     <Link
                       href={item.href}
-                      className="relative group"
+                      className="relative group whitespace-nowrap"
                     >
                       <span
                         className={`text-xs font-medium transition-colors duration-300 ${
@@ -233,10 +234,10 @@ export function PortfolioMinimalNav() {
               duration: 0.4, 
               ease: [0.25, 0.1, 0.25, 1],
             }}
-            className="fixed top-6 left-1/2 transform -translate-x-1/2 z-[80] pointer-events-auto w-[60%] max-w-[800px] min-w-[450px]"
+            className="fixed top-6 left-1/2 transform -translate-x-1/2 z-[80] pointer-events-auto w-[580px]"
           >
         <motion.div 
-          className="bg-white/10 backdrop-blur-2xl rounded-full px-10 py-4 shadow-2xl border border-white/20 mx-auto"
+          className="bg-white/10 backdrop-blur-2xl rounded-full px-10 py-4 shadow-2xl border border-white/20"
           style={{
             background: 'rgba(255, 255, 255, 0.1)',
             backdropFilter: 'blur(20px) saturate(180%)',
@@ -248,42 +249,45 @@ export function PortfolioMinimalNav() {
           }}
           transition={{ duration: 0.3 }}
         >
-          <div className="flex items-center justify-center gap-12 w-full">
+          <div className="flex items-center justify-between gap-12 w-full">
             {/* 로고 */}
             <Link href="/" className="flex items-center flex-shrink-0">
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="h-8 w-auto overflow-hidden flex items-center"
+                className="h-8 w-[120px] overflow-hidden flex items-center flex-shrink-0"
               >
                 <Image 
                   src="/mainLogo.svg" 
                   alt="My Company Logo" 
                   width={120} 
-                  height={40}
-                  className="max-h-full max-w-full object-contain brightness-0 invert"
+                  height={32}
+                  className="w-full h-full object-contain brightness-0 invert"
                   priority
                 />
               </motion.div>
             </Link>
+
+            
             
             {/* 데스크톱 메뉴 */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-shrink-0">
               {/* 구분선 */}
-              <div className="h-6 w-px bg-white/30" />
+              {/* <div className="h-6 w-px bg-white/30 flex-shrink-0" /> */}
               
               {/* 메뉴 항목들 */}
-              <div className="flex items-center gap-10">
+              <div className="flex items-center gap-10 flex-shrink-0">
                 {navItems.map((item, index) => (
                   <motion.div
                     key={item.href}
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05, duration: 0.3 }}
+                    className="flex-shrink-0"
                   >
                     <Link
                       href={item.href}
-                      className="relative group"
+                      className="relative group whitespace-nowrap"
                     >
                       <span
                         className={`text-sm font-medium transition-colors duration-300 ${

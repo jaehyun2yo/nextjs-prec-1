@@ -7,6 +7,7 @@ import { PROCESS_STAGES_ARRAY, getProcessStageInfo, isProcessStarted } from '@/l
 import { RevisionRequestModal } from './RevisionRequestModal';
 import { DownloadButton } from './DownloadButton';
 import type { ProcessStage } from '@/lib/utils/processStages';
+import type { RevisionRequestHistory } from '@/types/database.types';
 
 interface ContactCardToggleProps {
   contact: {
@@ -30,7 +31,7 @@ interface ContactCardToggleProps {
     revision_requested_at?: string | null;
     revision_request_file_url?: string | null;
     revision_request_file_name?: string | null;
-    revision_request_history?: any;
+    revision_request_history?: RevisionRequestHistory | null;
   };
   statusInfo: {
     label: string;

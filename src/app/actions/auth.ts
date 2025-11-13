@@ -15,7 +15,25 @@ export async function logoutAction() {
 }
 
 /**
- * 로그인 서버 액션 (관리자 및 기업 모두 지원)
+ * 로그인 서버 액션
+ * 
+ * 관리자 및 기업 계정 로그인을 처리합니다.
+ * 
+ * @param formData - FormData 객체 (username, password 포함)
+ * 
+ * @remarks
+ * - 관리자 계정: 환경 변수에서 확인
+ * - 기업 계정: companies 테이블에서 확인
+ * - 성공 시 세션 쿠키 설정 및 리디렉션
+ * 
+ * @example
+ * ```typescript
+ * const formData = new FormData();
+ * formData.append('username', 'admin');
+ * formData.append('password', 'password123');
+ * 
+ * await loginAction(formData);
+ * ```
  */
 export async function loginAction(formData: FormData) {
   const username = formData.get("username") as string;

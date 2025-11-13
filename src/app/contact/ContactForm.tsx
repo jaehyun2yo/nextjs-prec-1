@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
 import { submitContact } from '@/app/actions/contact';
 import SuccessModal from '@/components/SuccessModal';
 import ErrorModal from '@/components/ErrorModal';
@@ -8,17 +10,14 @@ import StepIndicator from '@/components/contact/StepIndicator';
 import { INPUT_STYLES, BUTTON_STYLES, CHECKBOX_STYLES, FILE_INPUT_STYLES } from '@/lib/styles';
 import { getErrorMessage } from '@/lib/utils/contactValidation';
 import type { ContactFormProps } from '@/types/contact';
+import { FileUpload } from '@/components/FileUpload';
+import { RadioButton } from '@/components/RadioButton';
+import { InfoBox } from '@/components/InfoBox';
 
 export default function ContactForm({ success, error, initialValues }: ContactFormProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [contactType, setContactType] = useState<'company' | 'individual'>('company');
-  const [serviceTypes, setServiceTypes] = useState<{
-    moldRequest: boolean;
-    deliveryBrokerage: boolean;
-  }>({
-    moldRequest: false,
-    deliveryBrokerage: false,
-  });
+  const [serviceType, setServiceType] = useState<'moldRequest' | 'deliveryBrokerage' | ''>('');
   
   // 도면 및 샘플 섹션 state
   const [drawingType, setDrawingType] = useState<'create' | 'have' | ''>('');
@@ -33,7 +32,112 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
   // 수령방법 선택 state
   const [receiptMethod, setReceiptMethod] = useState<'visit' | 'delivery' | ''>('');
   const [visitLocation] = useState<string>('');
-  const [visitDate, setVisitDate] = useState<string>('');
+  
+  // 납품업체 state (모두 준비되었을 경우)
+  const [deliveryMethod, setDeliveryMethod] = useState<'company_address' | 'delivery_company'>('company_address');
+  const [savedDeliveryCompanies, setSavedDeliveryCompanies] = useState<Array<{
+    id: number;
+    name: string;
+    phone: string;
+    address: string;
+  }>>([]);
+  const [selectedDeliveryCompanyId, setSelectedDeliveryCompanyId] = useState<number | ''>('');
+  const [newDeliveryCompany, setNewDeliveryCompany] = useState<{
+    name: string;
+    phone: string;
+    address: string;
+  }>({
+    name: '',
+    phone: '',
+    address: '',
+  });
+  const [isSavingCompany, setIsSavingCompany] = useState(false);
+  const [companyAddress, setCompanyAddress] = useState<string>('');
+  const [isLoadingAddress, setIsLoadingAddress] = useState(false);
+  const [addressError, setAddressError] = useState<string>('');
+  const [isCompanyLoggedIn, setIsCompanyLoggedIn] = useState<boolean | null>(null);
+  
+  // 업체 주소 가져오기 및 로그인 상태 확인, 저장된 납품업체 불러오기
+  useEffect(() => {
+    const fetchCompanyAddress = async () => {
+      setIsLoadingAddress(true);
+      setAddressError('');
+      try {
+        const response = await fetch('/api/company/address');
+        if (response.ok) {
+          const data = await response.json();
+          setIsCompanyLoggedIn(true);
+          if (data.address) {
+            setCompanyAddress(data.address);
+          } else {
+            setAddressError('no_address');
+          }
+          
+          // 로그인 성공 시 저장된 납품업체 불러오기
+          try {
+            const deliveryResponse = await fetch('/api/company/delivery-companies');
+            if (deliveryResponse.ok) {
+              const deliveryData = await deliveryResponse.json();
+              setSavedDeliveryCompanies(deliveryData.deliveryCompanies || []);
+            }
+          } catch (error) {
+            console.error('Error fetching delivery companies:', error);
+          }
+        } else {
+          if (response.status === 401 || response.status === 403) {
+            setIsCompanyLoggedIn(false);
+            setAddressError('not_logged_in');
+          } else {
+            setIsCompanyLoggedIn(false);
+            setAddressError('error');
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching company address:', error);
+        setIsCompanyLoggedIn(false);
+        setAddressError('error');
+      } finally {
+        setIsLoadingAddress(false);
+      }
+    };
+    
+    if (drawingType === 'have') {
+      fetchCompanyAddress();
+    }
+  }, [drawingType]);
+  
+  // 오늘 + 2일 날짜 계산 (평일인 경우)
+  // 주말이면 평일이 나올 때까지 +1일씩 더함
+  const getDefaultVisitDate = (): string => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const defaultDate = new Date(today);
+    defaultDate.setDate(defaultDate.getDate() + 2);
+    
+    // 주말(일요일=0, 토요일=6)이면 평일이 나올 때까지 +1일씩 더함
+    while (defaultDate.getDay() === 0 || defaultDate.getDay() === 6) {
+      defaultDate.setDate(defaultDate.getDate() + 1);
+    }
+    
+    return defaultDate.toISOString().split('T')[0];
+  };
+  
+  // 최소 날짜 계산 (오늘 + 2일, 주말 제외)
+  const getMinVisitDate = (): string => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const minDate = new Date(today);
+    minDate.setDate(minDate.getDate() + 2);
+    
+    // 주말이면 평일이 나올 때까지 +1일씩 더함
+    while (minDate.getDay() === 0 || minDate.getDay() === 6) {
+      minDate.setDate(minDate.getDate() + 1);
+    }
+    
+    return minDate.toISOString().split('T')[0];
+  };
+  
+  const [visitDate, setVisitDate] = useState<string>(getDefaultVisitDate());
   const [visitTimeSlot, setVisitTimeSlot] = useState<string>('');
   const [deliveryAddress, setDeliveryAddress] = useState<string>('');
   const [deliveryName, setDeliveryName] = useState<string>('');
@@ -57,6 +161,8 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
   const [material, setMaterial] = useState('');
   const [drawingNotes, setDrawingNotes] = useState('');
   const [sampleNotes, setSampleNotes] = useState('');
+  const [referencePhotosFiles, setReferencePhotosFiles] = useState<File[]>([]);
+  const [drawingFile, setDrawingFile] = useState<File[]>([]);
   
   // 모달 상태
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -87,29 +193,34 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
         const form = document.querySelector('form') as HTMLFormElement;
         if (form) {
           // Step 2: 도면 파일 정보 읽기
-          const drawingFileInput = form.querySelector('input[name="drawing_file"]') as HTMLInputElement;
           const drawingFilesEl = document.getElementById('review_drawing_files');
-          if (drawingFilesEl && drawingFileInput?.files && drawingFileInput.files.length > 0) {
-            drawingFilesEl.textContent = Array.from(drawingFileInput.files).map(f => f.name).join(', ');
+          if (drawingFilesEl && drawingFile.length > 0) {
+            drawingFilesEl.textContent = drawingFile.map(f => f.name).join(', ');
           } else if (drawingFilesEl && drawingType === 'have') {
             drawingFilesEl.textContent = '파일 업로드 필요';
           }
         }
       }, 100);
     }
-  }, [currentStep, drawingType]);
+  }, [currentStep, drawingType, drawingFile]);
 
 
-  const handleServiceTypeChange = (type: 'moldRequest' | 'deliveryBrokerage') => {
-    setServiceTypes(prev => ({
-      ...prev,
-      [type]: !prev[type],
-    }));
-  };
 
   return (
     <div className="w-full py-8 px-4 md:px-8 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-8 text-gray-900 dark:text-gray-100">문의하기</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">문의하기</h1>
+        {/* 테스트 버튼 - 개발 환경에서만 표시 */}
+        {process.env.NODE_ENV === 'development' && (
+          <button
+            type="button"
+            onClick={() => setShowSuccessModal(true)}
+            className="px-4 py-2 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+          >
+            모달 테스트
+          </button>
+        )}
+      </div>
       
       {success && (
         <div className="rounded-md border border-green-300 bg-green-50 dark:bg-green-900/20 dark:border-green-800 p-4 text-sm text-green-700 dark:text-green-300 mb-6">
@@ -124,7 +235,7 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
       )}
 
       {/* 진행 단계 표시 */}
-      <StepIndicator currentStep={currentStep} />
+      <StepIndicator currentStep={currentStep} drawingType={drawingType} />
       
       <div className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 p-8 rounded-xl shadow-md">
         <form className="space-y-6">
@@ -166,56 +277,48 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                   문의 유형 <span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-6">
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="radio"
-                      name="contact_type"
-                      value="company"
-                      checked={contactType === 'company'}
-                      onChange={(e) => setContactType(e.target.value as 'company' | 'individual')}
-                      className={`${CHECKBOX_STYLES.base} ${CHECKBOX_STYLES.primary}`}
-                    />
-                    <span className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-100">업체</span>
-                  </label>
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="radio"
-                      name="contact_type"
-                      value="individual"
-                      checked={contactType === 'individual'}
-                      onChange={(e) => setContactType(e.target.value as 'company' | 'individual')}
-                      className={`${CHECKBOX_STYLES.base} ${CHECKBOX_STYLES.primary}`}
-                    />
-                    <span className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-100">개인</span>
-                  </label>
+                  <RadioButton
+                    name="contact_type"
+                    value="company"
+                    checked={contactType === 'company'}
+                    onChange={(e) => setContactType(e.target.value as 'company' | 'individual')}
+                    label="업체"
+                    underlineKey="contact-type-company"
+                  />
+                  <RadioButton
+                    name="contact_type"
+                    value="individual"
+                    checked={contactType === 'individual'}
+                    onChange={(e) => setContactType(e.target.value as 'company' | 'individual')}
+                    label="개인"
+                    underlineKey="contact-type-individual"
+                  />
                 </div>
               </div>
 
               {/* 개인 선택 시 서비스 유형 */}
               {contactType === 'individual' && (
-                <div className="pl-4 border-l-2 border-[#fed7aa] dark:border-[#ED6C00]/50 mb-6">
+                <div className="pl-4 border-l-2 border-[#ED6C00] dark:border-[#ED6C00] mb-6">
                   <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
                     서비스 유형 <span className="text-gray-500 text-xs">(선택사항)</span>
                   </label>
                   <div className="space-y-3">
-                    <label className="flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={serviceTypes.moldRequest}
-                        onChange={() => handleServiceTypeChange('moldRequest')}
-                        className={`${CHECKBOX_STYLES.base} ${CHECKBOX_STYLES.primary} rounded`}
-                      />
-                      <span className="ml-2 text-sm text-gray-900 dark:text-gray-100">목형 제작 의뢰</span>
-                    </label>
-                    <label className="flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={serviceTypes.deliveryBrokerage}
-                        onChange={() => handleServiceTypeChange('deliveryBrokerage')}
-                        className={`${CHECKBOX_STYLES.base} ${CHECKBOX_STYLES.primary} rounded`}
-                      />
-                      <span className="ml-2 text-sm text-gray-900 dark:text-gray-100">납품까지 중개</span>
-                    </label>
+                    <RadioButton
+                      name="service_type"
+                      value="moldRequest"
+                      checked={serviceType === 'moldRequest'}
+                      onChange={(e) => setServiceType(e.target.value as 'moldRequest' | 'deliveryBrokerage' | '')}
+                      label="목형 만 제작 의뢰합니다."
+                      underlineKey="service-type-mold"
+                    />
+                    <RadioButton
+                      name="service_type"
+                      value="deliveryBrokerage"
+                      checked={serviceType === 'deliveryBrokerage'}
+                      onChange={(e) => setServiceType(e.target.value as 'moldRequest' | 'deliveryBrokerage' | '')}
+                      label="목형제작 및 납품까지 중개 를 원합니다."
+                      underlineKey="service-type-delivery"
+                    />
                   </div>
                 </div>
               )}
@@ -349,8 +452,8 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
 
               {/* 숨겨진 필드 (서비스 유형 정보 전달용) */}
               <input type="hidden" name="contact_type" value={contactType} />
-              <input type="hidden" name="service_mold_request" value={serviceTypes.moldRequest ? '1' : '0'} />
-              <input type="hidden" name="service_delivery_brokerage" value={serviceTypes.deliveryBrokerage ? '1' : '0'} />
+              <input type="hidden" name="service_mold_request" value={serviceType === 'moldRequest' ? '1' : '0'} />
+              <input type="hidden" name="service_delivery_brokerage" value={serviceType === 'deliveryBrokerage' ? '1' : '0'} />
               </div>
 
               {/* 다음 단계 버튼 */}
@@ -390,55 +493,55 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                   필요한 사항 <span className="text-red-500">*</span>
                 </label>
                 <div className="space-y-3">
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="radio"
-                      name="drawing_type"
-                      value="create"
-                      checked={drawingType === 'create'}
-                      onChange={(e) => {
-                        setDrawingType(e.target.value as 'create');
-                        // 초기화
-                        setHasPhysicalSample(false);
-                        setHasReferencePhotos(false);
-                      }}
-                      className={`${CHECKBOX_STYLES.base} ${CHECKBOX_STYLES.primary}`}
-                    />
-                    <span className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-100">도면 제작이 필요합니다</span>
-                  </label>
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="radio"
-                      name="drawing_type"
-                      value="have"
-                      checked={drawingType === 'have'}
-                      onChange={(e) => {
-                        setDrawingType(e.target.value as 'have');
-                        // 초기화
-                        setDrawingModification('');
-                      }}
-                      className={`${CHECKBOX_STYLES.base} ${CHECKBOX_STYLES.primary}`}
-                    />
-                    <span className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-100">도면을 가지고 있습니다</span>
-                  </label>
+                  <RadioButton
+                    name="drawing_type"
+                    value="create"
+                    checked={drawingType === 'create'}
+                    onChange={(e) => {
+                      setDrawingType(e.target.value as 'create');
+                      // 초기화
+                      setHasPhysicalSample(false);
+                      setHasReferencePhotos(false);
+                    }}
+                    label="샘플 제작이 필요합니다."
+                    underlineKey="drawing-type-create"
+                  />
+                  <RadioButton
+                    name="drawing_type"
+                    value="have"
+                    checked={drawingType === 'have'}
+                    onChange={(e) => {
+                      setDrawingType(e.target.value as 'have');
+                      // 초기화
+                      setDrawingModification('');
+                    }}
+                    label="모두 준비되었으니, 바로 목형 의뢰할께요."
+                    underlineKey="drawing-type-have"
+                  />
                 </div>
               </div>
 
-              {/* 도면 제작이 필요합니다 선택 시 */}
-              {drawingType === 'create' && (
-                <div className="pl-4 border-l-2 border-[#fed7aa] dark:border-[#ED6C00]/50 space-y-4">
+              {/* 샘플 제작이 필요합니다 선택 시 */}
+              <AnimatePresence mode="wait">
+                {drawingType === 'create' && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0, y: -30 }}
+                    animate={{ opacity: 1, height: 'auto', y: 0 }}
+                    exit={{ opacity: 0, height: 0, y: -30 }}
+                    transition={{ duration: 0.4, ease: 'easeOut' }}
+                    className="pl-4 border-l-2 border-[#ED6C00] dark:border-[#ED6C00] space-y-4 overflow-hidden"
+                  >
                   <div>
                     <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
-                      샘플/사진 정보 <span className="text-gray-500 text-xs">(선택사항)</span>
+                      <span className="text-gray-500 text-xs">(선택사항)</span>
                     </label>
                     <div className="space-y-4">
-                      {/* 실물 샘플이 있습니다 - 레이아웃 연장되는 느낌으로 */}
+                      {/* 샘플 제작에 필요한 실물이 있습니다 */}
                       <div className={`overflow-hidden transition-all duration-300 ${
                         hasPhysicalSample 
                           ? 'border border-[#fb923c] dark:border-[#ED6C00]/50 rounded-lg' 
                           : ''
                       }`}>
-                        {/* 실물 샘플이 있습니다 토글 버튼 */}
                         <button
                           type="button"
                           onClick={() => {
@@ -446,7 +549,7 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                           }}
                           className={`w-full flex items-center justify-between px-4 py-3 transition-all duration-300 ${
                             hasPhysicalSample
-                              ? 'bg-[#fff7ed] border-b border-[#fed7aa] dark:bg-[#ED6C00]/20 dark:border-[#ED6C00]/50'
+                              ? 'bg-[#fff7ed] border-b border-[#ED6C00] dark:bg-[#ED6C00]/20 dark:border-[#ED6C00]'
                               : 'bg-white border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
                           }`}
                         >
@@ -462,10 +565,10 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                                 </svg>
                               )}
                             </div>
-                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">실물 샘플이 있습니다</span>
+                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">샘플 제작에 필요한 실물이 있습니다.</span>
                           </div>
                           <svg
-                            className={`w-5 h-5 text-[#ED6C00] dark:text-[#ff8533] transition-transform duration-200 ${
+                            className={`w-5 h-5 text-gray-900 dark:text-gray-100 transition-transform duration-200 ${
                               hasPhysicalSample ? 'rotate-180' : ''
                             }`}
                             fill="none"
@@ -479,16 +582,14 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                         {/* 실물 샘플이 있습니다 선택 시 - 체크되면 바로 아래 내용 표시 */}
                         {hasPhysicalSample && (
                           <div className="space-y-4 p-4 bg-[#fff7ed]/50 dark:bg-[#ED6C00]/10 transition-all duration-300">
-                            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                              <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">샘플 발송 주소</h4>
-                              <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
-                                <p className="font-medium">서울 중구 퇴계로39길 20, 2층</p>
-                                <p>전화: 02-2264-8070</p>
-                                <p className="mt-2 text-xs text-blue-700 dark:text-blue-300">
-                                  명함, 업체를 확인할 수 있는 서류 동봉 부탁드립니다.
-                                </p>
-                              </div>
-                            </div>
+                            <InfoBox label="샘플 발송 주소">
+                              <p className="text-sm font-medium mb-1">서울 중구 퇴계로39길 20, 2층 유진레이저목형 사무실</p>
+                              <p className="text-xs text-gray-600 dark:text-gray-400">우편번호 : 04557</p>
+                              <p className="text-xs text-gray-600 dark:text-gray-400">전화: 02-2264-8070</p>
+                              <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                                명함, 업체를 확인할 수 있는 서류 동봉 부탁드립니다.
+                              </p>
+                            </InfoBox>
                             
                             <div>
                               <label htmlFor="sample_notes" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
@@ -508,13 +609,12 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                         )}
                       </div>
 
-                      {/* 제작에 필요한 내용 자료가 있을까요 - 동일한 레이아웃으로 */}
+                      {/* 샘플 제작에 필요한 도면이나 사진이 있습니다 */}
                       <div className={`overflow-hidden transition-all duration-300 ${
                         hasReferencePhotos 
                           ? 'border border-[#fb923c] dark:border-[#ED6C00]/50 rounded-lg' 
                           : ''
                       }`}>
-                        {/* 제작에 필요한 내용 자료가 있을까요 토글 버튼 */}
                         <button
                           type="button"
                           onClick={() => {
@@ -522,7 +622,7 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                           }}
                           className={`w-full flex items-center justify-between px-4 py-3 transition-all duration-300 ${
                             hasReferencePhotos
-                              ? 'bg-[#fff7ed] border-b border-[#fed7aa] dark:bg-[#ED6C00]/20 dark:border-[#ED6C00]/50'
+                              ? 'bg-[#fff7ed] border-b border-[#ED6C00] dark:bg-[#ED6C00]/20 dark:border-[#ED6C00]'
                               : 'bg-white border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
                           }`}
                         >
@@ -538,10 +638,10 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                                 </svg>
                               )}
                             </div>
-                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">제작에 필요한 내용 자료가 있을까요?</span>
+                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">샘플 제작에 필요한 도면이나 사진이 있습니다.</span>
                           </div>
                           <svg
-                            className={`w-5 h-5 text-[#ED6C00] dark:text-[#ff8533] transition-transform duration-200 ${
+                            className={`w-5 h-5 text-gray-900 dark:text-gray-100 transition-transform duration-200 ${
                               hasReferencePhotos ? 'rotate-180' : ''
                             }`}
                             fill="none"
@@ -551,85 +651,76 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                           </svg>
                         </button>
-
                         {/* 제작에 필요한 내용 자료 업로드 - 체크되면 바로 아래 내용 표시 */}
                         {hasReferencePhotos && (
                           <div className="space-y-4 p-4 bg-[#fff7ed]/50 dark:bg-[#ED6C00]/10 transition-all duration-300">
-                            <div>
-                              <label htmlFor="reference_photos" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                                제작에 필요한 내용 자료 업로드 <span className="text-gray-500 text-xs">(선택사항)</span>
-                              </label>
-                              <input
-                                type="file"
-                                id="reference_photos"
-                                name="reference_photos"
-                                multiple
-                                accept="image/*,.pdf,.doc,.docx"
-                                className={`${FILE_INPUT_STYLES.base} ${FILE_INPUT_STYLES.fileButton}`}
-                              />
-                              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                이미지 파일 또는 문서 파일 업로드 가능 (JPG, PNG, GIF, PDF, DOC, DOCX 등)
-                              </p>
-                            </div>
+                            <FileUpload
+                              name="reference_photos"
+                              id="reference_photos"
+                              multiple
+                              accept="image/*,.pdf,.doc,.docx"
+                              maxSize={10 * 1024 * 1024}
+                              files={referencePhotosFiles}
+                              onChange={setReferencePhotosFiles}
+                              label="제작에 필요한 내용 자료 업로드"
+                              helpText="이미지 파일 또는 문서 파일 업로드 가능 (JPG, PNG, GIF, PDF, DOC, DOCX 등)"
+                            />
                           </div>
                         )}
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-              {/* 도면을 가지고 있습니다 선택 시 */}
-              {drawingType === 'have' && (
-                <div className="pl-4 border-l-2 border-[#fed7aa] dark:border-[#ED6C00]/50 space-y-4">
+              {/* 모두 준비되었으니 바로 목형 의뢰할께요 선택 시 */}
+              <AnimatePresence mode="wait">
+                {drawingType === 'have' && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0, y: -30 }}
+                    animate={{ opacity: 1, height: 'auto', y: 0 }}
+                    exit={{ opacity: 0, height: 0, y: -30 }}
+                    transition={{ duration: 0.4, ease: 'easeOut' }}
+                    className="pl-4 border-l-2 border-[#ED6C00] dark:border-[#ED6C00] space-y-4 overflow-hidden"
+                  >
                   <div>
                     <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
                       도면 수정 필요 여부 <span className="text-red-500">*</span>
                     </label>
                     <div className="space-y-3">
-                      <label className="flex items-center cursor-pointer">
-                        <input
-                          type="radio"
-                          name="drawing_modification"
-                          value="needed"
-                          checked={drawingModification === 'needed'}
-                          onChange={(e) => setDrawingModification(e.target.value as 'needed')}
-                          className={`${CHECKBOX_STYLES.base} ${CHECKBOX_STYLES.primary}`}
-                        />
-                        <span className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-100">도면의 수정이 필요합니다</span>
-                      </label>
-                      <label className="flex items-center cursor-pointer">
-                        <input
-                          type="radio"
-                          name="drawing_modification"
-                          value="not_needed"
-                          checked={drawingModification === 'not_needed'}
-                          onChange={(e) => setDrawingModification(e.target.value as 'not_needed')}
-                          className={`${CHECKBOX_STYLES.base} ${CHECKBOX_STYLES.primary}`}
-                        />
-                        <span className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-100">도면의 수정이 필요없습니다</span>
-                      </label>
+                      <RadioButton
+                        name="drawing_modification"
+                        value="needed"
+                        checked={drawingModification === 'needed'}
+                        onChange={(e) => setDrawingModification(e.target.value as 'needed')}
+                        label="도면의 수정이 필요합니다"
+                        underlineKey="drawing-modification-needed"
+                      />
+                      <RadioButton
+                        name="drawing_modification"
+                        value="not_needed"
+                        checked={drawingModification === 'not_needed'}
+                        onChange={(e) => setDrawingModification(e.target.value as 'not_needed')}
+                        label="도면의 수정이 필요없습니다"
+                        underlineKey="drawing-modification-not-needed"
+                      />
                     </div>
                   </div>
                   
-                  <div>
-                    <label htmlFor="drawing_file" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                      도면 파일 업로드 <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="file"
-                      id="drawing_file"
-                      name="drawing_file"
-                      accept=".pdf,.dwg,.dxf,.jpg,.jpeg,.png,.gif,.zip,.rar"
-                      required={drawingType === 'have'}
-                      className={`${INPUT_STYLES.twoThirds} ${FILE_INPUT_STYLES.base} ${FILE_INPUT_STYLES.fileButton}`}
-                    />
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      지원 형식: PDF, DWG, DXF, JPG, PNG, GIF, ZIP, RAR (최대 10MB)
-                    </p>
-                  </div>
-                </div>
-              )}
+                  <FileUpload
+                    name="drawing_file"
+                    id="drawing_file"
+                    accept=".pdf,.dwg,.dxf,.jpg,.jpeg,.png,.gif,.zip,.rar"
+                    maxSize={10 * 1024 * 1024}
+                    required={drawingType === 'have'}
+                    files={drawingFile}
+                    onChange={setDrawingFile}
+                    label="도면 파일 업로드"
+                  />
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* 공통 부분: 박스 형태, 장폭고, 원단 재질 */}
               <div className="border-t border-gray-200 dark:border-gray-700 pt-6 space-y-4">
@@ -767,13 +858,16 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                         return;
                       }
                       // 도면 파일 업로드 필수 검증
-                      const drawingFileInput = document.getElementById('drawing_file') as HTMLInputElement;
-                      if (!drawingFileInput || !drawingFileInput.files || drawingFileInput.files.length === 0) {
+                      if (drawingFile.length === 0) {
                         alert('도면 파일을 업로드해주세요.');
                         return;
                       }
+                      // 모두 준비되었으니 바로 목형 의뢰할께요 선택 시 납품업체 단계로 이동
+                      setCurrentStep(3);
+                    } else {
+                      // 샘플 제작이 필요한 경우 일정 조율 단계로 이동
+                      setCurrentStep(3);
                     }
-                    setCurrentStep(3);
                     // 화면 상단으로 스크롤
                     setTimeout(() => {
                       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -786,9 +880,266 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
               </div>
           </div>
 
-          {/* 세 번째 섹션: 일정 조율 */}
+          {/* 세 번째 섹션: 일정 조율 또는 납품업체 */}
           <div style={{ display: currentStep === 3 ? 'block' : 'none' }} className="space-y-6">
-              <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-gray-100">일정 조율</h2>
+              {drawingType === 'have' ? (
+                <>
+                  <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-gray-100">납품업체</h2>
+                  
+                  {/* 납품 방법 선택 (라디오) */}
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
+                      납품 방법 <span className="text-red-500">*</span>
+                    </label>
+                    <div className="space-y-3">
+                      <RadioButton
+                        name="delivery_method"
+                        value="company_address"
+                        checked={deliveryMethod === 'company_address'}
+                        onChange={(e) => {
+                          setDeliveryMethod(e.target.value as 'company_address' | 'delivery_company');
+                          setSelectedDeliveryCompanyId('');
+                          setNewDeliveryCompany({ name: '', phone: '', address: '' });
+                        }}
+                        label="회사주소로 납품받겠습니다."
+                        underlineKey="delivery-method-company"
+                      />
+                      <RadioButton
+                        name="delivery_method"
+                        value="delivery_company"
+                        checked={deliveryMethod === 'delivery_company'}
+                        onChange={(e) => {
+                          setDeliveryMethod(e.target.value as 'company_address' | 'delivery_company');
+                        }}
+                        label="납품받을 업체가 있습니다."
+                        underlineKey="delivery-method-company-select"
+                      />
+                    </div>
+                  </div>
+
+                  {/* 회사주소 선택 시 */}
+                  {deliveryMethod === 'company_address' && (
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                        납품 주소
+                      </label>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
+                        업체 등록했던 사업장 주소로 보내드리겠습니다!
+                      </p>
+                      {isLoadingAddress ? (
+                        <InfoBox>
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            업체정보에 등록된 주소를 불러오는 중...
+                          </p>
+                        </InfoBox>
+                      ) : addressError === 'not_logged_in' ? (
+                        <InfoBox>
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                            현재 로그인을 하지않아서 업체주소가 없습니다.
+                          </p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            업체등록을 먼저 해주시면 편하게 사용가능하십니다!
+                          </p>
+                        </InfoBox>
+                      ) : companyAddress ? (
+                        <InfoBox>
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {companyAddress}
+                          </p>
+                        </InfoBox>
+                      ) : (
+                        <InfoBox>
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            업체정보에 등록된 주소를 불러올 수 없습니다.
+                          </p>
+                        </InfoBox>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 납품업체 선택 시 */}
+                  {deliveryMethod === 'delivery_company' && (
+                    <div className="space-y-6">
+                      {/* 저장된 납품처 드롭다운 - 로그인한 업체만 표시 */}
+                      {isCompanyLoggedIn === true && (
+                        <div className="mb-6">
+                          <label htmlFor="saved_delivery_company" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                            저장된 납품처
+                          </label>
+                          <select
+                            id="saved_delivery_company"
+                            value={selectedDeliveryCompanyId}
+                            onChange={(e) => {
+                              const id = e.target.value ? Number(e.target.value) : '';
+                              setSelectedDeliveryCompanyId(id);
+                              if (id) {
+                                const company = savedDeliveryCompanies.find(c => c.id === id);
+                                if (company) {
+                                  setNewDeliveryCompany({
+                                    name: company.name,
+                                    phone: company.phone,
+                                    address: company.address,
+                                  });
+                                }
+                              } else {
+                                setNewDeliveryCompany({ name: '', phone: '', address: '' });
+                              }
+                            }}
+                            className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus} text-sm appearance-none pr-10 bg-no-repeat bg-[length:12px_12px] bg-[right_0.75rem_center] dark:bg-[url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23d1d5db' d='M6 9L1 4h10z'/%3E%3C/svg%3E")] bg-[url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 9L1 4h10z'/%3E%3C/svg%3E")]`}
+                          >
+                            <option value="">{savedDeliveryCompanies.length === 0 ? '아직 저장한 업체가 없습니다.' : '납품처를 선택하세요'}</option>
+                            {savedDeliveryCompanies.map((company) => (
+                              <option key={company.id} value={company.id}>
+                                {company.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* 로그인하지 않은 경우 안내 메시지 */}
+                      {isCompanyLoggedIn === false && (
+                        <div className="my-6">
+                          <InfoBox>
+                            <p className="text-xs text-gray-900 dark:text-gray-100">
+                              <Link href="/register" className="underline !text-[#ED6C00] dark:!text-[#ff8533] hover:!text-[#d15f00] dark:hover:!text-[#ff8533] transition-colors font-medium">
+                                업체 등록
+                              </Link>
+                              을 하면 납품처를 저장하여 쉽게 작성하실수있습니다.
+                            </p>
+                          </InfoBox>
+                        </div>
+                      )}
+
+                      {/* 납품업체 입력 폼 */}
+                      <div className="space-y-6">
+                        <div>
+                          <label htmlFor="delivery_company_name" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                            납품업체명 <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            id="delivery_company_name"
+                            value={newDeliveryCompany.name}
+                            onChange={(e) => setNewDeliveryCompany(prev => ({ ...prev, name: e.target.value }))}
+                            className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
+                            placeholder="납품업체명을 입력해주세요"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="delivery_company_phone" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                            연락처 <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="tel"
+                            id="delivery_company_phone"
+                            value={newDeliveryCompany.phone}
+                            onChange={(e) => setNewDeliveryCompany(prev => ({ ...prev, phone: e.target.value }))}
+                            className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
+                            placeholder="010-1234-5678"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="delivery_company_address" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                            주소 <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            id="delivery_company_address"
+                            value={newDeliveryCompany.address}
+                            onChange={(e) => setNewDeliveryCompany(prev => ({ ...prev, address: e.target.value }))}
+                            className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
+                            placeholder="주소를 입력해주세요"
+                            required
+                          />
+                        </div>
+
+                        {/* 거래처 저장 버튼 - 로그인한 업체만 표시 */}
+                        {isCompanyLoggedIn === true && (
+                          <div className="pt-2">
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (!newDeliveryCompany.name.trim() || !newDeliveryCompany.phone.trim() || !newDeliveryCompany.address.trim()) {
+                                  alert('납품업체명, 연락처, 주소를 모두 입력해주세요.');
+                                  return;
+                                }
+                                
+                                setIsSavingCompany(true);
+                                try {
+                                  const response = await fetch('/api/company/delivery-companies', {
+                                    method: 'POST',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify(newDeliveryCompany),
+                                  });
+                                  
+                                  const result = await response.json();
+                                  
+                                  if (result.success) {
+                                    setSavedDeliveryCompanies(prev => [result.deliveryCompany, ...prev]);
+                                    setSelectedDeliveryCompanyId(result.deliveryCompany.id);
+                                    // 폼 데이터 유지 (초기화하지 않음)
+                                    alert('거래처가 저장되었습니다.');
+                                  } else {
+                                    alert(result.error || '거래처 저장에 실패했습니다.');
+                                  }
+                                } catch (error) {
+                                  console.error('Error saving company:', error);
+                                  alert('거래처 저장 중 오류가 발생했습니다.');
+                                } finally {
+                                  setIsSavingCompany(false);
+                                }
+                              }}
+                              disabled={isSavingCompany}
+                              className={`${BUTTON_STYLES.secondary} ${isSavingCompany ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                              {isSavingCompany ? '저장 중...' : '거래처 저장'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 네비게이션 버튼 */}
+                  <div className="flex justify-between pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStep(2)}
+                      className={BUTTON_STYLES.secondary}
+                    >
+                      이전
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (deliveryMethod === 'delivery_company') {
+                          if (!newDeliveryCompany.name?.trim() || !newDeliveryCompany.phone?.trim() || !newDeliveryCompany.address?.trim()) {
+                            alert('납품업체명, 연락처, 주소를 모두 입력해주세요.');
+                            return;
+                          }
+                        }
+                        setCurrentStep(4);
+                        // 화면 상단으로 스크롤
+                        setTimeout(() => {
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }, 100);
+                      }}
+                      className={BUTTON_STYLES.primary}
+                    >
+                      다음 단계
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-gray-100">일정 조율</h2>
               
               {/* 샘플 완료후 수령방법 선택 */}
               <div>
@@ -797,13 +1148,12 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                 </label>
                 
                 {/* 안내사항 */}
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
-                  <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">안내사항</h4>
-                  <div className="text-sm text-blue-800 dark:text-blue-200 space-y-2">
-                    <p>• 샘플제작은 대략 1~2일 정도 소요되며, 고객사에 따라 도면의 유무, 당사 일정관계상 더 소요될수있습니다.</p>
-                    <p>• 즉시 수정 피드백을 원하시면 방문수령을, 그렇지않으시면 택배 및 퀵으로 수령하시면 원할한 진행이 되십니다.</p>
+                <InfoBox label="안내사항" className="mb-4" labelInside={true}>
+                  <div className="space-y-2">
+                    <p className="text-xs text-gray-900 dark:text-gray-100">• 샘플제작은 대략 1~2일 정도 소요되며, 고객사에 따라 도면의 유무, 당사 일정관계상 더 소요될수있습니다.</p>
+                    <p className="text-xs text-gray-900 dark:text-gray-100">• 즉시 수정 피드백을 원하시면 방문수령을, 그렇지않으시면 택배 및 퀵으로 수령하시면 원할한 진행이 되십니다.</p>
                   </div>
-                </div>
+                </InfoBox>
 
                 <div className="space-y-4">
                   {/* 방문 수령 */}
@@ -838,7 +1188,7 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                         <span className="text-sm font-medium text-gray-900 dark:text-gray-100">방문 수령</span>
                       </div>
                       <svg
-                        className={`w-5 h-5 text-orange-600 dark:text-orange-400 transition-transform duration-200 ${
+                        className={`w-5 h-5 text-gray-900 dark:text-gray-100 transition-transform duration-200 ${
                           receiptMethod === 'visit' ? 'rotate-180' : ''
                         }`}
                         fill="none"
@@ -851,15 +1201,10 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
 
                     {receiptMethod === 'visit' && (
                       <div className="space-y-4 p-4 bg-orange-50/50 dark:bg-orange-900/10 transition-all duration-300">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                            회사위치
-                          </label>
-                          <div className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
-                            <p className="text-sm font-medium mb-1">서울 중구 퇴계로39길 20, 2층 유진레이져목형 사무실</p>
-                            <p className="text-xs text-gray-600 dark:text-gray-400">(평일 9:00 ~ 19:00 주말 및 공휴일 휴무)</p>
-                          </div>
-                        </div>
+                        <InfoBox label="회사위치">
+                          <p className="text-sm font-medium mb-1">서울 중구 퇴계로39길 20, 2층 유진레이져목형 사무실</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">(평일 9:00 ~ 19:00 주말 및 공휴일 휴무)</p>
+                        </InfoBox>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           {/* 날짜 선택 - 왼쪽 */}
@@ -870,7 +1215,12 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                             <input
                               type="date"
                               id="visit_date"
+                              name="visit_date"
                               value={visitDate}
+                              className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus} date-input-white`}
+                              style={{
+                                colorScheme: 'dark',
+                              }}
                               onChange={(e) => {
                                 const selectedDate = new Date(e.target.value);
                                 const dayOfWeek = selectedDate.getDay(); // 0 = 일요일, 6 = 토요일
@@ -915,19 +1265,7 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                                 setVisitDate(e.target.value);
                                 setVisitTimeSlot(''); // 날짜 변경 시 시간 슬롯 초기화
                               }}
-                              min={(() => {
-                                const today = new Date();
-                                today.setHours(0, 0, 0, 0);
-                                const date = new Date(today);
-                                date.setDate(date.getDate() + 2); // 현재 날짜 + 2일
-                                
-                                // 첫 번째 평일 찾기
-                                while (date.getDay() === 0 || date.getDay() === 6) {
-                                  date.setDate(date.getDate() + 1);
-                                }
-                                
-                                return date.toISOString().split('T')[0];
-                              })()}
+                              min={getMinVisitDate()}
                               max={(() => {
                                 const today = new Date();
                                 today.setHours(0, 0, 0, 0);
@@ -1029,7 +1367,7 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                         <span className="text-sm font-medium text-gray-900 dark:text-gray-100">택배 및 퀵으로 수령</span>
                       </div>
                       <svg
-                        className={`w-5 h-5 text-orange-600 dark:text-orange-400 transition-transform duration-200 ${
+                        className={`w-5 h-5 text-gray-900 dark:text-gray-100 transition-transform duration-200 ${
                           receiptMethod === 'delivery' ? 'rotate-180' : ''
                         }`}
                         fill="none"
@@ -1047,28 +1385,22 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                             배송 방법 <span className="text-red-500">*</span>
                           </label>
                           <div className="flex gap-6">
-                            <label className="flex items-center cursor-pointer">
-                              <input
-                                type="radio"
-                                name="delivery_type"
-                                value="parcel"
-                                checked={deliveryType === 'parcel'}
-                                onChange={(e) => setDeliveryType(e.target.value as 'parcel' | 'quick')}
-                                className={`${CHECKBOX_STYLES.base} ${CHECKBOX_STYLES.primary}`}
-                              />
-                              <span className="ml-2 text-sm text-gray-900 dark:text-gray-100">택배</span>
-                            </label>
-                            <label className="flex items-center cursor-pointer">
-                              <input
-                                type="radio"
-                                name="delivery_type"
-                                value="quick"
-                                checked={deliveryType === 'quick'}
-                                onChange={(e) => setDeliveryType(e.target.value as 'parcel' | 'quick')}
-                                className={`${CHECKBOX_STYLES.base} ${CHECKBOX_STYLES.primary}`}
-                              />
-                              <span className="ml-2 text-sm text-gray-900 dark:text-gray-100">퀵</span>
-                            </label>
+                            <RadioButton
+                              name="delivery_type"
+                              value="parcel"
+                              checked={deliveryType === 'parcel'}
+                              onChange={(e) => setDeliveryType(e.target.value as 'parcel' | 'quick')}
+                              label="택배"
+                              underlineKey="delivery-type-parcel"
+                            />
+                            <RadioButton
+                              name="delivery_type"
+                              value="quick"
+                              checked={deliveryType === 'quick'}
+                              onChange={(e) => setDeliveryType(e.target.value as 'parcel' | 'quick')}
+                              label="퀵"
+                              underlineKey="delivery-type-quick"
+                            />
                           </div>
                         </div>
 
@@ -1137,35 +1469,47 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                 <button
                   type="button"
                   onClick={() => {
-                    if (!receiptMethod) {
-                      alert('수령방법을 선택해주세요.');
-                      return;
-                    }
-                    if (receiptMethod === 'visit') {
-                      if (!visitDate) {
-                        alert('날짜를 선택해주세요.');
+                    if (drawingType === 'have') {
+                      // 납품업체 검증
+                      if (deliveryMethod === 'delivery_company') {
+                        if (!newDeliveryCompany.name?.trim() || !newDeliveryCompany.phone?.trim() || !newDeliveryCompany.address?.trim()) {
+                          alert('납품업체명, 연락처, 주소를 모두 입력해주세요.');
+                          return;
+                        }
+                      }
+                      // deliveryMethod === 'company_address'인 경우는 검증 불필요
+                    } else {
+                      // 일정 조율 검증
+                      if (!receiptMethod) {
+                        alert('수령방법을 선택해주세요.');
                         return;
                       }
-                      if (!visitTimeSlot) {
-                        alert('시간을 선택해주세요.');
-                        return;
-                      }
-                    } else if (receiptMethod === 'delivery') {
-                      if (!deliveryAddress) {
-                        alert('택배 받을 주소를 입력해주세요.');
-                        return;
-                      }
-                      if (!deliveryName) {
-                        alert('이름을 입력해주세요.');
-                        return;
-                      }
-                      if (!deliveryPhone) {
-                        alert('연락처를 입력해주세요.');
-                        return;
-                      }
-                      if (!deliveryType) {
-                        alert('배송 방법을 선택해주세요.');
-                        return;
+                      if (receiptMethod === 'visit') {
+                        if (!visitDate) {
+                          alert('날짜를 선택해주세요.');
+                          return;
+                        }
+                        if (!visitTimeSlot) {
+                          alert('시간을 선택해주세요.');
+                          return;
+                        }
+                      } else if (receiptMethod === 'delivery') {
+                        if (!deliveryAddress) {
+                          alert('택배 받을 주소를 입력해주세요.');
+                          return;
+                        }
+                        if (!deliveryName) {
+                          alert('이름을 입력해주세요.');
+                          return;
+                        }
+                        if (!deliveryPhone) {
+                          alert('연락처를 입력해주세요.');
+                          return;
+                        }
+                        if (!deliveryType) {
+                          alert('배송 방법을 선택해주세요.');
+                          return;
+                        }
                       }
                     }
                     setCurrentStep(4);
@@ -1179,6 +1523,8 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                   다음 단계
                 </button>
               </div>
+                </>
+              )}
           </div>
 
           {/* 네 번째 섹션: 내용 확인 */}
@@ -1213,10 +1559,11 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                       <div>
                         <span className="font-medium text-gray-600 dark:text-gray-400">서비스 유형:</span>
                         <span className="ml-2">
-                          {[
-                            serviceTypes.moldRequest && '목형 제작 의뢰',
-                            serviceTypes.deliveryBrokerage && '납품까지 중개'
-                          ].filter(Boolean).join(', ') || '없음'}
+                          {serviceType === 'moldRequest' 
+                            ? '목형 만 제작 의뢰합니다.'
+                            : serviceType === 'deliveryBrokerage'
+                            ? '목형제작 및 납품까지 중개 를 원합니다.'
+                            : '없음'}
                         </span>
                       </div>
                     )}
@@ -1336,18 +1683,55 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                 </div>
               </div>
 
-              {/* Step 3: 일정 조율 */}
-              <div className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">3. 일정 조율</h3>
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep(3)}
-                    className="text-sm text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300 font-medium underline"
-                  >
-                    수정
-                  </button>
+              {/* Step 3: 일정 조율 또는 납품업체 */}
+              {drawingType === 'have' ? (
+                <div className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">3. 납품업체</h3>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStep(3)}
+                      className="text-sm text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300 font-medium underline"
+                    >
+                      수정
+                    </button>
+                  </div>
+                  <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                    {deliveryMethod === 'company_address' ? (
+                      <div>
+                        <span className="font-medium text-gray-600 dark:text-gray-400">납품 방법:</span>
+                        <span className="ml-2">회사주소로 납품</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div>
+                          <span className="font-medium text-gray-600 dark:text-gray-400">납품업체명:</span>
+                          <span className="ml-2">{newDeliveryCompany.name || '-'}</span>
+                        </div>
+                        <div>
+                          <span className="font-medium text-gray-600 dark:text-gray-400">연락처:</span>
+                          <span className="ml-2">{newDeliveryCompany.phone || '-'}</span>
+                        </div>
+                        <div>
+                          <span className="font-medium text-gray-600 dark:text-gray-400">주소:</span>
+                          <span className="ml-2">{newDeliveryCompany.address || '-'}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
+              ) : (
+                <div className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">3. 일정 조율</h3>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStep(3)}
+                      className="text-sm text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300 font-medium underline"
+                    >
+                      수정
+                    </button>
+                  </div>
                 <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
                   {receiptMethod ? (
                     <>
@@ -1400,12 +1784,20 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                   )}
                 </div>
               </div>
+              )}
 
               {/* 네비게이션 버튼 */}
               <div className="flex justify-between pt-4">
                 <button
                   type="button"
-                  onClick={() => setCurrentStep(3)}
+                  onClick={() => {
+                    // 모두 준비되었을 경우 Step 2로, 아니면 Step 3으로 이동
+                    if (drawingType === 'have') {
+                      setCurrentStep(2);
+                    } else {
+                      setCurrentStep(3);
+                    }
+                  }}
                   className={BUTTON_STYLES.secondary}
                 >
                   이전
@@ -1452,23 +1844,28 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                       errorStep = 1;
                     } else if (!drawingType) {
                       // Step 2: 도면 및 샘플 검증
-                      errorMessage = '도면 제작 필요 여부를 선택해주세요.';
+                      errorMessage = '필요한 사항을 선택해주세요.';
                       errorStep = 2;
                     } else if (drawingType === 'have' && !drawingModification) {
                       errorMessage = '도면 수정 필요 여부를 선택해주세요.';
                       errorStep = 2;
                     } else if (drawingType === 'have') {
-                      const drawingFileInput = form.querySelector('input[name="drawing_file"]') as HTMLInputElement;
-                      if (!drawingFileInput?.files || drawingFileInput.files.length === 0) {
+                      if (drawingFile.length === 0) {
                         errorMessage = '도면 파일을 업로드해주세요.';
-                        firstErrorField = drawingFileInput;
+                        firstErrorField = null;
                         errorStep = 2;
                       }
-                    } else if (!receiptMethod) {
-                      // Step 3: 일정 조율 검증
+                    } else if (drawingType === 'have' && deliveryMethod === 'delivery_company') {
+                      // Step 3: 납품업체 검증
+                      if (!newDeliveryCompany.name?.trim() || !newDeliveryCompany.phone?.trim() || !newDeliveryCompany.address?.trim()) {
+                        errorMessage = '납품업체명, 연락처, 주소를 모두 입력해주세요.';
+                        errorStep = 3;
+                      }
+                    } else if (drawingType !== 'have' && !receiptMethod) {
+                      // Step 3: 일정 조율 검증 (모두 준비되었을 경우 제외)
                       errorMessage = '수령방법을 선택해주세요.';
                       errorStep = 3;
-                    } else if (receiptMethod === 'visit') {
+                    } else if (drawingType !== 'have' && receiptMethod === 'visit') {
                       if (!visitDate) {
                         errorMessage = '방문 날짜를 선택해주세요.';
                         errorStep = 3;
@@ -1476,7 +1873,7 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                         errorMessage = '방문 시간을 선택해주세요.';
                         errorStep = 3;
                       }
-                    } else if (receiptMethod === 'delivery') {
+                    } else if (drawingType !== 'have' && receiptMethod === 'delivery') {
                       if (!deliveryType) {
                         errorMessage = '배송 방법을 선택해주세요.';
                         errorStep = 3;
@@ -1511,7 +1908,7 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                           } else if (errorStep === 2) {
                             targetHeading = Array.from(headings).find(h => h.textContent?.includes('도면 및 샘플')) || null;
                           } else if (errorStep === 3) {
-                            targetHeading = Array.from(headings).find(h => h.textContent?.includes('일정 조율')) || null;
+                            targetHeading = Array.from(headings).find(h => h.textContent?.includes('일정 조율') || h.textContent?.includes('납품업체')) || null;
                           }
                           if (targetHeading) {
                             targetHeading.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1531,8 +1928,8 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                       // Step 1: 연락처 정보
                       formData.append('inquiry_title', inquiryTitle);
                       formData.append('contact_type', contactType);
-                      formData.append('service_mold_request', serviceTypes.moldRequest ? '1' : '0');
-                      formData.append('service_delivery_brokerage', serviceTypes.deliveryBrokerage ? '1' : '0');
+                      formData.append('service_mold_request', serviceType === 'moldRequest' ? '1' : '0');
+                      formData.append('service_delivery_brokerage', serviceType === 'deliveryBrokerage' ? '1' : '0');
                       formData.append('company_name', companyName);
                       formData.append('name', name);
                       formData.append('position', position);
@@ -1553,31 +1950,39 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                       formData.append('drawing_notes', drawingNotes || '');
                       formData.append('sample_notes', sampleNotes || '');
                       
-                      // Step 3: 일정 조율 (명시적으로 추가)
-                      formData.append('receipt_method', receiptMethod || '');
-                      formData.append('visit_location', visitLocation || '');
-                      formData.append('visit_date', visitDate || '');
-                      formData.append('visit_time_slot', visitTimeSlot || '');
-                      formData.append('delivery_address', deliveryAddress || '');
-                      formData.append('delivery_name', deliveryName || '');
-                      formData.append('delivery_phone', deliveryPhone || '');
-                      formData.append('delivery_type', deliveryType || '');
+                      // Step 3: 일정 조율 또는 납품업체
+                      if (drawingType === 'have') {
+                        formData.append('delivery_method', deliveryMethod);
+                        if (deliveryMethod === 'company_address') {
+                          formData.append('delivery_company_address', 'company_address');
+                        } else {
+                          formData.append('delivery_company_name', newDeliveryCompany.name || '');
+                          formData.append('delivery_company_phone', newDeliveryCompany.phone || '');
+                          formData.append('delivery_company_address', newDeliveryCompany.address || '');
+                        }
+                      } else {
+                        formData.append('receipt_method', receiptMethod || '');
+                        formData.append('visit_location', visitLocation || '');
+                        formData.append('visit_date', visitDate || '');
+                        formData.append('visit_time_slot', visitTimeSlot || '');
+                        formData.append('delivery_address', deliveryAddress || '');
+                        formData.append('delivery_name', deliveryName || '');
+                        formData.append('delivery_phone', deliveryPhone || '');
+                        formData.append('delivery_type', deliveryType || '');
+                      }
                       
                       // 파일 업로드 필드 (form에서 가져오기)
                       const attachmentInput = form.querySelector('input[name="attachment"]') as HTMLInputElement;
-                      const drawingFileInput = form.querySelector('input[name="drawing_file"]') as HTMLInputElement;
-                      const referencePhotosInputs = form.querySelectorAll('input[name="reference_photos"]') as NodeListOf<HTMLInputElement>;
                       
                       if (attachmentInput?.files?.[0]) {
                         formData.append('attachment', attachmentInput.files[0]);
                       }
-                      if (drawingFileInput?.files?.[0]) {
-                        formData.append('drawing_file', drawingFileInput.files[0]);
+                      // FileUpload 컴포넌트에서 관리하는 파일들 추가
+                      if (drawingFile.length > 0) {
+                        formData.append('drawing_file', drawingFile[0]);
                       }
-                      referencePhotosInputs.forEach(input => {
-                        if (input.files?.[0]) {
-                          formData.append('reference_photos', input.files[0]);
-                        }
+                      referencePhotosFiles.forEach(file => {
+                        formData.append('reference_photos', file);
                       });
                       
                       // submitContact 호출

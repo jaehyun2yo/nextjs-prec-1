@@ -1,5 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { logger } from "@/lib/utils/logger";
+
+const supabaseLogger = logger.createLogger('SUPABASE');
 
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies(); // ✅ await 추가
@@ -9,7 +12,7 @@ export async function createSupabaseServerClient() {
 
   // 디버깅 로그
   if (process.env.NODE_ENV === "development") {
-    console.log("[DEBUG_SUPABASE ENV]", {
+    supabaseLogger.debug("Environment check", {
       NEXT_PUBLIC_SUPABASE_URL: supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : "[MISSING]",
       NEXT_PUBLIC_SUPABASE_ANON_KEY: supabaseKey ? "[OK]" : "[MISSING]",
     });

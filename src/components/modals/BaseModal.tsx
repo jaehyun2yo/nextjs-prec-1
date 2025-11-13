@@ -103,7 +103,7 @@ export function BaseModal({
       onClick={handleBackdropClick}
     >
       <div
-        className={`bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-600 p-6 ${maxWidthClasses[maxWidth]} w-full mx-8 animate-scaleIn max-h-[90vh] overflow-y-auto modal-scrollbar-hide ${className}`}
+        className={`bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-600 px-3 py-12 ${maxWidthClasses[maxWidth]} w-full mx-8 animate-scaleIn max-h-[90vh] overflow-y-auto modal-scrollbar-hide ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* 헤더 */}
@@ -133,7 +133,7 @@ export function BaseModal({
 
         {/* 버튼 */}
         {(onConfirm || showCancelButton) && (
-          <div className="flex items-center justify-end gap-3 pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-center gap-3 pt-4 mt-4">
             {showCancelButton && (
               <button
                 type="button"

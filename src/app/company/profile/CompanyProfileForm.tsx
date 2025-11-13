@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { INPUT_STYLES, BUTTON_STYLES } from '@/lib/styles';
-import { FaSave, FaTrash, FaPaperclip } from 'react-icons/fa';
+import { FaSave, FaPaperclip, FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import { DownloadButton } from '@/components/DownloadButton';
+import { FileUpload } from '@/components/FileUpload';
+import { RadioButton } from '@/components/RadioButton';
 
 interface Company {
   id: number;
@@ -30,6 +32,15 @@ interface Company {
   quote_method_sms: boolean;
 }
 
+interface DeliveryCompany {
+  id: number;
+  name: string;
+  phone: string;
+  address: string;
+  created_at: string;
+  updated_at: string;
+}
+
 interface CompanyProfileFormProps {
   company: Company;
 }
@@ -39,8 +50,148 @@ export function CompanyProfileForm({ company }: CompanyProfileFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [quoteMethod, setQuoteMethod] = useState<string>(
+    company.quote_method_email ? 'email' : 
+    company.quote_method_fax ? 'fax' : 
+    company.quote_method_sms ? 'sms' : 'email'
+  );
+  
+  // 납품업체 관리 상태
+  const [deliveryCompanies, setDeliveryCompanies] = useState<DeliveryCompany[]>([]);
+  const [isLoadingDeliveryCompanies, setIsLoadingDeliveryCompanies] = useState(true);
+  const [showAddDeliveryCompany, setShowAddDeliveryCompany] = useState(false);
+  const [editingDeliveryCompany, setEditingDeliveryCompany] = useState<DeliveryCompany | null>(null);
+  const [newDeliveryCompany, setNewDeliveryCompany] = useState({
+    name: '',
+    phone: '',
+    address: '',
+  });
+  const [isSavingDeliveryCompany, setIsSavingDeliveryCompany] = useState(false);
+  
+  // 납품업체 목록 불러오기
+  useEffect(() => {
+    const fetchDeliveryCompanies = async () => {
+      try {
+        const response = await fetch('/api/company/delivery-companies');
+        if (response.ok) {
+          const data = await response.json();
+          setDeliveryCompanies(data.deliveryCompanies || []);
+        }
+      } catch (error) {
+        console.error('Error fetching delivery companies:', error);
+      } finally {
+        setIsLoadingDeliveryCompanies(false);
+      }
+    };
+    
+    fetchDeliveryCompanies();
+  }, []);
+  
+  // 납품업체 추가
+  const handleAddDeliveryCompany = async () => {
+    if (!newDeliveryCompany.name.trim() || !newDeliveryCompany.phone.trim() || !newDeliveryCompany.address.trim()) {
+      setError('납품업체명, 연락처, 주소를 모두 입력해주세요.');
+      return;
+    }
+    
+    setIsSavingDeliveryCompany(true);
+    try {
+      const response = await fetch('/api/company/delivery-companies', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newDeliveryCompany),
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setDeliveryCompanies(prev => [result.deliveryCompany, ...prev]);
+        // 폼 데이터 유지 (초기화하지 않음)
+        setShowAddDeliveryCompany(false);
+        setError(null);
+      } else {
+        setError(result.error || '납품업체 추가에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Error adding delivery company:', error);
+      setError('납품업체 추가 중 오류가 발생했습니다.');
+    } finally {
+      setIsSavingDeliveryCompany(false);
+    }
+  };
+  
+  // 납품업체 수정
+  const handleUpdateDeliveryCompany = async () => {
+    if (!editingDeliveryCompany) return;
+    
+    if (!editingDeliveryCompany.name.trim() || !editingDeliveryCompany.phone.trim() || !editingDeliveryCompany.address.trim()) {
+      setError('납품업체명, 연락처, 주소를 모두 입력해주세요.');
+      return;
+    }
+    
+    setIsSavingDeliveryCompany(true);
+    try {
+      const response = await fetch(`/api/company/delivery-companies/${editingDeliveryCompany.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: editingDeliveryCompany.name,
+          phone: editingDeliveryCompany.phone,
+          address: editingDeliveryCompany.address,
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setDeliveryCompanies(prev => 
+          prev.map(dc => dc.id === editingDeliveryCompany.id ? result.deliveryCompany : dc)
+        );
+        setEditingDeliveryCompany(null);
+        setError(null);
+      } else {
+        setError(result.error || '납품업체 수정에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Error updating delivery company:', error);
+      setError('납품업체 수정 중 오류가 발생했습니다.');
+    } finally {
+      setIsSavingDeliveryCompany(false);
+    }
+  };
+  
+  // 납품업체 삭제
+  const handleDeleteDeliveryCompany = async (id: number) => {
+    if (!confirm('정말로 이 납품업체를 삭제하시겠습니까?')) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/company/delivery-companies/${id}`, {
+        method: 'DELETE',
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setDeliveryCompanies(prev => prev.filter(dc => dc.id !== id));
+        if (editingDeliveryCompany?.id === id) {
+          setEditingDeliveryCompany(null);
+        }
+        setError(null);
+      } else {
+        setError(result.error || '납품업체 삭제에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Error deleting delivery company:', error);
+      setError('납품업체 삭제 중 오류가 발생했습니다.');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -169,11 +320,8 @@ export function CompanyProfileForm({ company }: CompanyProfileFormProps) {
             />
           </div>
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-              사업자등록증 <span className="text-gray-500 text-xs">(선택사항)</span>
-            </label>
             <div className="space-y-3">
-              {company.business_registration_file_url && !selectedFile ? (
+              {company.business_registration_file_url && selectedFiles.length === 0 ? (
                 <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <FaPaperclip className="text-gray-500 dark:text-gray-400 flex-shrink-0 text-base" />
@@ -187,62 +335,17 @@ export function CompanyProfileForm({ company }: CompanyProfileFormProps) {
                   />
                 </div>
               ) : null}
-              <input
-                type="file"
+              <FileUpload
                 name="business_registration_file"
-                ref={fileInputRef}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    if (file.size > 10 * 1024 * 1024) {
-                      setError('파일 크기는 10MB 이하여야 합니다.');
-                      return;
-                    }
-                    setSelectedFile(file);
-                    setError(null);
-                  }
-                }}
                 accept=".pdf,.jpg,.jpeg,.png"
-                className="hidden"
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
+                maxSize={10 * 1024 * 1024}
                 disabled={isSubmitting}
-                className="w-full px-6 py-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                <FaPaperclip className="text-base" />
-                <span className="text-sm font-medium">파일 선택 (최대 10MB)</span>
-              </button>
-              {selectedFile && (
-                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <FaPaperclip className="text-gray-500 dark:text-gray-400 flex-shrink-0 text-base" />
-                    <span className="text-sm text-gray-900 dark:text-gray-100 truncate font-medium">
-                      {selectedFile.name}
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
-                      ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedFile(null);
-                      if (fileInputRef.current) {
-                        fileInputRef.current.value = '';
-                      }
-                    }}
-                    disabled={isSubmitting}
-                    className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors disabled:opacity-50"
-                  >
-                    <FaTrash className="text-sm" />
-                  </button>
-                </div>
-              )}
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                새 파일을 업로드하면 기존 파일이 교체됩니다. PDF, JPG, PNG 파일만 업로드 가능합니다.
-              </p>
+                files={selectedFiles}
+                onChange={setSelectedFiles}
+                onError={setError}
+                label="사업자등록증"
+                helpText="새 파일을 업로드하면 기존 파일이 교체됩니다. PDF, JPG, PNG 파일만 업로드 가능합니다."
+              />
             </div>
           </div>
         </div>
@@ -364,37 +467,234 @@ export function CompanyProfileForm({ company }: CompanyProfileFormProps) {
           견적서 제공 방법
         </h2>
         <div className="space-y-2">
-          <label className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="quote_method"
-              value="email"
-              defaultChecked={company.quote_method_email}
-              className="w-4 h-4 text-[#ED6C00] border-gray-300 focus:ring-[#ED6C00]"
-            />
-            <span className="text-sm text-gray-700 dark:text-gray-300">이메일</span>
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="quote_method"
-              value="fax"
-              defaultChecked={company.quote_method_fax}
-              className="w-4 h-4 text-[#ED6C00] border-gray-300 focus:ring-[#ED6C00]"
-            />
-            <span className="text-sm text-gray-700 dark:text-gray-300">팩스</span>
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="quote_method"
-              value="sms"
-              defaultChecked={company.quote_method_sms}
-              className="w-4 h-4 text-[#ED6C00] border-gray-300 focus:ring-[#ED6C00]"
-            />
-            <span className="text-sm text-gray-700 dark:text-gray-300">SMS</span>
-          </label>
+          <RadioButton
+            name="quote_method"
+            value="email"
+            checked={quoteMethod === 'email'}
+            onChange={(e) => setQuoteMethod(e.target.value)}
+            label="이메일"
+            showUnderline={false}
+          />
+          <RadioButton
+            name="quote_method"
+            value="fax"
+            checked={quoteMethod === 'fax'}
+            onChange={(e) => setQuoteMethod(e.target.value)}
+            label="팩스"
+            showUnderline={false}
+          />
+          <RadioButton
+            name="quote_method"
+            value="sms"
+            checked={quoteMethod === 'sms'}
+            onChange={(e) => setQuoteMethod(e.target.value)}
+            label="SMS"
+            showUnderline={false}
+          />
         </div>
+      </div>
+
+      {/* 납품업체 관리 */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            납품업체 관리
+          </h2>
+          {!showAddDeliveryCompany && !editingDeliveryCompany && (
+            <button
+              type="button"
+              onClick={() => setShowAddDeliveryCompany(true)}
+              className={`${BUTTON_STYLES.secondary} flex items-center gap-2`}
+            >
+              <FaPlus className="text-sm" />
+              납품업체 추가
+            </button>
+          )}
+        </div>
+        
+        {/* 납품업체 추가 폼 */}
+        {showAddDeliveryCompany && (
+          <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">납품업체 추가</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  납품업체명 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newDeliveryCompany.name}
+                  onChange={(e) => setNewDeliveryCompany(prev => ({ ...prev, name: e.target.value }))}
+                  className={INPUT_STYLES.base}
+                  placeholder="납품업체명을 입력해주세요"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  연락처 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="tel"
+                  value={newDeliveryCompany.phone}
+                  onChange={(e) => setNewDeliveryCompany(prev => ({ ...prev, phone: e.target.value }))}
+                  className={INPUT_STYLES.base}
+                  placeholder="010-1234-5678"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  주소 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newDeliveryCompany.address}
+                  onChange={(e) => setNewDeliveryCompany(prev => ({ ...prev, address: e.target.value }))}
+                  className={INPUT_STYLES.base}
+                  placeholder="주소를 입력해주세요"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleAddDeliveryCompany}
+                  disabled={isSavingDeliveryCompany}
+                  className={`${BUTTON_STYLES.primary} flex items-center gap-2`}
+                >
+                  <FaSave className="text-sm" />
+                  {isSavingDeliveryCompany ? '저장 중...' : '저장'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddDeliveryCompany(false);
+                    setNewDeliveryCompany({ name: '', phone: '', address: '' });
+                    setError(null);
+                  }}
+                  className={BUTTON_STYLES.secondary}
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* 납품업체 목록 */}
+        {isLoadingDeliveryCompanies ? (
+          <p className="text-sm text-gray-500 dark:text-gray-400">로딩 중...</p>
+        ) : deliveryCompanies.length === 0 ? (
+          <p className="text-sm text-gray-500 dark:text-gray-400">등록된 납품업체가 없습니다.</p>
+        ) : (
+          <div className="space-y-4">
+            {deliveryCompanies.map((dc) => (
+              <div
+                key={dc.id}
+                className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700"
+              >
+                {editingDeliveryCompany?.id === dc.id ? (
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">납품업체 수정</h3>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        납품업체명 <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={editingDeliveryCompany.name}
+                        onChange={(e) => setEditingDeliveryCompany(prev => prev ? { ...prev, name: e.target.value } : null)}
+                        className={INPUT_STYLES.base}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        연락처 <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        value={editingDeliveryCompany.phone}
+                        onChange={(e) => setEditingDeliveryCompany(prev => prev ? { ...prev, phone: e.target.value } : null)}
+                        className={INPUT_STYLES.base}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        주소 <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={editingDeliveryCompany.address}
+                        onChange={(e) => setEditingDeliveryCompany(prev => prev ? { ...prev, address: e.target.value } : null)}
+                        className={INPUT_STYLES.base}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleUpdateDeliveryCompany}
+                        disabled={isSavingDeliveryCompany}
+                        className={`${BUTTON_STYLES.primary} flex items-center gap-2`}
+                      >
+                        <FaSave className="text-sm" />
+                        {isSavingDeliveryCompany ? '저장 중...' : '저장'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingDeliveryCompany(null);
+                          setError(null);
+                        }}
+                        className={BUTTON_STYLES.secondary}
+                      >
+                        취소
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="text-xs text-gray-500 dark:text-gray-400">납품업체명</label>
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-1">{dc.name}</p>
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 dark:text-gray-400">연락처</label>
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-1">
+                            <a href={`tel:${dc.phone}`} className="text-orange-600 hover:underline">
+                              {dc.phone}
+                            </a>
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 dark:text-gray-400">주소</label>
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-1">{dc.address}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 ml-4">
+                      <button
+                        type="button"
+                        onClick={() => setEditingDeliveryCompany(dc)}
+                        className="p-2 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
+                        title="수정"
+                      >
+                        <FaEdit className="text-sm" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteDeliveryCompany(dc.id)}
+                        className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                        title="삭제"
+                      >
+                        <FaTrash className="text-sm" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 비밀번호 변경 */}

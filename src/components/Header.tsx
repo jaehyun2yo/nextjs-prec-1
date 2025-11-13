@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { FaMoon, FaSun, FaSignOutAlt, FaUserCog } from "react-icons/fa";
+import { FaSignOutAlt, FaUserCog } from "react-icons/fa";
 import { useTheme } from '@/store/useStore';
 import { useEffect, useState } from 'react';
 import { logoutAction } from '@/app/actions/auth';
@@ -21,7 +21,7 @@ export default function Header({
   userType = null,
   companyName = null 
 }: HeaderProps) {
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   
@@ -66,17 +66,20 @@ export default function Header({
   ];
 
   return (
-    <header className="flex justify-between items-center px-4 py-3 md:px-6 md:py-4 bg-white/90 dark:bg-gray-900 backdrop-blur-lg border-b border-gray-300 dark:border-gray-700 sticky top-0 z-50 shadow-md dark:shadow-lg transition-all duration-300">
+    <header 
+      className="flex justify-between items-center px-4 py-3 md:px-6 md:py-4 bg-white/90 dark:bg-gray-900 backdrop-blur-lg border-b border-gray-300 dark:border-gray-700 sticky top-0 z-50 shadow-md dark:shadow-lg transition-all duration-300"
+      role="banner"
+    >
        <motion.div
          whileHover={{ scale: 1.05 }}
          whileTap={{ scale: 0.95 }}
          className="flex-shrink-0"
        >
-         <Link href="/" className="flex items-center">
+         <Link href="/" className="flex items-center" aria-label="홈으로 이동">
            <div className="h-8 md:h-10 w-auto overflow-hidden flex items-center">
              <Image 
                src="/mainLogo.svg" 
-               alt="My Company Logo" 
+               alt="회사 로고" 
                width={120} 
                height={40}
                className="max-h-full max-w-full object-contain"
@@ -85,8 +88,9 @@ export default function Header({
            </div>
          </Link>
        </motion.div>
-      <nav className="flex gap-2 md:gap-3 items-center">
+      <nav className="flex gap-2 md:gap-3 items-center" role="navigation" aria-label="주요 메뉴">
         {navItems.map((item) => {
+          const isActive = pathname === item.href;
           return (
             <motion.div
               key={item.href}
@@ -95,9 +99,25 @@ export default function Header({
             >
               <Link
                 href={item.href}
-                className="text-sm text-gray-900 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-500 transition-colors duration-300 px-3 py-2 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 font-medium"
+                className={`relative text-sm text-gray-900 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-500 transition-colors duration-300 px-3 py-2 font-medium focus:outline-none ${
+                  isActive 
+                    ? 'text-orange-600 dark:text-orange-500' 
+                    : 'hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg'
+                }`}
+                aria-label={item.label}
               >
                 {item.label}
+                {isActive && (
+                  <motion.div
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-600 dark:bg-orange-500"
+                    layoutId="activeNavUnderline"
+                    transition={{
+                      type: "spring",
+                      stiffness: 380,
+                      damping: 30
+                    }}
+                  />
+                )}
               </Link>
             </motion.div>
           );
@@ -111,10 +131,10 @@ export default function Header({
             </span>
             <Link
               href={userType === 'company' ? "/company/dashboard" : "/admin"}
-              className="relative flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-orange-100 dark:hover:bg-orange-900/30 text-gray-900 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 transition-all duration-300 text-xs"
-              title={userType === 'company' ? "공정관리페이지" : "관리자 페이지"}
+              className="relative flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-orange-100 dark:hover:bg-orange-900/30 text-gray-900 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 transition-all duration-300 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+              aria-label={userType === 'company' ? "공정관리페이지로 이동" : "관리자 페이지로 이동"}
             >
-              <FaUserCog className="text-xs" />
+              <FaUserCog className="text-xs" aria-hidden="true" />
               <span>{userType === 'company' ? '공정관리페이지' : '관리자 페이지'}</span>
               {userType === 'admin' && <AdminBadge userType={userType} />}
             </Link>
@@ -123,10 +143,10 @@ export default function Header({
                 type="submit"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-900 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-all duration-300 text-xs"
-                title="로그아웃"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-900 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-all duration-300 text-xs focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+                aria-label="로그아웃"
               >
-                <FaSignOutAlt className="text-xs" />
+                <FaSignOutAlt className="text-xs" aria-hidden="true" />
                 <span>로그아웃</span>
               </motion.button>
             </form>
@@ -135,7 +155,7 @@ export default function Header({
           <div className="ml-6 md:ml-8">
             <Link
               href="/login"
-              className="text-sm transition-colors duration-300 px-3 py-2 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 font-medium"
+              className="text-sm transition-colors duration-300 px-3 py-2 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 font-medium focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
               style={{
                 color: '#ED6C00',
               }}
@@ -145,26 +165,12 @@ export default function Header({
               onMouseLeave={(e) => {
                 e.currentTarget.style.color = '#ED6C00';
               }}
+              aria-label="기업 로그인 페이지로 이동"
             >
               기업 로그인
             </Link>
           </div>
         )}
-        
-        {/* 테마 토글 버튼 */}
-        <motion.button
-          whileHover={{ scale: 1.05, rotate: 15 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={toggleTheme}
-          className="ml-4 p-2.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-orange-100 dark:hover:bg-orange-900/30 text-gray-900 dark:text-gray-300 hover:text-orange-600 transition-all duration-300"
-          aria-label="테마 변경"
-        >
-          {(!mounted || theme === 'light') ? (
-            <FaMoon className="text-lg" />
-          ) : (
-            <FaSun className="text-lg" />
-          )}
-        </motion.button>
       </nav>
     </header>
   );

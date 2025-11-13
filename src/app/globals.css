@@ -197,3 +197,38 @@ img {
 .animate-fadeInContent {
   animation: fadeInContent 0.3s ease-out 0.2s both;
 }
+
+/* 날짜 입력 필드 스타일 통일 */
+.date-input-white {
+  font-size: 0.875rem; /* text-sm */
+  padding: 0.5rem 1rem; /* py-2 px-4 */
+}
+
+.date-input-white::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 1;
+}
+
+/* 라이트 모드 */
+.date-input-white::-webkit-datetime-edit-text,
+.date-input-white::-webkit-datetime-edit-month-field,
+.date-input-white::-webkit-datetime-edit-day-field,
+.date-input-white::-webkit-datetime-edit-year-field {
+  color: rgb(17, 24, 39) !important; /* text-gray-900 */
+}
+
+/* 다크 모드 - 하얀색 텍스트와 아이콘 */
+.dark .date-input-white {
+  color: white !important;
+}
+
+.dark .date-input-white::-webkit-calendar-picker-indicator {
+  filter: invert(1); /* 아이콘을 하얀색으로 */
+}
+
+.dark .date-input-white::-webkit-datetime-edit-text,
+.dark .date-input-white::-webkit-datetime-edit-month-field,
+.dark .date-input-white::-webkit-datetime-edit-day-field,
+.dark .date-input-white::-webkit-datetime-edit-year-field {
+  color: white !important;
+}

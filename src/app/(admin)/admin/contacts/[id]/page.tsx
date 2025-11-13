@@ -8,6 +8,7 @@ import { UpdateProcessStageButton } from "./update-process-stage-button";
 import { ProcessStageIndicator } from "@/components/ProcessStageIndicator";
 import { DownloadButton } from "@/components/DownloadButton";
 import type { ProcessStage } from "@/lib/utils/processStages";
+import type { RevisionRequestHistory, RevisionRequestHistoryItem } from "@/types/database.types";
 
 interface Contact {
   id: number;
@@ -37,6 +38,10 @@ interface Contact {
   delivery_address: string | null;
   delivery_name: string | null;
   delivery_phone: string | null;
+  delivery_method: string | null;
+  delivery_company_name: string | null;
+  delivery_company_phone: string | null;
+  delivery_company_address: string | null;
   attachment_filename: string | null;
   attachment_url: string | null;
   drawing_file_url: string | null;
@@ -51,7 +56,7 @@ interface Contact {
   revision_requested_at?: string | null;
   revision_request_file_url?: string | null;
   revision_request_file_name?: string | null;
-  revision_request_history?: any;
+  revision_request_history?: RevisionRequestHistory | null;
 }
 
 export default async function ContactDetailPage({
@@ -253,11 +258,56 @@ export default async function ContactDetailPage({
             </div>
           </div>
 
+          {/* 납품업체 정보 */}
+          {contactData.delivery_method && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
+                납품업체 정보
+              </h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">납품 방법</label>
+                  <p className="mt-1 text-gray-900 dark:text-gray-100">
+                    {contactData.delivery_method === 'company_address' 
+                      ? '회사주소로 납품' 
+                      : contactData.delivery_method === 'delivery_company'
+                      ? '납품받을 업체가 있습니다'
+                      : contactData.delivery_method || '-'}
+                  </p>
+                </div>
+                
+                {contactData.delivery_method === 'delivery_company' && (
+                  <>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">납품업체명</label>
+                      <p className="mt-1 text-gray-900 dark:text-gray-100">{contactData.delivery_company_name || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">연락처</label>
+                      <p className="mt-1 text-gray-900 dark:text-gray-100">
+                        {contactData.delivery_company_phone ? (
+                          <a href={`tel:${contactData.delivery_company_phone}`} className="text-orange-600 hover:underline">
+                            {contactData.delivery_company_phone}
+                          </a>
+                        ) : '-'}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">주소</label>
+                      <p className="mt-1 text-gray-900 dark:text-gray-100">{contactData.delivery_company_address || '-'}</p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* 일정 조율 정보 */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
-              일정 조율 정보
-            </h2>
+          {contactData.receipt_method && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
+                일정 조율 정보
+              </h2>
             <div className="space-y-4">
               {contactData.receipt_method ? (
                 <>
@@ -399,7 +449,7 @@ export default async function ContactDetailPage({
                       {contactData.revision_request_history
                         .slice()
                         .reverse()
-                        .map((historyItem: any, index: number) => (
+                        .map((historyItem: RevisionRequestHistoryItem, index: number) => (
                           <div
                             key={index}
                             className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg border border-gray-200 dark:border-gray-600"

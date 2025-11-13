@@ -4,7 +4,33 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { hashPassword } from '@/lib/auth/security';
 import { uploadFileToR2 } from '@/lib/r2/upload';
 import { redirect } from 'next/navigation';
+import { logger } from '@/lib/utils/logger';
 
+const registerLogger = logger.createLogger('REGISTER');
+
+/**
+ * 회사 등록 서버 액션
+ * 
+ * 새로운 회사 계정을 등록합니다.
+ * 
+ * @param formData - FormData 객체 (회사 정보, 로그인 정보, 담당자 정보 포함)
+ * 
+ * @remarks
+ * - 비밀번호는 bcrypt로 해시화되어 저장됩니다
+ * - 등록 후 로그인 페이지로 리디렉션됩니다
+ * - 상태는 'pending'으로 설정되어 관리자 승인을 기다립니다
+ * 
+ * @example
+ * ```typescript
+ * const formData = new FormData();
+ * formData.append('company_name', '회사명');
+ * formData.append('username', 'company_user');
+ * formData.append('password', 'password123');
+ * // ... 기타 필드
+ * 
+ * await registerCompany(formData);
+ * ```
+ */
 export async function registerCompany(formData: FormData) {
   'use server';
 
@@ -129,7 +155,7 @@ export async function registerCompany(formData: FormData) {
       status: 'pending', // 승인 대기 상태
     };
 
-    console.log('[REGISTER] Inserting data:', JSON.stringify(insertData, null, 2));
+    registerLogger.debug('Inserting data', { insertData });
 
     const { data, error: insertError } = await supabase
       .from('companies')
@@ -137,28 +163,27 @@ export async function registerCompany(formData: FormData) {
       .select();
 
     if (insertError) {
-      console.error('[REGISTER] Database insert error:', insertError);
-      console.error('[REGISTER] Error code:', insertError.code);
-      console.error('[REGISTER] Error message:', insertError.message);
-      console.error('[REGISTER] Error details:', insertError.details);
-      console.error('[REGISTER] Error hint:', insertError.hint);
+      registerLogger.error('Database insert error', insertError, {
+        code: insertError.code,
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint,
+      });
       
       // 컬럼이 없다는 에러인 경우
       if (insertError.message && (insertError.message.includes('column') || insertError.code === '42703' || insertError.code === 'PGRST204')) {
-        console.error('[REGISTER] ⚠️⚠️⚠️ COLUMN ERROR: 테이블에 컬럼이 없습니다! ⚠️⚠️⚠️');
-        console.error('[REGISTER] ⚠️ Supabase SQL Editor에서 supabase_companies_table.sql을 실행하세요.');
+        registerLogger.error('COLUMN ERROR: 테이블에 컬럼이 없습니다! Supabase SQL Editor에서 supabase_companies_table.sql을 실행하세요.');
       }
       
       // RLS 정책 문제인 경우
       if (insertError.code === '42501' || insertError.message?.includes('permission') || insertError.message?.includes('policy')) {
-        console.error('[REGISTER] ⚠️⚠️⚠️ RLS POLICY ERROR: RLS 정책 문제입니다! ⚠️⚠️⚠️');
-        console.error('[REGISTER] ⚠️ Supabase SQL Editor에서 RLS 정책을 확인하세요.');
+        registerLogger.error('RLS POLICY ERROR: RLS 정책 문제입니다! Supabase SQL Editor에서 RLS 정책을 확인하세요.');
       }
       
       redirect('/register?error=database_error');
     }
 
-    console.log('[REGISTER] Successfully inserted:', data);
+    registerLogger.info('Successfully inserted company', { companyId: data?.[0]?.id });
 
     // 성공 시 로그인 페이지로 리디렉션
     redirect('/login?success=registered');
@@ -168,11 +193,7 @@ export async function registerCompany(formData: FormData) {
       throw error;
     }
     
-    console.error('[REGISTER] Registration error:', error);
-    if (error instanceof Error) {
-      console.error('[REGISTER] Error message:', error.message);
-      console.error('[REGISTER] Error stack:', error.stack);
-    }
+    registerLogger.error('Registration error', error);
     redirect('/register?error=server_error');
   }
 }

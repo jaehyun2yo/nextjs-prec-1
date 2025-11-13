@@ -40,7 +40,7 @@ export function ConfirmModal({
     >
       <div className="text-center">
         {icon && (
-          <div className={`mx-auto flex items-center justify-center h-12 w-12 rounded-full ${iconBgColor} mb-4`}>
+          <div className={`mx-auto flex items-center justify-center h-12 w-12 rounded-full ${iconBgColor} mb-8`}>
             {icon}
           </div>
         )}
@@ -49,7 +49,7 @@ export function ConfirmModal({
             {title}
           </h3>
         )}
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-0">
           {message}
         </p>
       </div>

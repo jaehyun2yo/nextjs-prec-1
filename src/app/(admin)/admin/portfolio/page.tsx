@@ -7,6 +7,7 @@ import { createAndUploadVariants } from "@/lib/images/process";
 import Image from "next/image";
 import { transparentBlurDataURL } from "@/lib/images/placeholder";
 import { logger } from "@/lib/utils/logger";
+import { FileUpload } from "@/components/FileUpload";
 
 interface UploadedImage {
   original: string;
@@ -321,17 +322,14 @@ export default async function AdminPortfolioPage({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">이미지 (여러 장)</label>
-            <input
-              type="file"
-              name="images"
-              accept="image/*"
-              multiple
-              className="block w-full text-sm text-gray-900 dark:text-gray-100 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 dark:file:bg-gray-700 dark:file:text-gray-200 dark:hover:file:bg-gray-600"
-            />
-            <p className="text-xs text-gray-500">여러 이미지를 선택할 수 있습니다. (저장은 추후 구현)</p>
-          </div>
+          <FileUpload
+            name="images"
+            accept="image/*"
+            multiple
+            maxSize={10 * 1024 * 1024}
+            label="이미지 (여러 장)"
+            helpText="여러 이미지를 선택할 수 있습니다."
+          />
 
           <div className="space-y-2">
             <label className="block text-sm font-medium">설명</label>

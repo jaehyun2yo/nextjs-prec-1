@@ -2,10 +2,10 @@
 
 import { cookies } from 'next/headers';
 import { generateSessionToken } from './security';
+import { getSessionSecret } from '@/lib/utils/env';
 
 const SESSION_COOKIE_NAME = 'admin-session';
 const SESSION_MAX_AGE = 60 * 60 * 24; // 1일
-const SESSION_SECRET = process.env.SESSION_SECRET || 'change-this-in-production';
 
 /**
  * 세션 토큰을 생성하고 쿠키에 저장합니다
@@ -101,8 +101,9 @@ export async function destroySession(): Promise<void> {
 function signToken(token: string): string {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const crypto = require('crypto');
+  const sessionSecret = getSessionSecret();
   const hash = crypto.createHash('sha256')
-    .update(token + SESSION_SECRET)
+    .update(token + sessionSecret)
     .digest('hex');
   
   return `${token}.${hash}`;

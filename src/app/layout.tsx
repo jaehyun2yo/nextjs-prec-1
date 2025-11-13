@@ -8,6 +8,10 @@ import { Toaster } from 'sonner';
 import { verifySession, getSessionUser } from '@/lib/auth/session';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { headers } from 'next/headers';
+import { logger } from '@/lib/utils/logger';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+
+const layoutLogger = logger.createLogger('LAYOUT');
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -66,7 +70,7 @@ export default async function RootLayout({
         companyName = companyData.company_name;
       }
     } catch (error) {
-      console.error('Error fetching company name:', error);
+      layoutLogger.error('Error fetching company name', error);
     }
   }
 
@@ -113,20 +117,22 @@ export default async function RootLayout({
           }}
         />
         <Providers>
-          {/* 업체 전용 페이지와 포트폴리오 페이지가 아닐 때만 Header 표시 */}
-          {!isCompanyPage && !isPortfolioPage && (
-            <Header 
-              isAuthenticated={isAuthenticated} 
-              userType={user?.userType || null}
-              companyName={companyName}
-            />
-          )}
-          <main className={`flex-1 bg-white dark:bg-gray-900 transition-colors duration-300 ${!isPortfolioPage ? 'min-h-[calc(100vh-80px)]' : ''}`} suppressHydrationWarning>
-            {children}
-          </main>
-          {/* 업체 전용 페이지와 포트폴리오 페이지가 아닐 때만 Footer 표시 */}
-          {!isCompanyPage && !isPortfolioPage && <Footer />}
-          <Toaster position="top-right" richColors />
+          <ErrorBoundary>
+            {/* 업체 전용 페이지와 포트폴리오 페이지가 아닐 때만 Header 표시 */}
+            {!isCompanyPage && !isPortfolioPage && (
+              <Header 
+                isAuthenticated={isAuthenticated} 
+                userType={user?.userType || null}
+                companyName={companyName}
+              />
+            )}
+            <main className={`flex-1 bg-white dark:bg-gray-900 transition-colors duration-300 ${!isPortfolioPage ? 'min-h-[calc(100vh-80px)]' : ''}`} suppressHydrationWarning>
+              {children}
+            </main>
+            {/* 업체 전용 페이지와 포트폴리오 페이지가 아닐 때만 Footer 표시 */}
+            {!isCompanyPage && !isPortfolioPage && <Footer />}
+            <Toaster position="top-right" richColors />
+          </ErrorBoundary>
         </Providers>
       </body>
     </html>

@@ -8,6 +8,11 @@ import { prepareContactInsertData } from '@/lib/utils/contactDataProcessor';
 import { logger } from '@/lib/utils/logger';
 import { FILE_SIZE_LIMITS } from '@/lib/utils/constants';
 
+const contactLogger = logger.createLogger('CONTACT');
+
+/**
+ * 문의 폼 데이터 인터페이스
+ */
 export interface ContactFormData {
   inquiry_title: string;
   company_name: string;
@@ -39,6 +44,19 @@ export interface ContactFormData {
   attachment?: File | null;
 }
 
+/**
+ * 이메일 전송 함수
+ * 
+ * @param data - 문의 폼 데이터
+ * @param attachmentBuffer - 첨부 파일 버퍼 (이메일 첨부용)
+ * @param attachmentFilename - 첨부 파일명
+ * @param attachmentUrl - 첨부 파일 URL
+ * @param drawingFileUrl - 도면 파일 URL
+ * @param drawingFileName - 도면 파일명
+ * @param referencePhotosUrls - 참고 사진 URL 배열
+ * 
+ * @internal
+ */
 async function sendEmail(
   data: ContactFormData, 
   attachmentBuffer?: Buffer, 
@@ -343,6 +361,12 @@ export async function submitContact(formData: FormData) {
   const delivery_name_raw = formData.get('delivery_name');
   const delivery_phone_raw = formData.get('delivery_phone');
   
+  // 납품업체 필드 (drawing_type === 'have'일 때)
+  const delivery_method_raw = formData.get('delivery_method');
+  const delivery_company_name_raw = formData.get('delivery_company_name');
+  const delivery_company_phone_raw = formData.get('delivery_company_phone');
+  const delivery_company_address_raw = formData.get('delivery_company_address');
+  
   // 빈 문자열이나 null을 null로 변환 (빈 문자열도 null로 처리)
   const receipt_method = (receipt_method_raw && String(receipt_method_raw).trim()) ? String(receipt_method_raw).trim() : null;
   const visit_location = visit_location_raw && String(visit_location_raw).trim() ? String(visit_location_raw).trim() : null;
@@ -352,6 +376,12 @@ export async function submitContact(formData: FormData) {
   const delivery_address = delivery_address_raw && String(delivery_address_raw).trim() ? String(delivery_address_raw).trim() : null;
   const delivery_name = delivery_name_raw && String(delivery_name_raw).trim() ? String(delivery_name_raw).trim() : null;
   const delivery_phone = delivery_phone_raw && String(delivery_phone_raw).trim() ? String(delivery_phone_raw).trim() : null;
+  
+  // 납품업체 정보 처리
+  const delivery_method = delivery_method_raw && String(delivery_method_raw).trim() ? String(delivery_method_raw).trim() : null;
+  const delivery_company_name = delivery_company_name_raw && String(delivery_company_name_raw).trim() ? String(delivery_company_name_raw).trim() : null;
+  const delivery_company_phone = delivery_company_phone_raw && String(delivery_company_phone_raw).trim() ? String(delivery_company_phone_raw).trim() : null;
+  const delivery_company_address = delivery_company_address_raw && String(delivery_company_address_raw).trim() ? String(delivery_company_address_raw).trim() : null;
   
   // 로그 최소화 (필요시에만 주석 해제)
   // console.log('[CONTACT] 일정 조율 필드 추출:', { receipt_method, visit_date, visit_time_slot });
@@ -523,6 +553,10 @@ export async function submitContact(formData: FormData) {
       delivery_address,
       delivery_name,
       delivery_phone,
+      delivery_method,
+      delivery_company_name,
+      delivery_company_phone,
+      delivery_company_address,
       attachmentFilename,
       attachmentUrl,
       drawingFileUrl,
@@ -542,75 +576,24 @@ export async function submitContact(formData: FormData) {
     // 로그 최소화
 
     if (dbError) {
-      console.error('[CONTACT] ❌ Database insert error:', dbError);
-      console.error('[CONTACT] Error details:', {
+      contactLogger.error('Database insert error', dbError, {
         message: dbError.message,
         details: dbError.details,
         hint: dbError.hint,
         code: dbError.code,
+        insertData,
       });
-      console.error('[CONTACT] Insert data that failed (full):', JSON.stringify(insertData, null, 2));
       
       // 컬럼이 없다는 에러인 경우
       if (dbError.message && (dbError.message.includes('column') || dbError.code === '42703' || dbError.code === 'PGRST204')) {
-        console.error('[CONTACT] ⚠️⚠️⚠️ COLUMN ERROR: 테이블에 컬럼이 없습니다! ⚠️⚠️⚠️');
-        console.error('[CONTACT] ⚠️ Supabase SQL Editor에서 check_contacts_table_structure.sql을 실행하여 테이블 구조를 확인하세요.');
-        console.error('[CONTACT] ⚠️ 그 다음 supabase_contacts_table_fix.sql 파일의 내용을 실행하세요.');
-        console.error('[CONTACT] ⚠️ 에러된 컬럼:', dbError.message);
-        console.error(`
--- 필수 컬럼 추가 SQL:
-ALTER TABLE public.contacts
-ADD COLUMN IF NOT EXISTS inquiry_title TEXT,
-ADD COLUMN IF NOT EXISTS referral_source TEXT,        
-ADD COLUMN IF NOT EXISTS contact_type TEXT,
-ADD COLUMN IF NOT EXISTS service_mold_request BOOLEAN DEFAULT FALSE,
-ADD COLUMN IF NOT EXISTS service_delivery_brokerage BOOLEAN DEFAULT FALSE,
-ADD COLUMN IF NOT EXISTS drawing_type TEXT,
-ADD COLUMN IF NOT EXISTS has_physical_sample BOOLEAN DEFAULT FALSE,
-ADD COLUMN IF NOT EXISTS has_reference_photos BOOLEAN DEFAULT FALSE,
-ADD COLUMN IF NOT EXISTS drawing_modification TEXT,   
-ADD COLUMN IF NOT EXISTS box_shape TEXT,
-ADD COLUMN IF NOT EXISTS length TEXT,
-ADD COLUMN IF NOT EXISTS width TEXT,
-ADD COLUMN IF NOT EXISTS height TEXT,
-ADD COLUMN IF NOT EXISTS material TEXT,
-ADD COLUMN IF NOT EXISTS drawing_notes TEXT,
-ADD COLUMN IF NOT EXISTS sample_notes TEXT,
-ADD COLUMN IF NOT EXISTS receipt_method TEXT,
-ADD COLUMN IF NOT EXISTS visit_date TEXT,
-ADD COLUMN IF NOT EXISTS visit_time_slot TEXT,        
-ADD COLUMN IF NOT EXISTS visit_location TEXT,
-ADD COLUMN IF NOT EXISTS delivery_type TEXT,
-ADD COLUMN IF NOT EXISTS delivery_address TEXT,       
-ADD COLUMN IF NOT EXISTS delivery_name TEXT,
-ADD COLUMN IF NOT EXISTS delivery_phone TEXT,
-ADD COLUMN IF NOT EXISTS attachment_filename TEXT,    
-ADD COLUMN IF NOT EXISTS attachment_url TEXT,
-ADD COLUMN IF NOT EXISTS drawing_file_url TEXT,       
-ADD COLUMN IF NOT EXISTS drawing_file_name TEXT,      
-ADD COLUMN IF NOT EXISTS reference_photos_urls TEXT,  
-ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'new',
-ADD COLUMN IF NOT EXISTS process_stage TEXT,
-ADD COLUMN IF NOT EXISTS inquiry_number TEXT;
-
--- 인덱스 생성 (검색 성능 향상)
-CREATE INDEX IF NOT EXISTS idx_contacts_inquiry_number ON contacts(inquiry_number);
-        `);
+        contactLogger.error('COLUMN ERROR: 테이블에 컬럼이 없습니다! Supabase SQL Editor에서 check_contacts_table_structure.sql을 실행하여 테이블 구조를 확인하세요. 그 다음 supabase_contacts_table_fix.sql 파일의 내용을 실행하세요.', {
+          errorMessage: dbError.message,
+        });
       }
       
       // RLS 정책 문제인 경우
       if (dbError.message && (dbError.message.includes('permission') || dbError.message.includes('policy') || dbError.code === '42501')) {
-        console.error('[CONTACT] ⚠️⚠️ PERMISSION ERROR: RLS 정책 문제일 수 있습니다!');
-        console.error('[CONTACT] ⚠️ Supabase에서 RLS를 비활성화하거나 INSERT 정책을 추가하세요.');
-        console.error(`
--- RLS 비활성화 (개발용):
-ALTER TABLE public.contacts DISABLE ROW LEVEL SECURITY;
-
--- 또는 모든 작업을 허용하는 정책 생성:
--- ALTER TABLE public.contacts ENABLE ROW LEVEL SECURITY;
--- CREATE POLICY "Allow all operations on contacts" ON public.contacts
---   FOR ALL USING (true) WITH CHECK (true);
-        `);
+        contactLogger.error('PERMISSION ERROR: RLS 정책 문제일 수 있습니다! Supabase에서 RLS를 비활성화하거나 INSERT 정책을 추가하세요.');
       }
       // DB 저장 실패해도 이메일은 시도
     }
@@ -633,7 +616,7 @@ ALTER TABLE public.contacts DISABLE ROW LEVEL SECURITY;
           error: '데이터베이스 저장에 실패했습니다. 이메일은 전송되었습니다.' 
         };
       } catch (emailError) {
-        logger.createLogger('CONTACT').error('Email send also failed', emailError);
+        contactLogger.error('Email send also failed', emailError);
         return { 
           success: false, 
           error: '데이터베이스 저장에 실패했습니다.' 
@@ -642,7 +625,6 @@ ALTER TABLE public.contacts DISABLE ROW LEVEL SECURITY;
     }
 
     // DB 저장 성공 - 이메일은 비동기로 전송 (응답 속도 개선)
-    const contactLogger = logger.createLogger('CONTACT');
     sendEmail(
       contactData, 
       attachmentBuffer, 
@@ -663,7 +645,6 @@ ALTER TABLE public.contacts DISABLE ROW LEVEL SECURITY;
       throw error;
     }
     
-    const contactLogger = logger.createLogger('CONTACT');
     contactLogger.error('Exception', error);
     return { 
       success: false, 

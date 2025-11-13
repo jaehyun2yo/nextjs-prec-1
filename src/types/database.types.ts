@@ -5,3 +5,19 @@ export type Post = {
   content: string;
   created_at: string;
 };
+
+/**
+ * 수정요청 히스토리 항목 타입
+ */
+export interface RevisionRequestHistoryItem {
+  title: string;
+  content: string;
+  requested_at: string;
+  file_url: string | null;
+  file_name: string | null;
+}
+
+/**
+ * 수정요청 히스토리 타입 (JSONB 배열)
+ */
+export type RevisionRequestHistory = RevisionRequestHistoryItem[];

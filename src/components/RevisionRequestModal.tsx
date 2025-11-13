@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { FaPaperclip, FaTrash } from 'react-icons/fa';
+import { useState } from 'react';
 import { BaseModal } from './modals/BaseModal';
+import { FileUpload } from './FileUpload';
 
 interface RevisionRequestModalProps {
   isOpen: boolean;
@@ -21,30 +21,9 @@ export function RevisionRequestModal({
 }: RevisionRequestModalProps) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // 파일 크기 제한 (10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        setError('파일 크기는 10MB 이하여야 합니다.');
-        return;
-      }
-      setSelectedFile(file);
-      setError(null);
-    }
-  };
-
-  const handleRemoveFile = () => {
-    setSelectedFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) {
@@ -68,8 +47,8 @@ export function RevisionRequestModal({
       const formData = new FormData();
       formData.append('title', title.trim());
       formData.append('content', content.trim());
-      if (selectedFile) {
-        formData.append('file', selectedFile);
+      if (selectedFiles.length > 0) {
+        formData.append('file', selectedFiles[0]);
       }
 
       const response = await fetch(`/api/contacts/${contactId}/revision-request`, {
@@ -86,10 +65,7 @@ export function RevisionRequestModal({
       // 성공 시 폼 초기화 및 모달 닫기
       setTitle('');
       setContent('');
-      setSelectedFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      setSelectedFiles([]);
       setError(null);
       onSuccess?.();
       onClose();
@@ -104,10 +80,7 @@ export function RevisionRequestModal({
     if (isSubmitting) return;
     setTitle('');
     setContent('');
-    setSelectedFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    setSelectedFiles([]);
     setError(null);
     onClose();
   };
@@ -181,55 +154,18 @@ export function RevisionRequestModal({
           </div>
 
           {/* 파일 업로드 */}
-          <div>
-            <label
-              htmlFor="revision-file"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3"
-            >
-              첨부 파일 (선택사항)
-            </label>
-            <div className="space-y-3">
-              <input
+          <FileUpload
+            name="file"
                 id="revision-file"
-                ref={fileInputRef}
-                type="file"
-                onChange={handleFileSelect}
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.zip,.rar"
+            maxSize={10 * 1024 * 1024}
                 disabled={isSubmitting}
-                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.zip,.rar"
-                className="hidden"
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isSubmitting}
-                className="w-full px-6 py-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                <FaPaperclip className="text-base" />
-                <span className="text-sm font-medium">파일 선택 (최대 10MB)</span>
-              </button>
-              {selectedFile && (
-                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <FaPaperclip className="text-gray-500 dark:text-gray-400 flex-shrink-0 text-base" />
-                    <span className="text-sm text-gray-900 dark:text-gray-100 truncate font-medium">
-                      {selectedFile.name}
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
-                      ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleRemoveFile}
-                    disabled={isSubmitting}
-                    className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors disabled:opacity-50"
-                  >
-                    <FaTrash className="text-sm" />
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+            files={selectedFiles}
+            onChange={setSelectedFiles}
+            onError={setError}
+            label="첨부 파일 (선택사항)"
+            helpText="PDF, DOC, XLS, 이미지, ZIP 파일 지원"
+          />
 
         {/* 에러 메시지 */}
         {error && (

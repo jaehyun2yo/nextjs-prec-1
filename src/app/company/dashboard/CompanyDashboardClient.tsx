@@ -7,6 +7,7 @@ import Link from "next/link";
 import { BUTTON_STYLES } from "@/lib/styles";
 import { ContactCardToggle } from '@/components/ContactCardToggle';
 import type { ProcessStage } from '@/lib/utils/processStages';
+import type { RevisionRequestHistory } from '@/types/database.types';
 
 type FilterType = 'all' | 'this_week' | 'this_month' | 'last_week' | 'last_month';
 
@@ -36,7 +37,7 @@ interface Contact {
   revision_requested_at?: string | null;
   revision_request_file_url?: string | null;
   revision_request_file_name?: string | null;
-  revision_request_history?: any;
+  revision_request_history?: RevisionRequestHistory | null;
 }
 
 interface CompanyDashboardClientProps {

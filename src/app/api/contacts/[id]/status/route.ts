@@ -1,6 +1,10 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { verifySession } from '@/lib/auth/session';
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/utils/logger';
+import { toApiErrorResponse, convertSupabaseError, AuthenticationError, ValidationError } from '@/lib/utils/errors';
+
+const statusApiLogger = logger.createLogger('STATUS_API');
 
 export async function PATCH(
   request: NextRequest,
@@ -10,10 +14,8 @@ export async function PATCH(
     // 세션 검증
     const isAuthenticated = await verifySession();
     if (!isAuthenticated) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      const errorResponse = toApiErrorResponse(new AuthenticationError());
+      return NextResponse.json(errorResponse.body, { status: errorResponse.status });
     }
 
     const { id } = await params;
@@ -21,10 +23,8 @@ export async function PATCH(
     const { status } = body;
 
     if (!status || !['new', 'read', 'in_progress', 'revision_in_progress', 'completed', 'on_hold', 'replied', 'deleting'].includes(status)) {
-      return NextResponse.json(
-        { error: 'Invalid status' },
-        { status: 400 }
-      );
+      const errorResponse = toApiErrorResponse(new ValidationError('유효하지 않은 상태 값입니다.'));
+      return NextResponse.json(errorResponse.body, { status: errorResponse.status });
     }
 
     const supabase = await createSupabaseServerClient();
@@ -34,20 +34,17 @@ export async function PATCH(
       .eq('id', id);
 
     if (error) {
-      console.error('Error updating contact status:', error);
-      return NextResponse.json(
-        { error: 'Failed to update status' },
-        { status: 500 }
-      );
+      statusApiLogger.error('Error updating contact status', error, { contactId: id, status });
+      const dbError = convertSupabaseError(error);
+      const errorResponse = toApiErrorResponse(dbError);
+      return NextResponse.json(errorResponse.body, { status: errorResponse.status });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error in PATCH /api/contacts/[id]/status:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    statusApiLogger.error('Exception in PATCH contact status', error);
+    const errorResponse = toApiErrorResponse(error);
+    return NextResponse.json(errorResponse.body, { status: errorResponse.status });
   }
 }
 

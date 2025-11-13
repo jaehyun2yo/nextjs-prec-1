@@ -6,6 +6,7 @@ import Image from "next/image";
 import { transparentBlurDataURL } from "@/lib/images/placeholder";
 import { redirect } from "next/navigation";
 import { logger } from "@/lib/utils/logger";
+import { FileUpload } from "@/components/FileUpload";
 
 interface UploadedImage {
   original: string;
@@ -260,16 +261,13 @@ export default async function EditPortfolioPage({
         </div>
 
         {/* 새 이미지 추가 업로드 */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">새 이미지 추가</label>
-          <input
-            type="file"
-            name="newImages"
-            accept="image/*"
-            multiple
-            className="block w-full text-sm text-gray-900 dark:text-gray-100 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 dark:file:bg-gray-700 dark:file:text-gray-200 dark:hover:file:bg-gray-600"
-          />
-        </div>
+        <FileUpload
+          name="newImages"
+          accept="image/*"
+          multiple
+          maxSize={10 * 1024 * 1024}
+          label="새 이미지 추가"
+        />
 
         <div className="space-y-2">
           <label className="block text-sm font-medium">설명</label>
