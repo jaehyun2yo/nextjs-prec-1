@@ -14,19 +14,23 @@ npm run build:test
 이 명령어는:
 
 1. 프로덕션 빌드를 실행 (`npm run build`)
-2. 프로덕션 서버를 시작 (`npm start`)
-3. `http://localhost:3000`에서 프로덕션 모드로 테스트 가능
+2. 현재 플랫폼용 sharp 재빌드 (`npm rebuild sharp`) - Windows/Linux 호환성 보장
+3. 프로덕션 서버를 시작 (`npm start`)
+4. `http://localhost:3000`에서 프로덕션 모드로 테스트 가능
 
 **장점:**
 
 - Vercel 배포 없이 즉시 테스트 가능
 - 빌드 에러를 빠르게 확인
 - 로컬 환경에서 프로덕션 빌드 동작 확인
+- Windows에서도 sharp가 정상 작동
 
 **단점:**
 
 - Vercel 환경과 약간 다를 수 있음
 - 환경 변수는 `.env.local` 사용
+
+**참고:** Windows에서 테스트할 때 sharp 관련 에러가 발생하면 `npm run rebuild:sharp`를 실행하세요.
 
 ### 2. Vercel CLI를 사용한 로컬 프리뷰 (Vercel 환경과 동일)
 

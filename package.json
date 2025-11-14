@@ -15,7 +15,8 @@
     "test:coverage": "jest --coverage",
     "prepare": "husky install",
     "postinstall": "npm rebuild sharp || npm install --include=optional sharp",
-    "build:test": "npm run build && npm run start",
+    "build:test": "npm run build && npm rebuild sharp && npm run start",
+    "rebuild:sharp": "npm rebuild sharp",
     "vercel:dev": "vercel dev",
     "vercel:build": "vercel build"
   },
