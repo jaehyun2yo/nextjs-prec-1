@@ -13,7 +13,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "postinstall": "npm rebuild sharp || npm install --include=optional sharp"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.920.0",
