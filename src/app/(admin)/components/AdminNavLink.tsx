@@ -19,7 +19,7 @@ export function AdminNavLink({
   return (
     <Link
       href={href}
-      className={`relative w-fit hover:bg-gray-700 dark:hover:bg-gray-800 p-2 rounded transition-colors duration-300 text-sm lg:text-base ${className}`}
+      className={`relative w-fit hover:bg-gray-700 dark:hover:bg-gray-800 px-4 py-2 rounded transition-colors duration-300 text-sm lg:text-base ${className}`}
     >
       {children}
       {showBadge && <AdminBadge userType="admin" />}
