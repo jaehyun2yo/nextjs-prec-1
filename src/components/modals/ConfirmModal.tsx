@@ -38,22 +38,19 @@ export function ConfirmModal({
       showCloseButton={false}
       maxWidth="md"
     >
-      <div className="text-center">
+      <div className="text-center px-4">
         {icon && (
-          <div className={`mx-auto flex items-center justify-center h-12 w-12 rounded-full ${iconBgColor} mb-8`}>
+          <div
+            className={`mx-auto flex items-center justify-center h-12 w-12 rounded-full ${iconBgColor} mb-8`}
+          >
             {icon}
           </div>
         )}
         {title && (
-          <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-2">
-            {title}
-          </h3>
+          <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-2">{title}</h3>
         )}
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-0">
-          {message}
-        </p>
+        <div className="text-sm text-gray-600 dark:text-gray-400 mb-0">{message}</div>
       </div>
     </BaseModal>
   );
 }
-

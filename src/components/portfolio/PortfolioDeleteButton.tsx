@@ -33,14 +33,20 @@ export function PortfolioDeleteButton({
 
       if (result.success) {
         setShowConfirmModal(false);
+        setIsDeleting(false);
         router.refresh();
       } else {
-        alert('삭제 중 오류가 발생했습니다.');
+        const errorMessages: Record<string, string> = {
+          invalid: '포트폴리오 ID가 유효하지 않습니다.',
+          supabase: '데이터베이스 오류가 발생했습니다.',
+          noconfig: '환경 설정이 필요합니다.',
+        };
+        alert(errorMessages[result.error || 'invalid'] || '삭제 중 오류가 발생했습니다.');
         setIsDeleting(false);
       }
     } catch (error) {
       console.error('Failed to delete portfolio:', error);
-      alert('삭제 중 오류가 발생했습니다.');
+      alert('삭제 중 오류가 발생했습니다. 다시 시도해주세요.');
       setIsDeleting(false);
     }
   };
@@ -64,7 +70,12 @@ export function PortfolioDeleteButton({
         onClose={handleCancelDelete}
         onConfirm={handleConfirmDelete}
         title="포트폴리오 삭제"
-        message={`"${portfolioTitle}" 포트폴리오를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`}
+        message={
+          <>
+            &quot;{portfolioTitle}&quot; 포트폴리오를 삭제하시겠습니까?
+            <br />이 작업은 되돌릴 수 없습니다.
+          </>
+        }
         confirmLabel="삭제"
         cancelLabel="취소"
         isSubmitting={isDeleting}

@@ -113,17 +113,22 @@ async function deletePortfolio(formData: FormData): Promise<{ success: boolean; 
   if (!id) {
     return { success: false, error: 'invalid' };
   }
+
+  // ID를 숫자로 변환 시도
+  const portfolioId = typeof id === 'string' ? parseInt(id, 10) : Number(id);
+  if (isNaN(portfolioId)) {
+    portfolioLogger.error('Invalid portfolio ID', { id });
+    return { success: false, error: 'invalid' };
+  }
+
   try {
     const supabase = await createSupabaseServerClient();
-    const { error } = await supabase
-      .from('portfolio')
-      .delete()
-      .eq('id', id as string);
+    const { error } = await supabase.from('portfolio').delete().eq('id', portfolioId);
     if (error) {
       portfolioLogger.error('Portfolio delete error', error);
       return { success: false, error: 'supabase' };
     }
-    portfolioLogger.debug('Portfolio delete success');
+    portfolioLogger.debug('Portfolio delete success', { id: portfolioId });
     return { success: true };
   } catch (error: unknown) {
     portfolioLogger.error('Portfolio delete exception', error);

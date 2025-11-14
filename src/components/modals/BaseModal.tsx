@@ -65,8 +65,11 @@ export function BaseModal({
       // textarea나 input 내부에서 Shift+Enter는 줄바꿈이므로 무시
       const target = e.target as HTMLElement;
       const isTextarea = target.tagName === 'TEXTAREA';
-      const isInput = target.tagName === 'INPUT' && (target as HTMLInputElement).type !== 'submit' && (target as HTMLInputElement).type !== 'button';
-      
+      const isInput =
+        target.tagName === 'INPUT' &&
+        (target as HTMLInputElement).type !== 'submit' &&
+        (target as HTMLInputElement).type !== 'button';
+
       if (e.key === 'Enter' && !e.shiftKey && !isSubmitting && !disabled) {
         // textarea나 input 내부에서는 Enter 키를 기본 동작으로 허용
         if (isTextarea || isInput) {
@@ -79,7 +82,7 @@ export function BaseModal({
           }
           return;
         }
-        
+
         e.preventDefault();
         onConfirm();
       }
@@ -103,16 +106,14 @@ export function BaseModal({
       onClick={handleBackdropClick}
     >
       <div
-        className={`bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-600 px-3 py-12 ${maxWidthClasses[maxWidth]} w-full mx-8 animate-scaleIn max-h-[90vh] overflow-y-auto modal-scrollbar-hide ${className}`}
+        className={`bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-600 px-6 py-12 ${maxWidthClasses[maxWidth]} w-full mx-8 animate-scaleIn max-h-[90vh] overflow-y-auto modal-scrollbar-hide ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* 헤더 */}
         {(title || showCloseButton) && (
           <div className="flex items-center justify-between mb-6">
             {title && (
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {title}
-              </h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{title}</h2>
             )}
             {showCloseButton && (
               <button
@@ -127,9 +128,7 @@ export function BaseModal({
         )}
 
         {/* 내용 */}
-        <div className="space-y-4">
-          {children}
-        </div>
+        <div className="space-y-4">{children}</div>
 
         {/* 버튼 */}
         {(onConfirm || showCancelButton) && (
@@ -160,4 +159,3 @@ export function BaseModal({
     </div>
   );
 }
-
