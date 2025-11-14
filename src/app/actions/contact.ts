@@ -568,7 +568,7 @@ export async function submitContact(formData: FormData) {
     // 로그 최소화 (필요시에만 주석 해제)
     // console.log('[CONTACT] Inserting contact data...');
     
-    const { error: dbError } = await supabase
+    const { data: insertedData, error: dbError } = await supabase
       .from('contacts')
       .insert(insertData)
       .select();
@@ -596,6 +596,47 @@ export async function submitContact(formData: FormData) {
         contactLogger.error('PERMISSION ERROR: RLS 정책 문제일 수 있습니다! Supabase에서 RLS를 비활성화하거나 INSERT 정책을 추가하세요.');
       }
       // DB 저장 실패해도 이메일은 시도
+    }
+
+    // 방문 예약인 경우 예약 생성 (contact 생성 성공 후)
+    let bookingCreated = false;
+    if (!dbError && insertedData && insertedData.length > 0 && receipt_method === 'visit' && visit_date && visit_time_slot && company_name) {
+      const contactId = insertedData[0].id;
+      try {
+        // 예약 가능 여부 확인
+        const { count } = await supabase
+          .from('visit_bookings')
+          .select('*', { count: 'exact', head: true })
+          .eq('visit_date', visit_date)
+          .eq('visit_time_slot', visit_time_slot)
+          .eq('status', 'confirmed');
+
+        if ((count || 0) >= 2) {
+          contactLogger.warn('Booking slot is full, skipping booking creation');
+        } else {
+          // 예약 생성
+          const { error: bookingError } = await supabase
+            .from('visit_bookings')
+            .insert({
+              visit_date: visit_date,
+              visit_time_slot: visit_time_slot,
+              company_name: company_name,
+              contact_id: contactId,
+              status: 'confirmed',
+              created_by: 'company',
+            });
+
+          if (bookingError) {
+            contactLogger.error('Error creating booking', bookingError);
+          } else {
+            bookingCreated = true;
+            contactLogger.info('✅ Booking created successfully');
+          }
+        }
+      } catch (bookingError) {
+        contactLogger.error('Error creating booking', bookingError);
+        // 예약 생성 실패해도 문의는 저장
+      }
     }
 
     // DB 저장 실패 시 처리

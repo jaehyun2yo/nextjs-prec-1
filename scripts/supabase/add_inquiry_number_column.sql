@@ -11,3 +11,4 @@ CREATE INDEX IF NOT EXISTS idx_contacts_inquiry_number ON contacts(inquiry_numbe
 
 
 
+

@@ -57,6 +57,7 @@ function PortfolioSlideCard({
   isVisible?: boolean;
 }) {
   const imageUrl = getImageUrl(item);
+  const [imageLoaded, setImageLoaded] = useState(false);
   
   return (
     <motion.div
@@ -69,16 +70,16 @@ function PortfolioSlideCard({
       initial={{ 
         scale: 0.8,
         y: 50,
-        filter: "blur(10px)"
+        opacity: 0
       }}
-      animate={isVisible ? { 
+      animate={isVisible && imageLoaded ? { 
         scale: 1,
         y: 0,
-        filter: "blur(0px)"
+        opacity: 1
       } : {
         scale: 0.8,
         y: 50,
-        filter: "blur(10px)"
+        opacity: 0
       }}
       transition={{ 
         duration: 0.6, 
@@ -86,21 +87,23 @@ function PortfolioSlideCard({
         ease: [0.25, 0.46, 0.45, 0.94],
         scale: { duration: 0.5 },
         y: { duration: 0.6 },
-        filter: { duration: 0.4 }
+        opacity: { duration: 0.4 }
       }}
     >
       {imageUrl ? (
-        <div className="relative w-full h-full overflow-hidden shadow-lg">
+        <div className="relative w-full h-full overflow-hidden shadow-lg bg-gray-900">
           <Image
             src={imageUrl}
             alt={item.title}
             fill
-            className="object-cover"
+            className="object-cover transition-opacity duration-300"
             sizes="(max-width: 768px) 180px, (max-width: 1024px) 220px, 250px"
             quality={100}
             placeholder="blur"
             blurDataURL={transparentBlurDataURL}
-            priority={index < 4}
+            priority={index < 6}
+            onLoad={() => setImageLoaded(true)}
+            style={{ opacity: imageLoaded ? 1 : 0 }}
           />
         </div>
       ) : (

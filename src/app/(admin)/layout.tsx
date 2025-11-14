@@ -60,6 +60,12 @@ export default async function AdminLayout({
               업체관리
             </Link>
             <Link
+              href="/admin/bookings"
+              className="hover:bg-gray-700 dark:hover:bg-gray-800 p-2 rounded transition-colors duration-300 text-sm lg:text-base"
+            >
+              예약 관리
+            </Link>
+            <Link
               href="/"
               className="hover:bg-gray-700 dark:hover:bg-gray-800 p-2 rounded mt-auto transition-colors duration-300 text-sm lg:text-base"
             >

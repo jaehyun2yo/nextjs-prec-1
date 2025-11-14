@@ -35,7 +35,19 @@ class Logger {
 
   error(message: string, error?: unknown, ...args: unknown[]): void {
     if (this.shouldLog('error')) {
-      console.error(`[ERROR] ${message}`, error, ...args);
+      if (error !== undefined) {
+        if (args.length > 0) {
+          console.error(`[ERROR] ${message}`, error, ...args);
+        } else {
+          console.error(`[ERROR] ${message}`, error);
+        }
+      } else {
+        if (args.length > 0) {
+          console.error(`[ERROR] ${message}`, ...args);
+        } else {
+          console.error(`[ERROR] ${message}`);
+        }
+      }
     }
   }
 
@@ -57,6 +69,7 @@ class Logger {
 }
 
 export const logger = new Logger();
+
 
 
 

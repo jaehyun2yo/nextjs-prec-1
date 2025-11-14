@@ -45,6 +45,7 @@ export default async function CompanyDashboardPage() {
   const dashboardLogger = logger.createLogger('COMPANY_DASHBOARD');
   let company: Company | null = null;
   let contacts: Contact[] = [];
+  let bookings: any[] = [];
 
   try {
     const { data: companyData, error: companyError } = await supabase
@@ -73,6 +74,21 @@ export default async function CompanyDashboardPage() {
     } else {
       contacts = (contactsData || []) as Contact[];
     }
+
+    // 해당 업체의 예약 일정 가져오기
+    const { data: bookingsData, error: bookingsError } = await supabase
+      .from('visit_bookings')
+      .select('*')
+      .eq('company_name', company.company_name)
+      .eq('status', 'confirmed')
+      .order('visit_date', { ascending: true })
+      .order('visit_time_slot', { ascending: true });
+
+    if (bookingsError) {
+      dashboardLogger.error("Error fetching bookings", bookingsError);
+    } else {
+      bookings = bookingsData || [];
+    }
   } catch (error) {
     dashboardLogger.error("Error", error);
     return null;
@@ -85,7 +101,8 @@ export default async function CompanyDashboardPage() {
   return (
     <CompanyDashboardClient 
       initialCompany={company} 
-      initialContacts={contacts} 
+      initialContacts={contacts}
+      initialBookings={bookings}
     />
   );
 }

@@ -202,19 +202,29 @@ img {
 .date-input-white {
   font-size: 0.875rem; /* text-sm */
   padding: 0.5rem 1rem; /* py-2 px-4 */
+  color: white !important;
 }
 
+/* 모든 모드에서 하얀색 아이콘 */
 .date-input-white::-webkit-calendar-picker-indicator {
   cursor: pointer;
-  opacity: 1;
+  opacity: 1 !important;
+  filter: invert(1) brightness(2) contrast(1.2) !important; /* 아이콘을 하얀색으로 */
 }
 
-/* 라이트 모드 */
+/* Firefox용 아이콘 스타일 */
+.date-input-white::-moz-calendar-picker-indicator {
+  filter: invert(1) brightness(2) contrast(1.2) !important;
+  cursor: pointer;
+  opacity: 1 !important;
+}
+
+/* 모든 모드에서 하얀색 텍스트 */
 .date-input-white::-webkit-datetime-edit-text,
 .date-input-white::-webkit-datetime-edit-month-field,
 .date-input-white::-webkit-datetime-edit-day-field,
 .date-input-white::-webkit-datetime-edit-year-field {
-  color: rgb(17, 24, 39) !important; /* text-gray-900 */
+  color: white !important;
 }
 
 /* 다크 모드 - 하얀색 텍스트와 아이콘 */
@@ -223,7 +233,7 @@ img {
 }
 
 .dark .date-input-white::-webkit-calendar-picker-indicator {
-  filter: invert(1); /* 아이콘을 하얀색으로 */
+  filter: invert(1) brightness(1.2) !important; /* 아이콘을 하얀색으로 */
 }
 
 .dark .date-input-white::-webkit-datetime-edit-text,

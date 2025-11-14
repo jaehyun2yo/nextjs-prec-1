@@ -77,7 +77,7 @@ export function PortfolioMinimalNav() {
             className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[80] pointer-events-auto w-[280px]"
           >
         <motion.div 
-          className="bg-white/10 backdrop-blur-2xl rounded-full px-8 py-4 shadow-2xl border border-white/20"
+          className="bg-white/10 backdrop-blur-2xl rounded-full px-8 py-4 shadow-2xl border border-white/20 h-[62px]"
           style={{
             background: 'rgba(255, 255, 255, 0.1)',
             backdropFilter: 'blur(20px) saturate(180%)',
@@ -89,7 +89,7 @@ export function PortfolioMinimalNav() {
           }}
           transition={{ duration: 0.3 }}
         >
-          <div className="flex items-center justify-between gap-6 w-full">
+          <div className="flex items-center justify-between gap-6 w-full h-full">
             {/* 로고 */}
             <Link href="/" className="flex items-center flex-shrink-0">
               <motion.div
@@ -142,7 +142,7 @@ export function PortfolioMinimalNav() {
             className="fixed top-5 left-1/2 transform -translate-x-1/2 z-[80] pointer-events-auto w-[450px]"
           >
         <motion.div 
-          className="bg-white/10 backdrop-blur-2xl rounded-full px-8 py-4 shadow-2xl border border-white/20"
+          className="bg-white/10 backdrop-blur-2xl rounded-full px-8 py-4 shadow-2xl border border-white/20 h-[62px]"
           style={{
             background: 'rgba(255, 255, 255, 0.1)',
             backdropFilter: 'blur(20px) saturate(180%)',
@@ -154,7 +154,7 @@ export function PortfolioMinimalNav() {
           }}
           transition={{ duration: 0.3 }}
         >
-          <div className="flex items-center justify-between gap-8 w-full">
+          <div className="flex items-center justify-between gap-8 w-full h-full">
             {/* 로고 */}
             <Link href="/" className="flex items-center flex-shrink-0">
               <motion.div
@@ -237,7 +237,7 @@ export function PortfolioMinimalNav() {
             className="fixed top-6 left-1/2 transform -translate-x-1/2 z-[80] pointer-events-auto w-[580px]"
           >
         <motion.div 
-          className="bg-white/10 backdrop-blur-2xl rounded-full px-10 py-4 shadow-2xl border border-white/20"
+          className="bg-white/10 backdrop-blur-2xl rounded-full px-10 py-4 shadow-2xl border border-white/20 h-[62px]"
           style={{
             background: 'rgba(255, 255, 255, 0.1)',
             backdropFilter: 'blur(20px) saturate(180%)',
@@ -249,7 +249,7 @@ export function PortfolioMinimalNav() {
           }}
           transition={{ duration: 0.3 }}
         >
-          <div className="flex items-center justify-between gap-12 w-full">
+          <div className="flex items-center justify-between gap-12 w-full h-full">
             {/* 로고 */}
             <Link href="/" className="flex items-center flex-shrink-0">
               <motion.div

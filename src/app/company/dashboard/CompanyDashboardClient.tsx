@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { createSupabaseClient } from '@/lib/supabase/client';
-import { FaFileAlt, FaCheckCircle, FaSpinner, FaEye, FaEnvelope, FaCalendarAlt } from "react-icons/fa";
+import { FaFileAlt, FaCheckCircle, FaSpinner, FaEye, FaEnvelope, FaCalendarAlt, FaClock } from "react-icons/fa";
 import Link from "next/link";
 import { BUTTON_STYLES } from "@/lib/styles";
 import { ContactCardToggle } from '@/components/ContactCardToggle';
@@ -40,13 +40,24 @@ interface Contact {
   revision_request_history?: RevisionRequestHistory | null;
 }
 
+interface Booking {
+  id: number;
+  visit_date: string;
+  visit_time_slot: string;
+  company_name: string;
+  status: string;
+  created_at: string;
+}
+
 interface CompanyDashboardClientProps {
   initialCompany: Company;
   initialContacts: Contact[];
+  initialBookings?: Booking[];
 }
 
-export function CompanyDashboardClient({ initialCompany, initialContacts }: CompanyDashboardClientProps) {
+export function CompanyDashboardClient({ initialCompany, initialContacts, initialBookings = [] }: CompanyDashboardClientProps) {
   const [contacts, setContacts] = useState<Contact[]>(initialContacts);
+  const [bookings] = useState<Booking[]>(initialBookings);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [filterType, setFilterType] = useState<FilterType>('all');
   const isRefreshingRef = useRef(false);
@@ -323,6 +334,45 @@ export function CompanyDashboardClient({ initialCompany, initialContacts }: Comp
           <span>견적 / 문의하기</span>
         </Link>
       </div>
+
+      {/* 예약 일정 섹션 */}
+      {bookings.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <FaCalendarAlt className="text-orange-600 dark:text-orange-400" />
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">예약 일정</h2>
+          </div>
+          <div className="space-y-3">
+            {bookings.map((booking) => (
+              <div
+                key={booking.id}
+                className="flex items-center justify-between p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
+                    <FaCalendarAlt />
+                    <span className="font-semibold">
+                      {new Date(booking.visit_date).toLocaleDateString('ko-KR', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        weekday: 'long',
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                    <FaClock />
+                    <span className="font-medium">{booking.visit_time_slot}</span>
+                  </div>
+                </div>
+                <div className="px-3 py-1 bg-orange-600 text-white text-xs font-medium rounded-full">
+                  예약 확정
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 통계 카드 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">

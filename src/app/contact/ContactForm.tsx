@@ -23,6 +23,8 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
   const [drawingType, setDrawingType] = useState<'create' | 'have' | ''>('');
   const [hasPhysicalSample, setHasPhysicalSample] = useState(false);
   const [hasReferencePhotos, setHasReferencePhotos] = useState(false);
+  const [hasOtherSample, setHasOtherSample] = useState(false);
+  const [otherSampleText, setOtherSampleText] = useState('');
   const [drawingModification, setDrawingModification] = useState<'needed' | 'not_needed' | ''>('');
   
   // 일정 조율 섹션 state
@@ -106,39 +108,73 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
     }
   }, [drawingType]);
   
-  // 오늘 + 2일 날짜 계산 (평일인 경우)
-  // 주말이면 평일이 나올 때까지 +1일씩 더함
+  // 오늘부터 시작해서 2번째 평일 계산 (주말 제외)
   const getDefaultVisitDate = (): string => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const defaultDate = new Date(today);
-    defaultDate.setDate(defaultDate.getDate() + 2);
     
-    // 주말(일요일=0, 토요일=6)이면 평일이 나올 때까지 +1일씩 더함
-    while (defaultDate.getDay() === 0 || defaultDate.getDay() === 6) {
-      defaultDate.setDate(defaultDate.getDate() + 1);
+    // 평일 카운트 (오늘 포함)
+    let weekdayCount = 0;
+    
+    // 오늘부터 시작해서 2번째 평일 찾기
+    while (weekdayCount < 2) {
+      const dayOfWeek = defaultDate.getDay();
+      // 평일(월~금: 1~5)인 경우 카운트 증가
+      if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+        weekdayCount++;
+        if (weekdayCount < 2) {
+          // 아직 2번째 평일이 아니면 다음 날로 이동
+          defaultDate.setDate(defaultDate.getDate() + 1);
+        }
+      } else {
+        // 주말이면 다음 날로 이동 (카운트 증가 없음)
+        defaultDate.setDate(defaultDate.getDate() + 1);
+      }
     }
     
-    return defaultDate.toISOString().split('T')[0];
+    // ISO 문자열로 변환 (로컬 시간대 고려)
+    const year = defaultDate.getFullYear();
+    const month = String(defaultDate.getMonth() + 1).padStart(2, '0');
+    const day = String(defaultDate.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
   
-  // 최소 날짜 계산 (오늘 + 2일, 주말 제외)
+  // 최소 날짜 계산 (오늘부터 2번째 평일, 주말 제외)
   const getMinVisitDate = (): string => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const minDate = new Date(today);
-    minDate.setDate(minDate.getDate() + 2);
     
-    // 주말이면 평일이 나올 때까지 +1일씩 더함
-    while (minDate.getDay() === 0 || minDate.getDay() === 6) {
-      minDate.setDate(minDate.getDate() + 1);
+    // 평일 카운트 (오늘 포함)
+    let weekdayCount = 0;
+    
+    // 오늘부터 시작해서 2번째 평일 찾기
+    while (weekdayCount < 2) {
+      const dayOfWeek = minDate.getDay();
+      // 평일(월~금: 1~5)인 경우 카운트 증가
+      if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+        weekdayCount++;
+        if (weekdayCount < 2) {
+          // 아직 2번째 평일이 아니면 다음 날로 이동
+          minDate.setDate(minDate.getDate() + 1);
+        }
+      } else {
+        // 주말이면 다음 날로 이동 (카운트 증가 없음)
+        minDate.setDate(minDate.getDate() + 1);
+      }
     }
     
-    return minDate.toISOString().split('T')[0];
+    // ISO 문자열로 변환 (로컬 시간대 고려)
+    const year = minDate.getFullYear();
+    const month = String(minDate.getMonth() + 1).padStart(2, '0');
+    const day = String(minDate.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
   
   const [visitDate, setVisitDate] = useState<string>(getDefaultVisitDate());
   const [visitTimeSlot, setVisitTimeSlot] = useState<string>('');
+  const [bookingAvailability, setBookingAvailability] = useState<Record<string, { count: number; available: boolean }>>({});
   const [deliveryAddress, setDeliveryAddress] = useState<string>('');
   const [deliveryName, setDeliveryName] = useState<string>('');
   const [deliveryPhone, setDeliveryPhone] = useState<string>('');
@@ -170,6 +206,69 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [, setIsSubmitting] = useState(false); // isSubmitting은 내부에서만 사용
 
+  // 필드별 에러 상태 관리
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  // 예약 가능 여부 확인 함수
+  const checkBookingAvailability = async (date: string) => {
+    if (!date) return;
+    
+    const hours = [9, 10, 11, 13, 14, 15, 16, 17];
+    const availability: Record<string, { count: number; available: boolean }> = {};
+    
+    try {
+      // 모든 시간 슬롯의 예약 가능 여부를 한 번에 확인
+      const promises = hours.map(async (startHour) => {
+        const endHour = startHour + 1;
+        const timeSlot = `${startHour}:00~${endHour}:00`;
+        
+        try {
+          const response = await fetch(`/api/bookings/available?date=${date}&timeSlot=${encodeURIComponent(timeSlot)}`);
+          if (response.ok) {
+            const data = await response.json();
+            availability[timeSlot] = {
+              count: data.bookingCount ?? 0,
+              available: data.isAvailable ?? true,
+            };
+            // 디버깅: 예약 개수가 2건 이상인 경우 로그 출력
+            if (data.bookingCount >= 2) {
+              console.log(`[예약 마감] ${date} ${timeSlot}: ${data.bookingCount}건 (최대 2건)`);
+            }
+          } else {
+            // API 에러 발생 시 예약 불가로 처리 (안전한 선택)
+            const errorData = await response.json().catch(() => ({}));
+            console.error(`Error fetching availability for ${date} ${timeSlot}:`, errorData);
+            availability[timeSlot] = {
+              count: 2, // 최대값으로 설정하여 마감 처리
+              available: false,
+            };
+          }
+        } catch (fetchError) {
+          console.error(`Fetch error for ${date} ${timeSlot}:`, fetchError);
+          availability[timeSlot] = {
+            count: 2, // 최대값으로 설정하여 마감 처리
+            available: false,
+          };
+        }
+      });
+      
+      await Promise.all(promises);
+      setBookingAvailability(availability);
+    } catch (error) {
+      console.error('Error checking booking availability:', error);
+      // 에러 발생 시 모든 시간 슬롯을 마감으로 처리 (안전한 선택)
+      hours.forEach((startHour) => {
+        const endHour = startHour + 1;
+        const timeSlot = `${startHour}:00~${endHour}:00`;
+        availability[timeSlot] = {
+          count: 2,
+          available: false,
+        };
+      });
+      setBookingAvailability(availability);
+    }
+  };
+
   // 초기값이 변경되면 state 업데이트 (업체 로그인 시 자동 채우기)
   useEffect(() => {
     if (initialValues) {
@@ -184,6 +283,24 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
       setReferralSource('기존업체');
     }
   }, [initialValues]);
+
+  // 날짜가 비어있거나 현재 날짜 기준으로 재계산이 필요한 경우 업데이트
+  useEffect(() => {
+    if (!visitDate || currentStep === 3) {
+      const newDefaultDate = getDefaultVisitDate();
+      if (!visitDate || visitDate !== newDefaultDate) {
+        setVisitDate(newDefaultDate);
+      }
+    }
+  }, [currentStep]);
+
+  // visitDate가 변경되거나 Step 3로 이동할 때 예약 가능 여부 확인
+  useEffect(() => {
+    if (visitDate && currentStep === 3 && receiptMethod === 'visit') {
+      checkBookingAvailability(visitDate);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visitDate, currentStep, receiptMethod]);
   
   // 내용 확인 페이지에서 파일 정보만 읽기 (나머지는 state에서 직접 사용)
   useEffect(() => {
@@ -254,11 +371,23 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                     id="inquiry_title"
                     name="inquiry_title"
                     value={inquiryTitle}
-                    onChange={(e) => setInquiryTitle(e.target.value)}
+                    onChange={(e) => {
+                      setInquiryTitle(e.target.value);
+                      if (fieldErrors.inquiryTitle) {
+                        setFieldErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors.inquiryTitle;
+                          return newErrors;
+                        });
+                      }
+                    }}
                     placeholder="제작하고자하는 패키지명"
-                    className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
+                    className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus} ${fieldErrors.inquiryTitle ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
                     required
                   />
+                  {fieldErrors.inquiryTitle && (
+                    <p className="mt-1 text-xs text-red-500">{fieldErrors.inquiryTitle}</p>
+                  )}
                   
                   {/* 패키지명 작성 힌트 */}
                   <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
@@ -332,11 +461,23 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                   id="company_name"
                   name="company_name"
                   value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
+                  onChange={(e) => {
+                    setCompanyName(e.target.value);
+                    if (fieldErrors.company_name) {
+                      setFieldErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.company_name;
+                        return newErrors;
+                      });
+                    }
+                  }}
                   required
-                  className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
+                  className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus} ${fieldErrors.company_name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
                   placeholder={contactType === 'company' ? '업체명을 입력하세요' : '이름을 입력하세요'}
                 />
+                {fieldErrors.company_name && (
+                  <p className="mt-1 text-xs text-red-500">{fieldErrors.company_name}</p>
+                )}
               </div>
 
               {contactType === 'company' && (
@@ -350,11 +491,23 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                       id="name"
                       name="name"
                       value={name}
-                      onChange={(e) => setName(e.target.value)}
+                      onChange={(e) => {
+                        setName(e.target.value);
+                        if (fieldErrors.name) {
+                          setFieldErrors(prev => {
+                            const newErrors = { ...prev };
+                            delete newErrors.name;
+                            return newErrors;
+                          });
+                        }
+                      }}
                       required
-                      className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
+                      className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus} ${fieldErrors.name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
                       placeholder="담당자명을 입력하세요"
                     />
+                    {fieldErrors.name && (
+                      <p className="mt-1 text-xs text-red-500">{fieldErrors.name}</p>
+                    )}
                   </div>
 
                   <div className="mb-6">
@@ -366,11 +519,23 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                       id="position"
                       name="position"
                       value={position}
-                      onChange={(e) => setPosition(e.target.value)}
+                      onChange={(e) => {
+                        setPosition(e.target.value);
+                        if (fieldErrors.position) {
+                          setFieldErrors(prev => {
+                            const newErrors = { ...prev };
+                            delete newErrors.position;
+                            return newErrors;
+                          });
+                        }
+                      }}
                       required
-                      className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
+                      className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus} ${fieldErrors.position ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
                       placeholder="예: 대표, 팀장, 매니저 등"
                     />
+                    {fieldErrors.position && (
+                      <p className="mt-1 text-xs text-red-500">{fieldErrors.position}</p>
+                    )}
                   </div>
                 </>
               )}
@@ -385,11 +550,23 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                   id="phone"
                   name="phone"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => {
+                    setPhone(e.target.value);
+                    if (fieldErrors.phone) {
+                      setFieldErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.phone;
+                        return newErrors;
+                      });
+                    }
+                  }}
                   required
-                  className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
+                  className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus} ${fieldErrors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
                   placeholder="010-1234-5678"
                 />
+                {fieldErrors.phone && (
+                  <p className="mt-1 text-xs text-red-500">{fieldErrors.phone}</p>
+                )}
               </div>
               
               <div className="mb-6">
@@ -401,11 +578,23 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                   id="email"
                   name="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (fieldErrors.email) {
+                      setFieldErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.email;
+                        return newErrors;
+                      });
+                    }
+                  }}
                   required
-                  className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
+                  className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus} ${fieldErrors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
                   placeholder="email@example.com"
                 />
+                {fieldErrors.email && (
+                  <p className="mt-1 text-xs text-red-500">{fieldErrors.email}</p>
+                )}
               </div>
 
               <div className="mb-6">
@@ -416,9 +605,18 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                   id="referralSource"
                   name="referralSource"
                   value={referralSource}
-                  onChange={(e) => setReferralSource(e.target.value)}
+                  onChange={(e) => {
+                    setReferralSource(e.target.value);
+                    if (fieldErrors.referralSource) {
+                      setFieldErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.referralSource;
+                        return newErrors;
+                      });
+                    }
+                  }}
                   required
-                  className={`${INPUT_STYLES.oneThird} ${INPUT_STYLES.base} ${INPUT_STYLES.focus} text-sm`}
+                  className={`${INPUT_STYLES.oneThird} ${INPUT_STYLES.base} ${INPUT_STYLES.focus} text-sm ${fieldErrors.referralSource ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
                 >
                   <option value="">선택해주세요</option>
                   {initialValues && <option value="기존업체">기존업체</option>}
@@ -430,6 +628,9 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                   <option value="거래처 소개">거래처 소개</option>
                   <option value="기타">기타</option>
                 </select>
+                {fieldErrors.referralSource && (
+                  <p className="mt-1 text-xs text-red-500">{fieldErrors.referralSource}</p>
+                )}
               </div>
 
               {(referralSource === '기타' || referralSource === '거래처 소개') && (
@@ -442,11 +643,23 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                     id="referralSourceOther"
                     name="referralSourceOther"
                     value={referralSourceOther}
-                    onChange={(e) => setReferralSourceOther(e.target.value)}
+                    onChange={(e) => {
+                      setReferralSourceOther(e.target.value);
+                      if (fieldErrors.referralSourceOther) {
+                        setFieldErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors.referralSourceOther;
+                          return newErrors;
+                        });
+                      }
+                    }}
                     required
-                    className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
+                    className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus} ${fieldErrors.referralSourceOther ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
                     placeholder={referralSource === '기타' ? '유입경로를 입력해주세요' : '거래처명을 입력해주세요'}
                   />
+                  {fieldErrors.referralSourceOther && (
+                    <p className="mt-1 text-xs text-red-500">{fieldErrors.referralSourceOther}</p>
+                  )}
                 </div>
               )}
 
@@ -461,15 +674,80 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                 <button
                   type="button"
                   onClick={() => {
+                    // Step 1 필수 항목 검증
+                    const newFieldErrors: Record<string, string> = {};
+                    
+                    // 문의 제목 검증
+                    if (!inquiryTitle.trim()) {
+                      newFieldErrors.inquiryTitle = '문의 제목을 입력해주세요.';
+                    }
+                    
+                    // 업체명/이름 검증
+                    if (!companyName.trim()) {
+                      newFieldErrors.company_name = contactType === 'company' ? '업체명을 입력해주세요.' : '이름을 입력해주세요.';
+                    }
+                    
+                    // 담당자명 검증 (업체일 때만)
+                    if (contactType === 'company' && !name.trim()) {
+                      newFieldErrors.name = '담당자명을 입력해주세요.';
+                    }
+                    
+                    // 담당자 직책 검증 (업체일 때만)
+                    if (contactType === 'company' && !position.trim()) {
+                      newFieldErrors.position = '담당자 직책을 입력해주세요.';
+                    }
+                    
+                    // 연락처 검증
+                    if (!phone.trim()) {
+                      newFieldErrors.phone = '연락처를 입력해주세요.';
+                    }
+                    
+                    // 이메일 검증
+                    if (!email.trim()) {
+                      newFieldErrors.email = '이메일을 입력해주세요.';
+                    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                      newFieldErrors.email = '올바른 이메일 형식을 입력해주세요.';
+                    }
+                    
                     // 유입경로 검증
                     if (!referralSource) {
-                      alert('유입경로를 선택해주세요.');
+                      newFieldErrors.referralSource = '유입경로를 선택해주세요.';
+                    } else if ((referralSource === '기타' || referralSource === '거래처 소개') && !referralSourceOther.trim()) {
+                      newFieldErrors.referralSourceOther = referralSource === '기타' ? '유입경로(기타)를 입력해주세요.' : '거래처명을 입력해주세요.';
+                    }
+                    
+                    if (Object.keys(newFieldErrors).length > 0) {
+                      setFieldErrors(newFieldErrors);
+                      setTimeout(() => {
+                        const firstErrorKey = Object.keys(newFieldErrors)[0];
+                        let targetElement: HTMLElement | null = null;
+                        
+                        // 특정 필드에 대한 포커싱 처리
+                        if (firstErrorKey === 'inquiryTitle') {
+                          // 패키지명 필드 (ID: inquiry_title)
+                          targetElement = document.getElementById('inquiry_title') as HTMLElement;
+                        } else if (firstErrorKey === 'referralSource') {
+                          const select = document.getElementById('referralSource') as HTMLElement;
+                          if (select) {
+                            targetElement = select;
+                          }
+                        } else {
+                          targetElement = document.getElementById(firstErrorKey) || document.querySelector(`[name="${firstErrorKey}"]`) as HTMLElement;
+                        }
+                        
+                        if (targetElement) {
+                          targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          setTimeout(() => {
+                            if (targetElement) {
+                              targetElement.focus();
+                            }
+                          }, 300);
+                        }
+                      }, 100);
                       return;
                     }
-                    if ((referralSource === '기타' || referralSource === '거래처 소개') && !referralSourceOther.trim()) {
-                      alert(referralSource === '기타' ? '유입경로(기타)를 입력해주세요.' : '거래처명을 입력해주세요.');
-                      return;
-                    }
+                    
+                    setFieldErrors({});
                     setCurrentStep(2);
                     // 화면 상단으로 스크롤
                     setTimeout(() => {
@@ -492,6 +770,9 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                 <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
                   필요한 사항 <span className="text-red-500">*</span>
                 </label>
+                {fieldErrors.drawingType && (
+                  <p className="mb-2 text-xs text-red-500">{fieldErrors.drawingType}</p>
+                )}
                 <div className="space-y-3">
                   <RadioButton
                     name="drawing_type"
@@ -502,6 +783,15 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                       // 초기화
                       setHasPhysicalSample(false);
                       setHasReferencePhotos(false);
+                      setHasOtherSample(false);
+                      setOtherSampleText('');
+                      if (fieldErrors.drawingType) {
+                        setFieldErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors.drawingType;
+                          return newErrors;
+                        });
+                      }
                     }}
                     label="샘플 제작이 필요합니다."
                     underlineKey="drawing-type-create"
@@ -514,6 +804,13 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                       setDrawingType(e.target.value as 'have');
                       // 초기화
                       setDrawingModification('');
+                      if (fieldErrors.drawingType) {
+                        setFieldErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors.drawingType;
+                          return newErrors;
+                        });
+                      }
                     }}
                     label="모두 준비되었으니, 바로 목형 의뢰할께요."
                     underlineKey="drawing-type-have"
@@ -532,9 +829,9 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                     className="pl-4 border-l-2 border-[#ED6C00] dark:border-[#ED6C00] space-y-4 overflow-hidden"
                   >
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
-                      <span className="text-gray-500 text-xs">(선택사항)</span>
-                    </label>
+                    {fieldErrors.sampleRequired && (
+                      <p className="mb-2 text-xs text-red-500">{fieldErrors.sampleRequired}</p>
+                    )}
                     <div className="space-y-4">
                       {/* 샘플 제작에 필요한 실물이 있습니다 */}
                       <div className={`overflow-hidden transition-all duration-300 ${
@@ -546,6 +843,13 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                           type="button"
                           onClick={() => {
                             setHasPhysicalSample(!hasPhysicalSample);
+                            if (fieldErrors.sampleRequired) {
+                              setFieldErrors(prev => {
+                                const newErrors = { ...prev };
+                                delete newErrors.sampleRequired;
+                                return newErrors;
+                              });
+                            }
                           }}
                           className={`w-full flex items-center justify-between px-4 py-3 transition-all duration-300 ${
                             hasPhysicalSample
@@ -619,6 +923,13 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                           type="button"
                           onClick={() => {
                             setHasReferencePhotos(!hasReferencePhotos);
+                            if (fieldErrors.sampleRequired) {
+                              setFieldErrors(prev => {
+                                const newErrors = { ...prev };
+                                delete newErrors.sampleRequired;
+                                return newErrors;
+                              });
+                            }
                           }}
                           className={`w-full flex items-center justify-between px-4 py-3 transition-all duration-300 ${
                             hasReferencePhotos
@@ -668,6 +979,106 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                           </div>
                         )}
                       </div>
+
+                      {/* 기타 */}
+                      <div className={`overflow-hidden transition-all duration-300 ${
+                        hasOtherSample 
+                          ? 'border border-[#fb923c] dark:border-[#ED6C00]/50 rounded-lg' 
+                          : ''
+                      }`}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setHasOtherSample(!hasOtherSample);
+                            if (!hasOtherSample) {
+                              setOtherSampleText('');
+                            }
+                            if (fieldErrors.sampleRequired) {
+                              setFieldErrors(prev => {
+                                const newErrors = { ...prev };
+                                delete newErrors.sampleRequired;
+                                return newErrors;
+                              });
+                            }
+                            if (fieldErrors.otherSampleText) {
+                              setFieldErrors(prev => {
+                                const newErrors = { ...prev };
+                                delete newErrors.otherSampleText;
+                                return newErrors;
+                              });
+                            }
+                          }}
+                          className={`w-full flex items-center justify-between px-4 py-3 transition-all duration-300 ${
+                            hasOtherSample
+                              ? 'bg-[#fff7ed] border-b border-[#ED6C00] dark:bg-[#ED6C00]/20 dark:border-[#ED6C00]'
+                              : 'bg-white border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                          }`}
+                        >
+                          <div className="flex items-center">
+                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center mr-3 transition-colors ${
+                              hasOtherSample
+                                ? 'bg-[#ED6C00] border-[#ED6C00]'
+                                : 'border-gray-300 dark:border-gray-500'
+                            }`}>
+                              {hasOtherSample && (
+                                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </div>
+                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">기타</span>
+                          </div>
+                          <svg
+                            className={`w-5 h-5 text-gray-900 dark:text-gray-100 transition-transform duration-200 ${
+                              hasOtherSample ? 'rotate-180' : ''
+                            }`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                        {/* 기타 선택 시 - 체크되면 바로 아래 내용 표시 */}
+                        {hasOtherSample && (
+                          <div className="space-y-4 p-4 bg-[#fff7ed]/50 dark:bg-[#ED6C00]/10 transition-all duration-300">
+                            <div>
+                              <label htmlFor="other_sample_text" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                                기타 내용 <span className="text-red-500">*</span>
+                              </label>
+                              <textarea
+                                id="other_sample_text"
+                                name="other_sample_text"
+                                value={otherSampleText}
+                                onChange={(e) => {
+                                  setOtherSampleText(e.target.value);
+                                  if (fieldErrors.otherSampleText) {
+                                    setFieldErrors(prev => {
+                                      const newErrors = { ...prev };
+                                      delete newErrors.otherSampleText;
+                                      return newErrors;
+                                    });
+                                  }
+                                  if (fieldErrors.sampleRequired) {
+                                    setFieldErrors(prev => {
+                                      const newErrors = { ...prev };
+                                      delete newErrors.sampleRequired;
+                                      return newErrors;
+                                    });
+                                  }
+                                }}
+                                rows={4}
+                                className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus} resize-none ${fieldErrors.otherSampleText ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
+                                placeholder="기타 내용을 입력해주세요"
+                                required
+                              />
+                              {fieldErrors.otherSampleText && (
+                                <p className="mt-1 text-xs text-red-500">{fieldErrors.otherSampleText}</p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                   </motion.div>
@@ -693,7 +1104,16 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                         name="drawing_modification"
                         value="needed"
                         checked={drawingModification === 'needed'}
-                        onChange={(e) => setDrawingModification(e.target.value as 'needed')}
+                        onChange={(e) => {
+                          setDrawingModification(e.target.value as 'needed');
+                          if (fieldErrors.drawingModification) {
+                            setFieldErrors(prev => {
+                              const newErrors = { ...prev };
+                              delete newErrors.drawingModification;
+                              return newErrors;
+                            });
+                          }
+                        }}
                         label="도면의 수정이 필요합니다"
                         underlineKey="drawing-modification-needed"
                       />
@@ -701,23 +1121,49 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                         name="drawing_modification"
                         value="not_needed"
                         checked={drawingModification === 'not_needed'}
-                        onChange={(e) => setDrawingModification(e.target.value as 'not_needed')}
+                        onChange={(e) => {
+                          setDrawingModification(e.target.value as 'not_needed');
+                          if (fieldErrors.drawingModification) {
+                            setFieldErrors(prev => {
+                              const newErrors = { ...prev };
+                              delete newErrors.drawingModification;
+                              return newErrors;
+                            });
+                          }
+                        }}
                         label="도면의 수정이 필요없습니다"
                         underlineKey="drawing-modification-not-needed"
                       />
                     </div>
+                    {fieldErrors.drawingModification && (
+                      <p className="mt-2 text-xs text-red-500">{fieldErrors.drawingModification}</p>
+                    )}
                   </div>
                   
-                  <FileUpload
-                    name="drawing_file"
-                    id="drawing_file"
-                    accept=".pdf,.dwg,.dxf,.jpg,.jpeg,.png,.gif,.zip,.rar"
-                    maxSize={10 * 1024 * 1024}
-                    required={drawingType === 'have'}
-                    files={drawingFile}
-                    onChange={setDrawingFile}
-                    label="도면 파일 업로드"
-                  />
+                  <div>
+                    <FileUpload
+                      name="drawing_file"
+                      id="drawing_file"
+                      accept=".pdf,.dwg,.dxf,.jpg,.jpeg,.png,.gif,.zip,.rar"
+                      maxSize={10 * 1024 * 1024}
+                      required={drawingType === 'have'}
+                      files={drawingFile}
+                      onChange={(files) => {
+                        setDrawingFile(files);
+                        if (fieldErrors.drawingFile) {
+                          setFieldErrors(prev => {
+                            const newErrors = { ...prev };
+                            delete newErrors.drawingFile;
+                            return newErrors;
+                          });
+                        }
+                      }}
+                      label="도면 파일 업로드"
+                    />
+                    {fieldErrors.drawingFile && (
+                      <p className="mt-1 text-xs text-red-500">{fieldErrors.drawingFile}</p>
+                    )}
+                  </div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -827,6 +1273,8 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
               <input type="hidden" name="drawing_type" value={drawingType || ''} />
               <input type="hidden" name="has_physical_sample" value={hasPhysicalSample ? '1' : '0'} />
               <input type="hidden" name="has_reference_photos" value={hasReferencePhotos ? '1' : '0'} />
+              <input type="hidden" name="has_other_sample" value={hasOtherSample ? '1' : '0'} />
+              <input type="hidden" name="other_sample_text" value={otherSampleText || ''} />
               <input type="hidden" name="drawing_modification" value={drawingModification || ''} />
               <input type="hidden" name="box_shape" value={boxShape || ''} />
               <input type="hidden" name="length" value={length || ''} />
@@ -848,26 +1296,146 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                 <button
                   type="button"
                   onClick={() => {
+                    const newFieldErrors: Record<string, string> = {};
                     if (!drawingType) {
-                      alert('필요한 사항을 선택해주세요.');
-                      return;
-                    }
-                    if (drawingType === 'have') {
+                      newFieldErrors.drawingType = '필요한 사항을 선택해주세요.';
+                    } else if (drawingType === 'have') {
                       if (!drawingModification) {
-                        alert('도면 수정 필요 여부를 선택해주세요.');
-                        return;
+                        newFieldErrors.drawingModification = '도면 수정 필요 여부를 선택해주세요.';
                       }
                       // 도면 파일 업로드 필수 검증
                       if (drawingFile.length === 0) {
-                        alert('도면 파일을 업로드해주세요.');
-                        return;
+                        newFieldErrors.drawingFile = '도면 파일을 업로드해주세요.';
                       }
-                      // 모두 준비되었으니 바로 목형 의뢰할께요 선택 시 납품업체 단계로 이동
-                      setCurrentStep(3);
-                    } else {
-                      // 샘플 제작이 필요한 경우 일정 조율 단계로 이동
-                      setCurrentStep(3);
+                    } else if (drawingType === 'create') {
+                      // 샘플제작이 필요합니다 선택 시, 물리적 샘플, 참고 사진, 기타 중 하나는 필수
+                      if (!hasPhysicalSample && !hasReferencePhotos && !hasOtherSample) {
+                        newFieldErrors.sampleRequired = '샘플 제작에 필요한 실물, 도면/사진, 또는 기타 중 하나는 선택해주세요.';
+                      } else if (hasOtherSample && !otherSampleText.trim()) {
+                        // 기타 선택 시 내용 입력 필수
+                        newFieldErrors.otherSampleText = '기타 내용을 입력해주세요.';
+                      }
                     }
+                    
+                    if (Object.keys(newFieldErrors).length > 0) {
+                      setFieldErrors(newFieldErrors);
+                      setTimeout(() => {
+                        const firstErrorKey = Object.keys(newFieldErrors)[0];
+                        let targetElement: HTMLElement | null = null;
+                        
+                        if (firstErrorKey === 'drawingType') {
+                          // drawingType은 라디오 버튼이므로 첫 번째 라디오 버튼의 label에 포커스
+                          const firstRadio = document.querySelector('input[name="drawing_type"]') as HTMLInputElement;
+                          if (firstRadio) {
+                            const label = firstRadio.closest('label') as HTMLElement;
+                            if (label) {
+                              targetElement = label;
+                            } else {
+                              targetElement = firstRadio;
+                            }
+                          } else {
+                            // 라디오 버튼을 찾을 수 없으면 섹션 라벨로 스크롤
+                            const labels = Array.from(document.querySelectorAll('label'));
+                            const label = labels.find(l => l.textContent?.includes('필요한 사항'));
+                            if (label) {
+                              targetElement = label as HTMLElement;
+                            }
+                          }
+                        } else if (firstErrorKey === 'drawingModification') {
+                          // drawingModification은 라디오 버튼이므로 첫 번째 라디오 버튼의 label에 포커스
+                          const firstRadio = document.querySelector('input[name="drawing_modification"]') as HTMLInputElement;
+                          if (firstRadio) {
+                            const label = firstRadio.closest('label') as HTMLElement;
+                            if (label) {
+                              targetElement = label;
+                            } else {
+                              targetElement = firstRadio;
+                            }
+                          } else {
+                            // 라디오 버튼을 찾을 수 없으면 섹션 라벨로 스크롤
+                            const labels = Array.from(document.querySelectorAll('label'));
+                            const label = labels.find(l => l.textContent?.includes('도면 수정 필요 여부'));
+                            if (label) {
+                              targetElement = label as HTMLElement;
+                            }
+                          }
+                        } else if (firstErrorKey === 'drawingFile') {
+                          // drawingFile은 FileUpload 컴포넌트
+                          const fileInput = document.getElementById('drawing_file') as HTMLElement;
+                          if (fileInput) {
+                            targetElement = fileInput;
+                          } else {
+                            // FileUpload 컴포넌트의 input 찾기
+                            const fileInputByName = document.querySelector('input[name="drawing_file"]') as HTMLElement;
+                            if (fileInputByName) {
+                              targetElement = fileInputByName;
+                            } else {
+                              // FileUpload 컴포넌트의 라벨 찾기
+                              const labels = Array.from(document.querySelectorAll('label'));
+                              const label = labels.find(l => l.textContent?.includes('도면 파일 업로드'));
+                              if (label) {
+                                targetElement = label as HTMLElement;
+                              }
+                            }
+                          }
+                        } else if (firstErrorKey === 'sampleRequired') {
+                          // 샘플제작 필수 옵션 중 첫 번째 버튼 찾기
+                          const sampleButtons = Array.from(document.querySelectorAll('button[type="button"]'));
+                          const sampleButton = sampleButtons.find(btn => 
+                            btn.textContent?.includes('샘플 제작에 필요한 실물이 있습니다') ||
+                            btn.textContent?.includes('샘플 제작에 필요한 도면이나 사진이 있습니다') ||
+                            btn.textContent?.includes('기타')
+                          );
+                          if (sampleButton) {
+                            targetElement = sampleButton as HTMLElement;
+                          } else {
+                            // 찾을 수 없으면 섹션 헤더로 스크롤
+                            const sectionHeaders = Array.from(document.querySelectorAll('h2'));
+                            const sectionHeader = sectionHeaders.find(h => h.textContent?.includes('도면 및 샘플'));
+                            if (sectionHeader) {
+                              targetElement = sectionHeader as HTMLElement;
+                            }
+                          }
+                        } else if (firstErrorKey === 'otherSampleText') {
+                          targetElement = document.getElementById('other_sample_text') as HTMLElement;
+                        } else {
+                          // 일반 필드
+                          targetElement = document.getElementById(firstErrorKey) || document.querySelector(`[name="${firstErrorKey}"]`) as HTMLElement;
+                        }
+                        
+                        if (targetElement) {
+                          targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          setTimeout(() => {
+                            if (targetElement) {
+                              // label인 경우 내부의 input에 포커스
+                              if (targetElement.tagName === 'LABEL') {
+                                const input = targetElement.querySelector('input') as HTMLElement;
+                                if (input) {
+                                  input.focus();
+                                } else {
+                                  // input이 없으면 label 자체에 포커스 (tabindex 추가 필요할 수 있음)
+                                  targetElement.focus();
+                                }
+                              } else if (targetElement.tagName === 'INPUT' || targetElement.tagName === 'BUTTON') {
+                                targetElement.focus();
+                              }
+                            }
+                          }, 300);
+                        } else {
+                          // 찾을 수 없으면 섹션 헤더로 스크롤
+                          const sectionHeaders = Array.from(document.querySelectorAll('h2'));
+                          const sectionHeader = sectionHeaders.find(h => h.textContent?.includes('도면 및 샘플'));
+                          if (sectionHeader) {
+                            sectionHeader.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }
+                        }
+                      }, 100);
+                      return;
+                    }
+                    
+                    setFieldErrors({});
+                    // 모두 준비되었으니 바로 목형 의뢰할께요 선택 시 납품업체 단계로 이동
+                    setCurrentStep(3);
                     // 화면 상단으로 스크롤
                     setTimeout(() => {
                       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1021,11 +1589,23 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                             type="text"
                             id="delivery_company_name"
                             value={newDeliveryCompany.name}
-                            onChange={(e) => setNewDeliveryCompany(prev => ({ ...prev, name: e.target.value }))}
-                            className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
+                            onChange={(e) => {
+                              setNewDeliveryCompany(prev => ({ ...prev, name: e.target.value }));
+                              if (fieldErrors.delivery_company_name) {
+                                setFieldErrors(prev => {
+                                  const newErrors = { ...prev };
+                                  delete newErrors.delivery_company_name;
+                                  return newErrors;
+                                });
+                              }
+                            }}
+                            className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus} ${fieldErrors.delivery_company_name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
                             placeholder="납품업체명을 입력해주세요"
                             required
                           />
+                          {fieldErrors.delivery_company_name && (
+                            <p className="mt-1 text-xs text-red-500">{fieldErrors.delivery_company_name}</p>
+                          )}
                         </div>
 
                         <div>
@@ -1036,11 +1616,23 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                             type="tel"
                             id="delivery_company_phone"
                             value={newDeliveryCompany.phone}
-                            onChange={(e) => setNewDeliveryCompany(prev => ({ ...prev, phone: e.target.value }))}
-                            className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
+                            onChange={(e) => {
+                              setNewDeliveryCompany(prev => ({ ...prev, phone: e.target.value }));
+                              if (fieldErrors.delivery_company_phone) {
+                                setFieldErrors(prev => {
+                                  const newErrors = { ...prev };
+                                  delete newErrors.delivery_company_phone;
+                                  return newErrors;
+                                });
+                              }
+                            }}
+                            className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus} ${fieldErrors.delivery_company_phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
                             placeholder="010-1234-5678"
                             required
                           />
+                          {fieldErrors.delivery_company_phone && (
+                            <p className="mt-1 text-xs text-red-500">{fieldErrors.delivery_company_phone}</p>
+                          )}
                         </div>
 
                         <div>
@@ -1051,11 +1643,23 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                             type="text"
                             id="delivery_company_address"
                             value={newDeliveryCompany.address}
-                            onChange={(e) => setNewDeliveryCompany(prev => ({ ...prev, address: e.target.value }))}
-                            className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
+                            onChange={(e) => {
+                              setNewDeliveryCompany(prev => ({ ...prev, address: e.target.value }));
+                              if (fieldErrors.delivery_company_address) {
+                                setFieldErrors(prev => {
+                                  const newErrors = { ...prev };
+                                  delete newErrors.delivery_company_address;
+                                  return newErrors;
+                                });
+                              }
+                            }}
+                            className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus} ${fieldErrors.delivery_company_address ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
                             placeholder="주소를 입력해주세요"
                             required
                           />
+                          {fieldErrors.delivery_company_address && (
+                            <p className="mt-1 text-xs text-red-500">{fieldErrors.delivery_company_address}</p>
+                          )}
                         </div>
 
                         {/* 거래처 저장 버튼 - 로그인한 업체만 표시 */}
@@ -1064,8 +1668,27 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                             <button
                               type="button"
                               onClick={async () => {
-                                if (!newDeliveryCompany.name.trim() || !newDeliveryCompany.phone.trim() || !newDeliveryCompany.address.trim()) {
-                                  alert('납품업체명, 연락처, 주소를 모두 입력해주세요.');
+                                const newFieldErrors: Record<string, string> = {};
+                                if (!newDeliveryCompany.name.trim()) {
+                                  newFieldErrors.delivery_company_name = '납품업체명을 입력해주세요.';
+                                }
+                                if (!newDeliveryCompany.phone.trim()) {
+                                  newFieldErrors.delivery_company_phone = '납품업체 연락처를 입력해주세요.';
+                                }
+                                if (!newDeliveryCompany.address.trim()) {
+                                  newFieldErrors.delivery_company_address = '납품업체 주소를 입력해주세요.';
+                                }
+                                
+                                if (Object.keys(newFieldErrors).length > 0) {
+                                  setFieldErrors(prev => ({ ...prev, ...newFieldErrors }));
+                                  setTimeout(() => {
+                                    const firstErrorKey = Object.keys(newFieldErrors)[0];
+                                    const errorField = document.getElementById(firstErrorKey);
+                                    if (errorField) {
+                                      errorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                      setTimeout(() => errorField.focus(), 300);
+                                    }
+                                  }, 100);
                                   return;
                                 }
                                 
@@ -1085,13 +1708,19 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                                     setSavedDeliveryCompanies(prev => [result.deliveryCompany, ...prev]);
                                     setSelectedDeliveryCompanyId(result.deliveryCompany.id);
                                     // 폼 데이터 유지 (초기화하지 않음)
-                                    alert('거래처가 저장되었습니다.');
+                                    // 성공 메시지는 표시하지 않음 (사용자 요청에 따라)
                                   } else {
-                                    alert(result.error || '거래처 저장에 실패했습니다.');
+                                    setFieldErrors(prev => ({
+                                      ...prev,
+                                      delivery_company_save: result.error || '거래처 저장에 실패했습니다.'
+                                    }));
                                   }
                                 } catch (error) {
                                   console.error('Error saving company:', error);
-                                  alert('거래처 저장 중 오류가 발생했습니다.');
+                                  setFieldErrors(prev => ({
+                                    ...prev,
+                                    delivery_company_save: '거래처 저장 중 오류가 발생했습니다.'
+                                  }));
                                 } finally {
                                   setIsSavingCompany(false);
                                 }
@@ -1121,8 +1750,28 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                       onClick={() => {
                         if (deliveryMethod === 'delivery_company') {
                           if (!newDeliveryCompany.name?.trim() || !newDeliveryCompany.phone?.trim() || !newDeliveryCompany.address?.trim()) {
-                            alert('납품업체명, 연락처, 주소를 모두 입력해주세요.');
-                            return;
+                            const newFieldErrors: Record<string, string> = {};
+                            if (!newDeliveryCompany.name.trim()) {
+                              newFieldErrors.delivery_company_name = '납품업체명을 입력해주세요.';
+                            }
+                            if (!newDeliveryCompany.phone.trim()) {
+                              newFieldErrors.delivery_company_phone = '납품업체 연락처를 입력해주세요.';
+                            }
+                            if (!newDeliveryCompany.address.trim()) {
+                              newFieldErrors.delivery_company_address = '납품업체 주소를 입력해주세요.';
+                            }
+                            if (Object.keys(newFieldErrors).length > 0) {
+                              setFieldErrors(prev => ({ ...prev, ...newFieldErrors }));
+                              setTimeout(() => {
+                                const firstErrorKey = Object.keys(newFieldErrors)[0];
+                                const errorField = document.getElementById(firstErrorKey);
+                                if (errorField) {
+                                  errorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                  setTimeout(() => errorField.focus(), 300);
+                                }
+                              }, 100);
+                              return;
+                            }
                           }
                         }
                         setCurrentStep(4);
@@ -1146,6 +1795,9 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                 <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
                   샘플 완료후 수령방법 선택 <span className="text-red-500">*</span>
                 </label>
+                {fieldErrors.receiptMethod && (
+                  <p className="mb-2 text-xs text-red-500">{fieldErrors.receiptMethod}</p>
+                )}
                 
                 {/* 안내사항 */}
                 <InfoBox label="안내사항" className="mb-4" labelInside={true}>
@@ -1166,6 +1818,13 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                       type="button"
                       onClick={() => {
                         setReceiptMethod(receiptMethod === 'visit' ? '' : 'visit');
+                        if (fieldErrors.receiptMethod) {
+                          setFieldErrors(prev => {
+                            const newErrors = { ...prev };
+                            delete newErrors.receiptMethod;
+                            return newErrors;
+                          });
+                        }
                       }}
                       className={`w-full flex items-center justify-between px-4 py-3 transition-all duration-300 ${
                         receiptMethod === 'visit'
@@ -1217,9 +1876,10 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                               id="visit_date"
                               name="visit_date"
                               value={visitDate}
-                              className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus} date-input-white`}
+                              className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus} date-input-white !text-white ${fieldErrors.visitDate ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
                               style={{
                                 colorScheme: 'dark',
+                                color: 'white !important',
                               }}
                               onChange={(e) => {
                                 const selectedDate = new Date(e.target.value);
@@ -1227,7 +1887,10 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                                 
                                 // 주말 체크 (토요일=6, 일요일=0)
                                 if (dayOfWeek === 0 || dayOfWeek === 6) {
-                                  alert('평일만 선택 가능합니다. (주말 제외)');
+                                  setFieldErrors(prev => ({
+                                    ...prev,
+                                    visitDate: '평일만 선택 가능합니다. (주말 제외)'
+                                  }));
                                   setVisitDate('');
                                   setVisitTimeSlot('');
                                   return;
@@ -1237,11 +1900,19 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                                 const today = new Date();
                                 today.setHours(0, 0, 0, 0);
                                 
-                                // 현재 날짜 + 2일 이후의 첫 번째 평일 찾기
+                                // 오늘부터 시작해서 2번째 평일 찾기 (시작 날짜)
                                 const startDate = new Date(today);
-                                startDate.setDate(startDate.getDate() + 2);
-                                while (startDate.getDay() === 0 || startDate.getDay() === 6) {
-                                  startDate.setDate(startDate.getDate() + 1);
+                                let weekdayCount = 0;
+                                while (weekdayCount < 2) {
+                                  const dayOfWeek = startDate.getDay();
+                                  if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                                    weekdayCount++;
+                                    if (weekdayCount < 2) {
+                                      startDate.setDate(startDate.getDate() + 1);
+                                    }
+                                  } else {
+                                    startDate.setDate(startDate.getDate() + 1);
+                                  }
                                 }
                                 
                                 // 평일 7일 범위 계산 (주말 제외)
@@ -1249,32 +1920,56 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                                 let weekdaysCount = 0;
                                 while (weekdaysCount < 6) { // 7일이므로 6일 더 추가
                                   endDate.setDate(endDate.getDate() + 1);
-                                  if (endDate.getDay() !== 0 && endDate.getDay() !== 6) {
+                                  if (endDate.getDay() >= 1 && endDate.getDay() <= 5) {
                                     weekdaysCount++;
                                   }
                                 }
                                 
                                 // 선택한 날짜가 범위 내에 있는지 확인
                                 if (selectedDate < startDate || selectedDate > endDate) {
-                                  alert('선택 가능한 평일 범위를 벗어났습니다.');
+                                  setFieldErrors(prev => ({
+                                    ...prev,
+                                    visitDate: '선택 가능한 평일 범위를 벗어났습니다.'
+                                  }));
                                   setVisitDate('');
                                   setVisitTimeSlot('');
                                   return;
                                 }
                                 
-                                setVisitDate(e.target.value);
+                                const selectedDateValue = e.target.value;
+                                setVisitDate(selectedDateValue);
                                 setVisitTimeSlot(''); // 날짜 변경 시 시간 슬롯 초기화
+                                if (fieldErrors.visitDate) {
+                                  setFieldErrors(prev => {
+                                    const newErrors = { ...prev };
+                                    delete newErrors.visitDate;
+                                    return newErrors;
+                                  });
+                                }
+                                
+                                // 날짜 변경 시 예약 가능 여부 확인
+                                if (selectedDateValue) {
+                                  checkBookingAvailability(selectedDateValue);
+                                }
                               }}
                               min={getMinVisitDate()}
                               max={(() => {
                                 const today = new Date();
                                 today.setHours(0, 0, 0, 0);
                                 
-                                // 현재 날짜 + 2일 이후의 첫 번째 평일 찾기
+                                // 오늘부터 시작해서 2번째 평일 찾기 (시작 날짜)
                                 const startDate = new Date(today);
-                                startDate.setDate(startDate.getDate() + 2);
-                                while (startDate.getDay() === 0 || startDate.getDay() === 6) {
-                                  startDate.setDate(startDate.getDate() + 1);
+                                let weekdayCount = 0;
+                                while (weekdayCount < 2) {
+                                  const dayOfWeek = startDate.getDay();
+                                  if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                                    weekdayCount++;
+                                    if (weekdayCount < 2) {
+                                      startDate.setDate(startDate.getDate() + 1);
+                                    }
+                                  } else {
+                                    startDate.setDate(startDate.getDate() + 1);
+                                  }
                                 }
                                 
                                 // 평일 7일 범위 계산 (주말 제외)
@@ -1282,16 +1977,22 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                                 let weekdaysCount = 0;
                                 while (weekdaysCount < 6) { // 7일이므로 6일 더 추가
                                   endDate.setDate(endDate.getDate() + 1);
-                                  if (endDate.getDay() !== 0 && endDate.getDay() !== 6) {
+                                  if (endDate.getDay() >= 1 && endDate.getDay() <= 5) {
                                     weekdaysCount++;
                                   }
                                 }
                                 
-                                return endDate.toISOString().split('T')[0];
+                                // ISO 문자열로 변환 (로컬 시간대 고려)
+                                const year = endDate.getFullYear();
+                                const month = String(endDate.getMonth() + 1).padStart(2, '0');
+                                const day = String(endDate.getDate()).padStart(2, '0');
+                                return `${year}-${month}-${day}`;
                               })()}
-                              className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
                               required
                             />
+                            {fieldErrors.visitDate && (
+                              <p className="mt-1 text-xs text-red-500">{fieldErrors.visitDate}</p>
+                            )}
                           </div>
 
                           {/* 시간 슬롯 선택 - 오른쪽, 세로 배치 */}
@@ -1300,7 +2001,10 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                               <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
                                 시간 선택 <span className="text-red-500">*</span>
                               </label>
-                              <div className="flex flex-col gap-3 max-h-96 overflow-y-auto pr-2">
+                              {fieldErrors.visitTimeSlot && (
+                                <p className="mb-2 text-xs text-red-500">{fieldErrors.visitTimeSlot}</p>
+                              )}
+                              <div className="flex flex-col gap-3">
                                 {(() => {
                                   // 9시부터 17시까지, 12시는 제외
                                   const hours = [9, 10, 11, 13, 14, 15, 16, 17];
@@ -1308,21 +2012,54 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                                     const endHour = startHour + 1;
                                     const timeSlot = `${startHour}:00~${endHour}:00`;
                                     const isSelected = visitTimeSlot === timeSlot;
+                                    const availability = bookingAvailability[timeSlot];
+                                    const bookingCount = availability?.count ?? 0;
+                                    const isAvailable = availability?.available ?? true; // 기본값은 true
+                                    // 예약 개수가 2건 이상이면 마감, 또는 available이 false면 마감
+                                    const isDisabled = bookingCount >= 2 || !isAvailable;
                                     
                                     return (
                                       <button
                                         key={timeSlot}
                                         type="button"
+                                        disabled={isDisabled}
                                         onClick={() => {
+                                          if (isDisabled) return;
                                           setVisitTimeSlot(isSelected ? '' : timeSlot);
+                                          if (fieldErrors.visitTimeSlot) {
+                                            setFieldErrors(prev => {
+                                              const newErrors = { ...prev };
+                                              delete newErrors.visitTimeSlot;
+                                              return newErrors;
+                                            });
+                                          }
                                         }}
                                         className={`w-full px-4 py-3 rounded-lg border-2 transition-all duration-200 text-left ${
-                                          isSelected
+                                          isDisabled
+                                            ? 'bg-gray-200 border-gray-300 text-gray-400 cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:text-gray-600'
+                                            : isSelected
                                             ? 'bg-orange-600 border-orange-600 text-white dark:bg-orange-500 dark:border-orange-500'
                                             : 'bg-white border-gray-300 text-gray-700 hover:border-orange-300 hover:bg-orange-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:border-orange-600 dark:hover:bg-orange-900/20'
                                         }`}
                                       >
-                                        <span className="text-sm font-medium">{timeSlot}</span>
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-sm font-medium">{timeSlot}</span>
+                                          {!isDisabled && bookingCount > 0 && (
+                                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                                              ({bookingCount}/2)
+                                            </span>
+                                          )}
+                                          {isDisabled && bookingCount >= 2 && (
+                                            <span className="text-xs text-red-500">
+                                              예약 마감 ({bookingCount}/2)
+                                            </span>
+                                          )}
+                                          {isDisabled && bookingCount < 2 && (
+                                            <span className="text-xs text-red-500">
+                                              예약 불가
+                                            </span>
+                                          )}
+                                        </div>
                                       </button>
                                     );
                                   });
@@ -1345,6 +2082,13 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                       type="button"
                       onClick={() => {
                         setReceiptMethod(receiptMethod === 'delivery' ? '' : 'delivery');
+                        if (fieldErrors.receiptMethod) {
+                          setFieldErrors(prev => {
+                            const newErrors = { ...prev };
+                            delete newErrors.receiptMethod;
+                            return newErrors;
+                          });
+                        }
                       }}
                       className={`w-full flex items-center justify-between px-4 py-3 transition-all duration-300 ${
                         receiptMethod === 'delivery'
@@ -1389,7 +2133,16 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                               name="delivery_type"
                               value="parcel"
                               checked={deliveryType === 'parcel'}
-                              onChange={(e) => setDeliveryType(e.target.value as 'parcel' | 'quick')}
+                              onChange={(e) => {
+                                setDeliveryType(e.target.value as 'parcel' | 'quick');
+                                if (fieldErrors.deliveryType) {
+                                  setFieldErrors(prev => {
+                                    const newErrors = { ...prev };
+                                    delete newErrors.deliveryType;
+                                    return newErrors;
+                                  });
+                                }
+                              }}
                               label="택배"
                               underlineKey="delivery-type-parcel"
                             />
@@ -1397,11 +2150,23 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                               name="delivery_type"
                               value="quick"
                               checked={deliveryType === 'quick'}
-                              onChange={(e) => setDeliveryType(e.target.value as 'parcel' | 'quick')}
+                              onChange={(e) => {
+                                setDeliveryType(e.target.value as 'parcel' | 'quick');
+                                if (fieldErrors.deliveryType) {
+                                  setFieldErrors(prev => {
+                                    const newErrors = { ...prev };
+                                    delete newErrors.deliveryType;
+                                    return newErrors;
+                                  });
+                                }
+                              }}
                               label="퀵"
                               underlineKey="delivery-type-quick"
                             />
                           </div>
+                          {fieldErrors.deliveryType && (
+                            <p className="mt-2 text-xs text-red-500">{fieldErrors.deliveryType}</p>
+                          )}
                         </div>
 
                         <div>
@@ -1413,11 +2178,23 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                             id="delivery_address"
                             name="delivery_address"
                             value={deliveryAddress}
-                            onChange={(e) => setDeliveryAddress(e.target.value)}
-                            className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
+                            onChange={(e) => {
+                              setDeliveryAddress(e.target.value);
+                              if (fieldErrors.deliveryAddress) {
+                                setFieldErrors(prev => {
+                                  const newErrors = { ...prev };
+                                  delete newErrors.deliveryAddress;
+                                  return newErrors;
+                                });
+                              }
+                            }}
+                            className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus} ${fieldErrors.deliveryAddress ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
                             placeholder="택배 받을 주소를 입력해주세요"
                             required
                           />
+                          {fieldErrors.deliveryAddress && (
+                            <p className="mt-1 text-xs text-red-500">{fieldErrors.deliveryAddress}</p>
+                          )}
                         </div>
 
                         <div>
@@ -1429,11 +2206,23 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                             id="delivery_name"
                             name="delivery_name"
                             value={deliveryName}
-                            onChange={(e) => setDeliveryName(e.target.value)}
-                            className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
+                            onChange={(e) => {
+                              setDeliveryName(e.target.value);
+                              if (fieldErrors.deliveryName) {
+                                setFieldErrors(prev => {
+                                  const newErrors = { ...prev };
+                                  delete newErrors.deliveryName;
+                                  return newErrors;
+                                });
+                              }
+                            }}
+                            className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus} ${fieldErrors.deliveryName ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
                             placeholder="이름을 입력해주세요"
                             required
                           />
+                          {fieldErrors.deliveryName && (
+                            <p className="mt-1 text-xs text-red-500">{fieldErrors.deliveryName}</p>
+                          )}
                         </div>
 
                         <div>
@@ -1445,11 +2234,23 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                             id="delivery_phone"
                             name="delivery_phone"
                             value={deliveryPhone}
-                            onChange={(e) => setDeliveryPhone(e.target.value)}
-                            className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus}`}
+                            onChange={(e) => {
+                              setDeliveryPhone(e.target.value);
+                              if (fieldErrors.deliveryPhone) {
+                                setFieldErrors(prev => {
+                                  const newErrors = { ...prev };
+                                  delete newErrors.deliveryPhone;
+                                  return newErrors;
+                                });
+                              }
+                            }}
+                            className={`${INPUT_STYLES.twoThirds} ${INPUT_STYLES.base} ${INPUT_STYLES.focus} ${fieldErrors.deliveryPhone ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
                             placeholder="010-1234-5678"
                             required
                           />
+                          {fieldErrors.deliveryPhone && (
+                            <p className="mt-1 text-xs text-red-500">{fieldErrors.deliveryPhone}</p>
+                          )}
                         </div>
                       </div>
                     )}
@@ -1469,49 +2270,104 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                 <button
                   type="button"
                   onClick={() => {
+                    const newFieldErrors: Record<string, string> = {};
                     if (drawingType === 'have') {
                       // 납품업체 검증
                       if (deliveryMethod === 'delivery_company') {
-                        if (!newDeliveryCompany.name?.trim() || !newDeliveryCompany.phone?.trim() || !newDeliveryCompany.address?.trim()) {
-                          alert('납품업체명, 연락처, 주소를 모두 입력해주세요.');
-                          return;
+                        if (!newDeliveryCompany.name?.trim()) {
+                          newFieldErrors.delivery_company_name = '납품업체명을 입력해주세요.';
+                        }
+                        if (!newDeliveryCompany.phone?.trim()) {
+                          newFieldErrors.delivery_company_phone = '납품업체 연락처를 입력해주세요.';
+                        }
+                        if (!newDeliveryCompany.address?.trim()) {
+                          newFieldErrors.delivery_company_address = '납품업체 주소를 입력해주세요.';
                         }
                       }
                       // deliveryMethod === 'company_address'인 경우는 검증 불필요
                     } else {
                       // 일정 조율 검증
                       if (!receiptMethod) {
-                        alert('수령방법을 선택해주세요.');
-                        return;
-                      }
-                      if (receiptMethod === 'visit') {
+                        newFieldErrors.receiptMethod = '수령방법을 선택해주세요.';
+                      } else if (receiptMethod === 'visit') {
                         if (!visitDate) {
-                          alert('날짜를 선택해주세요.');
-                          return;
+                          newFieldErrors.visitDate = '방문 날짜를 선택해주세요.';
                         }
                         if (!visitTimeSlot) {
-                          alert('시간을 선택해주세요.');
-                          return;
+                          newFieldErrors.visitTimeSlot = '방문 시간을 선택해주세요.';
                         }
                       } else if (receiptMethod === 'delivery') {
-                        if (!deliveryAddress) {
-                          alert('택배 받을 주소를 입력해주세요.');
-                          return;
-                        }
-                        if (!deliveryName) {
-                          alert('이름을 입력해주세요.');
-                          return;
-                        }
-                        if (!deliveryPhone) {
-                          alert('연락처를 입력해주세요.');
-                          return;
-                        }
                         if (!deliveryType) {
-                          alert('배송 방법을 선택해주세요.');
-                          return;
+                          newFieldErrors.deliveryType = '배송 방법을 선택해주세요.';
+                        }
+                        if (!deliveryAddress?.trim()) {
+                          newFieldErrors.deliveryAddress = '배송 주소를 입력해주세요.';
+                        }
+                        if (!deliveryName?.trim()) {
+                          newFieldErrors.deliveryName = '수령인 이름을 입력해주세요.';
+                        }
+                        if (!deliveryPhone?.trim()) {
+                          newFieldErrors.deliveryPhone = '수령인 연락처를 입력해주세요.';
                         }
                       }
                     }
+                    
+                    if (Object.keys(newFieldErrors).length > 0) {
+                      setFieldErrors(prev => ({ ...prev, ...newFieldErrors }));
+                      setTimeout(() => {
+                        const firstErrorKey = Object.keys(newFieldErrors)[0];
+                        let targetElement: HTMLElement | null = null;
+                        
+                        // 특정 필드에 대한 포커싱 처리
+                        if (firstErrorKey === 'receiptMethod') {
+                          // 라디오 버튼 그룹 찾기
+                          const radioButtons = document.querySelectorAll('input[name="receipt_method"]');
+                          if (radioButtons.length > 0) {
+                            targetElement = radioButtons[0] as HTMLElement;
+                          }
+                        } else if (firstErrorKey === 'visitDate') {
+                          targetElement = document.getElementById('visit_date') as HTMLElement;
+                        } else if (firstErrorKey === 'visitTimeSlot') {
+                          // 시간 슬롯 버튼 중 첫 번째 찾기
+                          const timeSlotButtons = document.querySelectorAll('button[type="button"]');
+                          const timeSlotButton = Array.from(timeSlotButtons).find(btn => 
+                            btn.textContent?.includes('시간 선택') || btn.textContent?.match(/\d{1,2}:\d{2}~\d{1,2}:\d{2}/)
+                          );
+                          if (timeSlotButton) {
+                            targetElement = timeSlotButton as HTMLElement;
+                          }
+                        } else if (firstErrorKey === 'deliveryType') {
+                          // 라디오 버튼 그룹 찾기
+                          const radioButtons = document.querySelectorAll('input[name="delivery_type"]');
+                          if (radioButtons.length > 0) {
+                            targetElement = radioButtons[0] as HTMLElement;
+                          }
+                        } else {
+                          targetElement = document.getElementById(firstErrorKey) || document.querySelector(`[name="${firstErrorKey}"]`) as HTMLElement;
+                        }
+                        
+                        if (targetElement) {
+                          targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          setTimeout(() => {
+                            if (targetElement) {
+                              targetElement.focus();
+                            }
+                          }, 300);
+                        } else {
+                          // 찾을 수 없으면 섹션 헤더로 스크롤
+                          const sectionHeaders = Array.from(document.querySelectorAll('h2'));
+                          const sectionHeader = sectionHeaders.find(h => 
+                            h.textContent?.includes('일정 조율') || h.textContent?.includes('납품업체')
+                          );
+                          if (sectionHeader) {
+                            sectionHeader.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }
+                        }
+                      }, 100);
+                      return;
+                    }
+                    
+                    setFieldErrors({});
                     setCurrentStep(4);
                     // 화면 상단으로 스크롤
                     setTimeout(() => {
@@ -1891,9 +2747,65 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
 
                     if (errorMessage) {
                       console.log('[CONTACT FORM] Validation failed:', errorMessage);
-                      alert(errorMessage);
+                      
+                      // 에러 상태 설정
+                      const newFieldErrors: Record<string, string> = {};
+                      
+                      // 각 필드별 에러 메시지 설정
+                      if (!companyNameInput?.value?.trim()) {
+                        newFieldErrors.company_name = '업체명(또는 이름)을 입력해주세요.';
+                      } else if (contactType === 'company' && (!nameInput?.value?.trim() || !positionInput?.value?.trim())) {
+                        if (!nameInput?.value?.trim()) {
+                          newFieldErrors.name = '담당자명을 입력해주세요.';
+                        }
+                        if (!positionInput?.value?.trim()) {
+                          newFieldErrors.position = '담당자 직책을 입력해주세요.';
+                        }
+                      } else if (!phoneInput?.value?.trim()) {
+                        newFieldErrors.phone = '연락처를 입력해주세요.';
+                      } else if (!emailInput?.value?.trim()) {
+                        newFieldErrors.email = '이메일을 입력해주세요.';
+                      } else if (!drawingType) {
+                        newFieldErrors.drawingType = '필요한 사항을 선택해주세요.';
+                      } else if (drawingType === 'have' && !drawingModification) {
+                        newFieldErrors.drawingModification = '도면 수정 필요 여부를 선택해주세요.';
+                      } else if (drawingType === 'have' && drawingFile.length === 0) {
+                        newFieldErrors.drawingFile = '도면 파일을 업로드해주세요.';
+                      } else if (drawingType === 'have' && deliveryMethod === 'delivery_company') {
+                        if (!newDeliveryCompany.name?.trim()) {
+                          newFieldErrors.delivery_company_name = '납품업체명을 입력해주세요.';
+                        }
+                        if (!newDeliveryCompany.phone?.trim()) {
+                          newFieldErrors.delivery_company_phone = '납품업체 연락처를 입력해주세요.';
+                        }
+                        if (!newDeliveryCompany.address?.trim()) {
+                          newFieldErrors.delivery_company_address = '납품업체 주소를 입력해주세요.';
+                        }
+                      } else if (drawingType !== 'have' && !receiptMethod) {
+                        newFieldErrors.receiptMethod = '수령방법을 선택해주세요.';
+                      } else if (drawingType !== 'have' && receiptMethod === 'visit') {
+                        if (!visitDate) {
+                          newFieldErrors.visitDate = '방문 날짜를 선택해주세요.';
+                        } else if (!visitTimeSlot) {
+                          newFieldErrors.visitTimeSlot = '방문 시간을 선택해주세요.';
+                        }
+                      } else if (drawingType !== 'have' && receiptMethod === 'delivery') {
+                        if (!deliveryType) {
+                          newFieldErrors.deliveryType = '배송 방법을 선택해주세요.';
+                        } else if (!deliveryAddress?.trim()) {
+                          newFieldErrors.deliveryAddress = '배송 주소를 입력해주세요.';
+                        } else if (!deliveryName?.trim()) {
+                          newFieldErrors.deliveryName = '수령인 이름을 입력해주세요.';
+                        } else if (!deliveryPhone?.trim()) {
+                          newFieldErrors.deliveryPhone = '수령인 연락처를 입력해주세요.';
+                        }
+                      }
+                      
+                      setFieldErrors(newFieldErrors);
+                      
                       // 해당 단계로 이동
                       setCurrentStep(errorStep);
+                      
                       // 해당 필드로 스크롤 및 포커스
                       setTimeout(() => {
                         if (firstErrorField) {
@@ -1917,6 +2829,9 @@ export default function ContactForm({ success, error, initialValues }: ContactFo
                       }, 100);
                       return;
                     }
+                    
+                    // 검증 통과 시 에러 상태 초기화
+                    setFieldErrors({});
 
                     // 모든 검증 통과 시 폼 제출
                     setIsSubmitting(true);
