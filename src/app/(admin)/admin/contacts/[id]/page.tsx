@@ -377,6 +377,7 @@ export default async function ContactDetailPage({
               )}
             </div>
           </div>
+          )}
 
           {/* 수정요청서 */}
           {contactData.revision_request_title && (
