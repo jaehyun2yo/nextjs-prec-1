@@ -10,6 +10,7 @@ import { ProcessStageIndicatorToggle } from '@/components/ProcessStageIndicatorT
 import { UpdateStatusButton } from './[id]/update-status-button';
 import { ConfirmButton } from './[id]/confirm-button';
 import { DownloadButton } from '@/components/DownloadButton';
+import { SearchInput } from '@/components/SearchInput';
 import type { ProcessStage } from '@/lib/utils/processStages';
 import type { RevisionRequestHistory } from '@/types/database.types';
 
@@ -470,24 +471,13 @@ export function ContactsList({
         </button>
       </div>
       {/* 문의번호 검색 */}
-      <div className="flex items-center gap-2">
-        <input
-          type="text"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          placeholder="문의번호 검색 (예: 251107-1)"
-          className="px-2.5 sm:px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 w-40 sm:w-48"
-        />
-        {searchInput && (
-          <button
-            type="button"
-            onClick={handleSearchClear}
-            className="px-2.5 sm:px-3 py-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-xs transition-colors"
-          >
-            ✕
-          </button>
-        )}
-      </div>
+      <SearchInput
+        value={searchInput}
+        onChange={setSearchInput}
+        placeholder="문의번호 검색 (예: 251107-1)"
+        onClear={handleSearchClear}
+        size="small"
+      />
     </div>
   );
 

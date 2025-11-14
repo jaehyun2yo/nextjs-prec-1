@@ -22,15 +22,23 @@ export const INPUT_STYLES = {
   full: 'w-full',
   twoThirds: 'w-2/3',
   oneThird: 'w-1/3',
+  // 작은 검색 입력 필드 스타일 (관리자 페이지용)
+  searchSmall:
+    'px-2.5 sm:px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors duration-300',
+  searchSmallWidth: 'w-40 sm:w-48',
 } as const;
 
 // 공통 버튼 스타일
 // 모든 버튼은 14px(text-sm) 글자 크기와 py-3 px-8 크기로 통일
 export const BUTTON_STYLES = {
-  primary: 'bg-[#ED6C00] hover:bg-[#d15f00] text-white text-sm py-3 px-8 rounded-lg transition-colors duration-300 shadow-md hover:shadow-lg',
-  primaryDisabled: 'bg-[#ED6C00] hover:bg-[#d15f00] disabled:bg-gray-400 disabled:cursor-not-allowed text-white text-sm py-3 px-8 rounded-lg transition-colors duration-300 shadow-md hover:shadow-lg',
-  secondary: 'bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm py-3 px-8 rounded-lg transition-colors duration-300',
-  modal: 'bg-[#ED6C00] hover:bg-[#d15f00] text-white text-sm py-3 px-8 rounded-lg transition-colors duration-300 flex items-center justify-center gap-2',
+  primary:
+    'bg-[#ED6C00] hover:bg-[#d15f00] text-white text-sm py-3 px-8 rounded-lg transition-colors duration-300 shadow-md hover:shadow-lg',
+  primaryDisabled:
+    'bg-[#ED6C00] hover:bg-[#d15f00] disabled:bg-gray-400 disabled:cursor-not-allowed text-white text-sm py-3 px-8 rounded-lg transition-colors duration-300 shadow-md hover:shadow-lg',
+  secondary:
+    'bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm py-3 px-8 rounded-lg transition-colors duration-300',
+  modal:
+    'bg-[#ED6C00] hover:bg-[#d15f00] text-white text-sm py-3 px-8 rounded-lg transition-colors duration-300 flex items-center justify-center gap-2',
 } as const;
 
 // 공통 체크박스/라디오 스타일
@@ -54,11 +62,11 @@ export const STEP_STYLES = {
 // 파일 입력 스타일
 export const FILE_INPUT_STYLES = {
   base: 'w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-[#ED6C00] focus:border-[#ED6C00] transition-colors duration-300',
-  fileButton: 'file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:bg-[#fff7ed] file:text-[#ED6C00] hover:file:bg-[#ffedd5] dark:file:bg-[#ED6C00]/20 dark:file:text-[#ff8533]',
+  fileButton:
+    'file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:bg-[#fff7ed] file:text-[#ED6C00] hover:file:bg-[#ffedd5] dark:file:bg-[#ED6C00]/20 dark:file:text-[#ff8533]',
 } as const;
 
 // 링크 스타일
 export const LINK_STYLES = {
   primary: 'text-[#ED6C00] hover:text-[#d15f00] font-medium underline',
 } as const;
-
