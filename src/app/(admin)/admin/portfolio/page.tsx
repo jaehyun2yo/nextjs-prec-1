@@ -30,7 +30,7 @@ interface PortfolioItem {
   created_at: string;
 }
 
-async function savePortfolio(formData: FormData) {
+async function savePortfolio(formData: FormData): Promise<{ success: boolean; error?: string }> {
   'use server';
   const portfolioLogger = logger.createLogger('PORTFOLIO_ADMIN');
   // 간단 검증
@@ -49,7 +49,7 @@ async function savePortfolio(formData: FormData) {
   for (const key of required) {
     const v = formData.get(key);
     if (!v || String(v).trim() === '') {
-      redirect('/admin/portfolio?error=invalid');
+      return { success: false, error: 'invalid' };
     }
   }
 
@@ -65,7 +65,7 @@ async function savePortfolio(formData: FormData) {
     }
   } catch (error) {
     portfolioLogger.error('Failed to parse uploaded images', error);
-    redirect('/admin/portfolio?error=invalid');
+    return { success: false, error: 'invalid' };
   }
 
   const payload = {
@@ -96,23 +96,13 @@ async function savePortfolio(formData: FormData) {
         hint: error.hint,
         code: error.code,
       });
-      redirect('/admin/portfolio?error=supabase');
+      return { success: false, error: 'supabase' };
     }
     console.log('[PORTFOLIO INSERT SUCCESS]', data);
-    // Next.js redirect는 예외를 throw하므로 catch에서 잡히면 안됨
-    redirect('/admin/portfolio?success=1');
+    return { success: true };
   } catch (error: unknown) {
-    // Next.js redirect는 NEXT_REDIRECT 에러를 throw하므로 이를 무시해야 함
-    if (
-      error instanceof Error &&
-      (error.message === 'NEXT_REDIRECT' ||
-        (error as { digest?: string }).digest?.startsWith('NEXT_REDIRECT'))
-    ) {
-      throw error; // redirect 예외는 다시 throw
-    }
-    // 실제 에러만 catch
     portfolioLogger.error('Portfolio insert exception', error);
-    redirect('/admin/portfolio?warn=noconfig');
+    return { success: false, error: 'noconfig' };
   }
 }
 
