@@ -35,7 +35,7 @@ const nextConfig: NextConfig = {
     ],
   },
   serverActions: {
-    bodySizeLimit: '10mb', // 파일 업로드를 위해 10MB로 설정
+    bodySizeLimit: '50mb', // 포트폴리오 이미지 업로드를 위해 50MB로 설정
   },
   async headers() {
     return [
