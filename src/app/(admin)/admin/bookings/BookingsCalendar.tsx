@@ -33,10 +33,6 @@ export function BookingsCalendar({ initialBookings }: BookingsCalendarProps) {
   const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date());
 
-  // 현재 월의 첫 날과 마지막 날 계산
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
-
   // 날짜별로 예약 그룹화
   const bookingsByDate = useMemo(() => {
     const grouped: Record<string, Booking[]> = {};
@@ -50,48 +46,65 @@ export function BookingsCalendar({ initialBookings }: BookingsCalendarProps) {
     return grouped;
   }, [initialBookings]);
 
-  // 캘린더 그리드 생성
-  const calendarDays = useMemo(() => {
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const startDate = new Date(firstDay);
-    startDate.setDate(startDate.getDate() - firstDay.getDay()); // 주의 시작일 (일요일)
+  // 현재 주의 시작일(일요일) 계산
+  const getWeekStart = (date: Date): Date => {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day; // 일요일까지의 차이
+    const weekStart = new Date(d.setDate(diff));
+    weekStart.setHours(0, 0, 0, 0);
+    return weekStart;
+  };
 
+  // 현재 주의 7일 생성
+  const calendarDays = useMemo(() => {
+    const weekStart = getWeekStart(currentDate);
     const days: Array<{
       date: Date;
-      isCurrentMonth: boolean;
       dateString: string;
       bookings: Booking[];
     }> = [];
 
-    const current = new Date(startDate);
-    // 6주 * 7일 = 42일
-    for (let i = 0; i < 42; i++) {
-      const dateString = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}-${String(current.getDate()).padStart(2, '0')}`;
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(weekStart);
+      date.setDate(weekStart.getDate() + i);
+      const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
       days.push({
-        date: new Date(current),
-        isCurrentMonth: current.getMonth() === month,
+        date: new Date(date),
         dateString,
         bookings: bookingsByDate[dateString] || [],
       });
-      current.setDate(current.getDate() + 1);
     }
 
     return days;
-  }, [year, month, bookingsByDate]);
+  }, [currentDate, bookingsByDate]);
 
-  // 월 이동
-  const goToPreviousMonth = () => {
-    setCurrentDate(new Date(year, month - 1, 1));
+  // 주 이동
+  const goToPreviousWeek = () => {
+    const newDate = new Date(currentDate);
+    newDate.setDate(newDate.getDate() - 7);
+    setCurrentDate(newDate);
   };
 
-  const goToNextMonth = () => {
-    setCurrentDate(new Date(year, month + 1, 1));
+  const goToNextWeek = () => {
+    const newDate = new Date(currentDate);
+    newDate.setDate(newDate.getDate() + 7);
+    setCurrentDate(newDate);
   };
 
   const goToToday = () => {
     setCurrentDate(new Date());
   };
+
+  // 현재 주의 날짜 범위 표시
+  const weekRange = useMemo(() => {
+    if (calendarDays.length === 0) return '';
+    const start = calendarDays[0].date;
+    const end = calendarDays[6].date;
+    const startStr = `${start.getMonth() + 1}/${start.getDate()}`;
+    const endStr = `${end.getMonth() + 1}/${end.getDate()}`;
+    return `${start.getFullYear()}년 ${startStr} ~ ${endStr}`;
+  }, [calendarDays]);
 
   // 태그 클릭 핸들러
   const handleBookingClick = (booking: Booking) => {
@@ -109,19 +122,17 @@ export function BookingsCalendar({ initialBookings }: BookingsCalendarProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
-              onClick={goToPreviousMonth}
+              onClick={goToPreviousWeek}
               className="p-2 hover:bg-orange-600 rounded transition-colors"
-              aria-label="이전 달"
+              aria-label="이전 주"
             >
               <FaChevronLeft />
             </button>
-            <h2 className="text-xl font-bold">
-              {year}년 {month + 1}월
-            </h2>
+            <h2 className="text-xl font-bold">{weekRange}</h2>
             <button
-              onClick={goToNextMonth}
+              onClick={goToNextWeek}
               className="p-2 hover:bg-orange-600 rounded transition-colors"
-              aria-label="다음 달"
+              aria-label="다음 주"
             >
               <FaChevronRight />
             </button>
@@ -138,67 +149,73 @@ export function BookingsCalendar({ initialBookings }: BookingsCalendarProps) {
       {/* 캘린더 그리드 */}
       <div className="p-4">
         {/* 요일 헤더 */}
-        <div className="grid grid-cols-7 gap-1 mb-2">
-          {weekDays.map((day) => (
+        <div className="grid grid-cols-7 gap-2 mb-2">
+          {weekDays.map((day, index) => (
             <div
               key={day}
               className="text-center text-sm font-semibold text-gray-600 dark:text-gray-400 py-2"
             >
               {day}
+              {calendarDays[index] && (
+                <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                  {calendarDays[index].date.getDate()}
+                </div>
+              )}
             </div>
           ))}
         </div>
 
-        {/* 날짜 셀 */}
-        <div className="grid grid-cols-7 gap-1">
+        {/* 날짜 셀 - 7일 모두 표시 */}
+        <div className="grid grid-cols-7 gap-2">
           {calendarDays.map((day, index) => {
             const isToday = day.date.toDateString() === new Date().toDateString();
-            const hasBookings = day.bookings.length > 0;
 
             return (
               <div
                 key={index}
-                className={`min-h-[120px] border border-gray-200 dark:border-gray-700 rounded p-2 ${
-                  day.isCurrentMonth
-                    ? 'bg-white dark:bg-gray-800'
-                    : 'bg-gray-50 dark:bg-gray-900/50 opacity-60'
-                } ${isToday ? 'ring-2 ring-orange-500' : ''}`}
+                className={`min-h-[400px] border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-white dark:bg-gray-800 ${
+                  isToday ? 'ring-2 ring-orange-500' : ''
+                }`}
               >
-                {/* 날짜 번호 */}
+                {/* 날짜 정보 */}
                 <div
-                  className={`text-sm font-medium mb-1 ${
-                    day.isCurrentMonth
-                      ? isToday
-                        ? 'text-orange-600 dark:text-orange-400'
-                        : 'text-gray-900 dark:text-gray-100'
-                      : 'text-gray-400 dark:text-gray-600'
+                  className={`text-base font-semibold mb-3 pb-2 border-b border-gray-200 dark:border-gray-700 ${
+                    isToday
+                      ? 'text-orange-600 dark:text-orange-400'
+                      : 'text-gray-900 dark:text-gray-100'
                   }`}
                 >
-                  {day.date.getDate()}
+                  {day.date.getMonth() + 1}월 {day.date.getDate()}일
+                  {isToday && (
+                    <span className="ml-2 text-xs text-orange-600 dark:text-orange-400">
+                      (오늘)
+                    </span>
+                  )}
                 </div>
 
-                {/* 예약 태그들 */}
-                <div className="space-y-1">
-                  {day.bookings.slice(0, 3).map((booking) => (
-                    <button
-                      key={booking.id}
-                      onClick={() => handleBookingClick(booking)}
-                      className="w-full text-left px-2 py-1 bg-orange-100 dark:bg-orange-900/30 hover:bg-orange-200 dark:hover:bg-orange-900/50 rounded text-xs transition-colors cursor-pointer group"
-                      title={`${booking.company_name} - ${booking.visit_time_slot}`}
-                    >
-                      <div className="flex items-center gap-1 text-orange-700 dark:text-orange-300">
-                        <FaClock className="text-[10px] flex-shrink-0" />
-                        <span className="truncate font-medium">{booking.company_name}</span>
-                      </div>
-                      <div className="text-[10px] text-orange-600 dark:text-orange-400 mt-0.5 truncate">
-                        {booking.visit_time_slot}
-                      </div>
-                    </button>
-                  ))}
-                  {day.bookings.length > 3 && (
-                    <div className="text-xs text-gray-500 dark:text-gray-400 px-2">
-                      +{day.bookings.length - 3}건
+                {/* 예약 태그들 - 모두 표시 */}
+                <div className="space-y-2">
+                  {day.bookings.length === 0 ? (
+                    <div className="text-xs text-gray-400 dark:text-gray-600 text-center py-4">
+                      예약 없음
                     </div>
+                  ) : (
+                    day.bookings.map((booking) => (
+                      <button
+                        key={booking.id}
+                        onClick={() => handleBookingClick(booking)}
+                        className="w-full text-left px-3 py-2 bg-orange-100 dark:bg-orange-900/30 hover:bg-orange-200 dark:hover:bg-orange-900/50 rounded-lg text-sm transition-colors cursor-pointer group border border-orange-200 dark:border-orange-800"
+                        title={`${booking.company_name} - ${booking.visit_time_slot}`}
+                      >
+                        <div className="flex items-center gap-2 text-orange-700 dark:text-orange-300 mb-1">
+                          <FaClock className="text-xs flex-shrink-0" />
+                          <span className="font-semibold truncate">{booking.company_name}</span>
+                        </div>
+                        <div className="text-xs text-orange-600 dark:text-orange-400">
+                          {booking.visit_time_slot}
+                        </div>
+                      </button>
+                    ))
                   )}
                 </div>
               </div>
