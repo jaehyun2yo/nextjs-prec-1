@@ -1,7 +1,19 @@
 'use client';
 
 import { BaseModal } from '@/components/modals/BaseModal';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Legend,
+  Tooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from 'recharts';
 import { useEffect, useState } from 'react';
 
 interface ContactReferral {
@@ -15,16 +27,20 @@ interface ReferralSourceModalProps {
   referralSources: ContactReferral[];
 }
 
-export function ReferralSourceModal({ isOpen, onClose, referralSources }: ReferralSourceModalProps) {
+export function ReferralSourceModal({
+  isOpen,
+  onClose,
+  referralSources,
+}: ReferralSourceModalProps) {
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
     const checkDarkMode = () => {
       setIsDark(document.documentElement.classList.contains('dark'));
     };
-    
+
     checkDarkMode();
-    
+
     const observer = new MutationObserver(checkDarkMode);
     observer.observe(document.documentElement, {
       attributes: true,
@@ -42,7 +58,16 @@ export function ReferralSourceModal({ isOpen, onClose, referralSources }: Referr
     percentage: totalCount > 0 ? ((item.count / totalCount) * 100).toFixed(1) : '0',
   }));
 
-  const COLORS = ['#ED6C00', '#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
+  const COLORS = [
+    '#ED6C00',
+    '#2563eb',
+    '#10b981',
+    '#f59e0b',
+    '#8b5cf6',
+    '#ec4899',
+    '#06b6d4',
+    '#f97316',
+  ];
 
   const textColor = isDark ? '#e5e7eb' : '#374151';
   const tooltipBg = isDark ? '#1f2937' : '#ffffff';
@@ -51,31 +76,26 @@ export function ReferralSourceModal({ isOpen, onClose, referralSources }: Referr
   const gridColor = isDark ? '#374151' : '#e5e7eb';
 
   return (
-    <BaseModal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="트래픽 유입경로 상세"
-      maxWidth="4xl"
-      showConfirm={false}
-      showCancel={false}
-    >
+    <BaseModal isOpen={isOpen} onClose={onClose} title="트래픽 유입경로 상세" maxWidth="4xl">
       <div className="space-y-6">
         {/* 총 문의 건수 */}
         <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">최근 30일간 총 문의</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {totalCount}건
-          </p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{totalCount}건</p>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
             사이트 방문 시 경유한 경로별 통계
           </p>
         </div>
 
-                  {/* 유입경로 파이 차트 */}
+        {/* 유입경로 파이 차트 */}
         {chartData.length > 0 ? (
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">사이트 방문 경로 분포</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">사용자가 어떤 경로를 통해 사이트에 접속했는지 표시합니다</p>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              사이트 방문 경로 분포
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              사용자가 어떤 경로를 통해 사이트에 접속했는지 표시합니다
+            </p>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
@@ -109,20 +129,17 @@ export function ReferralSourceModal({ isOpen, onClose, referralSources }: Referr
         {/* 유입경로 막대 그래프 */}
         {chartData.length > 0 ? (
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">방문 경로별 문의 건수</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">경로별로 얼마나 많은 문의가 발생했는지 비교합니다</p>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              방문 경로별 문의 건수
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              경로별로 얼마나 많은 문의가 발생했는지 비교합니다
+            </p>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
-                <XAxis 
-                  dataKey="name" 
-                  tick={{ fill: textColor, fontSize: 12 }}
-                  stroke={gridColor}
-                />
-                <YAxis 
-                  tick={{ fill: textColor, fontSize: 12 }}
-                  stroke={gridColor}
-                />
+                <XAxis dataKey="name" tick={{ fill: textColor, fontSize: 12 }} stroke={gridColor} />
+                <YAxis tick={{ fill: textColor, fontSize: 12 }} stroke={gridColor} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: tooltipBg,
@@ -146,11 +163,14 @@ export function ReferralSourceModal({ isOpen, onClose, referralSources }: Referr
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
             방문 경로별 상세 ({referralSources.length}개)
           </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">각 경로별 문의 건수와 비율을 확인할 수 있습니다</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            각 경로별 문의 건수와 비율을 확인할 수 있습니다
+          </p>
           {referralSources.length > 0 ? (
             <div className="space-y-2">
               {referralSources.map((item, index) => {
-                const percentage = totalCount > 0 ? ((item.count / totalCount) * 100).toFixed(1) : '0';
+                const percentage =
+                  totalCount > 0 ? ((item.count / totalCount) * 100).toFixed(1) : '0';
                 return (
                   <div
                     key={item.referral_source || '기타'}
@@ -187,4 +207,3 @@ export function ReferralSourceModal({ isOpen, onClose, referralSources }: Referr
     </BaseModal>
   );
 }
-

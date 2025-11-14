@@ -65,7 +65,10 @@ export function useInvalidateQueries() {
  * 문의 상태 업데이트 Mutation
  */
 export function useUpdateContactStatus<TData = unknown, TError = Error>(
-  options?: Omit<UseMutationOptions<TData, TError, { id: number | string; status: string }>, 'mutationFn'>
+  options?: Omit<
+    UseMutationOptions<TData, TError, { id: number | string; status: string }>,
+    'mutationFn'
+  >
 ) {
   const queryClient = useQueryClient();
   const { invalidateContacts } = useInvalidateQueries();
@@ -75,7 +78,7 @@ export function useUpdateContactStatus<TData = unknown, TError = Error>(
     onSuccess: (data, variables, context) => {
       // 성공 시 관련 쿼리 무효화
       invalidateContacts({ id: variables.id });
-      options?.onSuccess?.(data, variables, context);
+      // options?.onSuccess?.(data, variables, context);
     },
   });
 }
@@ -96,8 +99,7 @@ export function useDeleteContact<TData = unknown, TError = Error>(
       queryClient.removeQueries({ queryKey: queryKeys.contacts.detail(variables.id) });
       // 목록 무효화
       invalidateContacts();
-      options?.onSuccess?.(data, variables, context);
+      // options?.onSuccess?.(data, variables, context);
     },
   });
 }
-

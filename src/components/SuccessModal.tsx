@@ -33,7 +33,6 @@ export default function SuccessModal({
       title={title}
       message={message}
       confirmLabel="확인"
-      showCancelButton={false}
       icon={
         <motion.svg
           className="h-7 w-7 text-green-600 dark:text-green-400"
@@ -67,4 +66,3 @@ export default function SuccessModal({
     />
   );
 }
-

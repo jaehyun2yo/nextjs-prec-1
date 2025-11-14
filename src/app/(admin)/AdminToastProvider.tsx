@@ -26,7 +26,7 @@ export function AdminToastProvider() {
         .limit(100);
 
       if (data) {
-        processedContactIdsRef.current = new Set(data.map(contact => contact.id));
+        processedContactIdsRef.current = new Set(data.map((contact) => contact.id));
       }
     };
 
@@ -43,8 +43,13 @@ export function AdminToastProvider() {
           table: 'contacts',
         },
         (payload) => {
-          const newContact = payload.new as any;
-          
+          const newContact = payload.new as {
+            id: number;
+            company_name?: string;
+            name?: string;
+            [key: string]: unknown;
+          };
+
           // 이미 알림을 보낸 문의사항인지 확인
           if (processedContactIdsRef.current.has(newContact.id)) {
             return;
@@ -58,7 +63,6 @@ export function AdminToastProvider() {
             '신규 문의사항이 등록되었습니다',
             `${newContact.company_name || newContact.name || '문의 #' + newContact.id}`,
             {
-              color: 'primary',
               timeout: 8000,
               hideCloseButton: false,
               shouldShowTimeoutProgress: true,
@@ -90,4 +94,3 @@ export function AdminToastProvider() {
 
   return null;
 }
-

@@ -1,6 +1,6 @@
-import { getSessionUser } from "@/lib/auth/session";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { logger } from "@/lib/utils/logger";
+import { getSessionUser } from '@/lib/auth/session';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/utils/logger';
 import { CompanyDashboardClient } from './CompanyDashboardClient';
 import type { ProcessStage } from '@/lib/utils/processStages';
 import type { RevisionRequestHistory } from '@/types/database.types';
@@ -43,9 +43,18 @@ export default async function CompanyDashboardPage() {
   // 업체 정보 가져오기
   const supabase = await createSupabaseServerClient();
   const dashboardLogger = logger.createLogger('COMPANY_DASHBOARD');
+  interface Booking {
+    id: number;
+    visit_date: string;
+    visit_time_slot: string;
+    company_name: string;
+    status: string;
+    created_at: string;
+  }
+
   let company: Company | null = null;
   let contacts: Contact[] = [];
-  let bookings: any[] = [];
+  let bookings: Booking[] = [];
 
   try {
     const { data: companyData, error: companyError } = await supabase
@@ -55,7 +64,7 @@ export default async function CompanyDashboardPage() {
       .single();
 
     if (companyError || !companyData) {
-      dashboardLogger.error("Error fetching company", companyError);
+      dashboardLogger.error('Error fetching company', companyError);
       return null;
     }
 
@@ -70,7 +79,7 @@ export default async function CompanyDashboardPage() {
       .order('created_at', { ascending: false });
 
     if (contactsError) {
-      dashboardLogger.error("Error fetching contacts", contactsError);
+      dashboardLogger.error('Error fetching contacts', contactsError);
     } else {
       contacts = (contactsData || []) as Contact[];
     }
@@ -85,12 +94,12 @@ export default async function CompanyDashboardPage() {
       .order('visit_time_slot', { ascending: true });
 
     if (bookingsError) {
-      dashboardLogger.error("Error fetching bookings", bookingsError);
+      dashboardLogger.error('Error fetching bookings', bookingsError);
     } else {
       bookings = bookingsData || [];
     }
   } catch (error) {
-    dashboardLogger.error("Error", error);
+    dashboardLogger.error('Error', error);
     return null;
   }
 
@@ -99,11 +108,10 @@ export default async function CompanyDashboardPage() {
   }
 
   return (
-    <CompanyDashboardClient 
-      initialCompany={company} 
+    <CompanyDashboardClient
+      initialCompany={company}
       initialContacts={contacts}
       initialBookings={bookings}
     />
   );
 }
-

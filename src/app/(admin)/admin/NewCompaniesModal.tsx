@@ -18,16 +18,21 @@ interface NewCompaniesModalProps {
   yesterdayChange: number;
 }
 
-export function NewCompaniesModal({ isOpen, onClose, companies, yesterdayChange }: NewCompaniesModalProps) {
+export function NewCompaniesModal({
+  isOpen,
+  onClose,
+  companies,
+  yesterdayChange,
+}: NewCompaniesModalProps) {
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
     const checkDarkMode = () => {
       setIsDark(document.documentElement.classList.contains('dark'));
     };
-    
+
     checkDarkMode();
-    
+
     const observer = new MutationObserver(checkDarkMode);
     observer.observe(document.documentElement, {
       attributes: true,
@@ -38,11 +43,14 @@ export function NewCompaniesModal({ isOpen, onClose, companies, yesterdayChange 
   }, []);
 
   // 유입경로별 집계
-  const referrerData = companies.reduce((acc, company) => {
-    const referrer = company.referrer || '직접 방문';
-    acc[referrer] = (acc[referrer] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const referrerData = companies.reduce(
+    (acc, company) => {
+      const referrer = company.referrer || '직접 방문';
+      acc[referrer] = (acc[referrer] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
   const chartData = Object.entries(referrerData).map(([name, value]) => ({
     name,
@@ -58,14 +66,7 @@ export function NewCompaniesModal({ isOpen, onClose, companies, yesterdayChange 
   const tooltipText = isDark ? '#e5e7eb' : '#374151';
 
   return (
-    <BaseModal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="신규 업체 등록 상세"
-      maxWidth="4xl"
-      showConfirm={false}
-      showCancel={false}
-    >
+    <BaseModal isOpen={isOpen} onClose={onClose} title="신규 업체 등록 상세" maxWidth="4xl">
       <div className="space-y-6">
         {/* 기간 정보 */}
         <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
@@ -78,7 +79,9 @@ export function NewCompaniesModal({ isOpen, onClose, companies, yesterdayChange 
         {/* 등록 경로 통계 요약 */}
         {chartData.length > 0 && (
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">등록 경로 통계</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              등록 경로 통계
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
               {chartData.map((item, index) => (
                 <div
@@ -112,7 +115,9 @@ export function NewCompaniesModal({ isOpen, onClose, companies, yesterdayChange 
         {/* 유입경로 차트 */}
         {chartData.length > 0 ? (
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">등록 경로 분포</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              등록 경로 분포
+            </h3>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
@@ -187,4 +192,3 @@ export function NewCompaniesModal({ isOpen, onClose, companies, yesterdayChange 
     </BaseModal>
   );
 }
-

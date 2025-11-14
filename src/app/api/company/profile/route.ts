@@ -10,18 +10,12 @@ export async function POST(request: NextRequest) {
     // 세션 확인
     const isAuthenticated = await verifySession();
     if (!isAuthenticated) {
-      return NextResponse.json(
-        { success: false, error: '인증이 필요합니다.' },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: '인증이 필요합니다.' }, { status: 401 });
     }
 
     const user = await getSessionUser();
     if (!user?.userId || user?.userType !== 'company') {
-      return NextResponse.json(
-        { success: false, error: '권한이 없습니다.' },
-        { status: 403 }
-      );
+      return NextResponse.json({ success: false, error: '권한이 없습니다.' }, { status: 403 });
     }
 
     const supabase = await createSupabaseServerClient();
@@ -45,7 +39,9 @@ export async function POST(request: NextRequest) {
 
     // 폼 데이터 추출
     const companyName = String(formData.get('company_name') || '').trim();
-    const businessRegistrationNumber = String(formData.get('business_registration_number') || '').trim();
+    const businessRegistrationNumber = String(
+      formData.get('business_registration_number') || ''
+    ).trim();
     const representativeName = String(formData.get('representative_name') || '').trim();
     const businessType = String(formData.get('business_type') || '').trim();
     const businessCategory = String(formData.get('business_category') || '').trim();
@@ -145,7 +141,29 @@ export async function POST(request: NextRequest) {
     }
 
     // 업데이트 데이터 준비
-    const updateData: any = {
+    const updateData: {
+      company_name: string;
+      business_registration_number: string;
+      representative_name: string;
+      business_type: string | null;
+      business_category: string | null;
+      business_address: string;
+      business_registration_file_url: string | null;
+      business_registration_file_name: string | null;
+      manager_name: string;
+      manager_position: string;
+      manager_phone: string;
+      manager_email: string;
+      accountant_name: string | null;
+      accountant_phone: string | null;
+      accountant_email: string | null;
+      accountant_fax: string | null;
+      quote_method_email: boolean;
+      quote_method_fax: boolean;
+      quote_method_sms: boolean;
+      updated_at: string;
+      password_hash?: string;
+    } = {
       company_name: companyName,
       business_registration_number: businessRegistrationNumber,
       representative_name: representativeName,
@@ -201,4 +219,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

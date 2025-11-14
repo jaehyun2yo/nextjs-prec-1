@@ -29,8 +29,9 @@ export function reportWebVitals(metric: WebVitalsMetric) {
   if (process.env.NODE_ENV === 'production') {
     // Google Analytics 또는 다른 분석 서비스로 전송
     if (typeof window !== 'undefined' && (window as { gtag?: unknown }).gtag) {
-      const gtag = (window as { gtag: (command: string, targetId: string, config: unknown) => void })
-        .gtag;
+      const gtag = (
+        window as unknown as { gtag: (command: string, targetId: string, config: unknown) => void }
+      ).gtag;
       gtag('event', metric.name, {
         event_category: 'Web Vitals',
         value: Math.round(metric.name === 'CLS' ? metric.value * 1000 : metric.value),
@@ -56,10 +57,7 @@ export function reportWebVitals(metric: WebVitalsMetric) {
 /**
  * 성능 측정 헬퍼
  */
-export function measurePerformance<T>(
-  name: string,
-  fn: () => T | Promise<T>
-): Promise<T> {
+export function measurePerformance<T>(name: string, fn: () => T | Promise<T>): Promise<T> {
   const start = performance.now();
   const result = fn();
 
@@ -78,4 +76,3 @@ export function measurePerformance<T>(
   }
   return Promise.resolve(result);
 }
-

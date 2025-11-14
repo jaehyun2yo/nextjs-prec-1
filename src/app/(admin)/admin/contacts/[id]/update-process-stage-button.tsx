@@ -12,18 +12,22 @@ interface UpdateProcessStageButtonProps {
   status: string;
 }
 
-export function UpdateProcessStageButton({ contactId, currentStage, status }: UpdateProcessStageButtonProps) {
+export function UpdateProcessStageButton({
+  contactId,
+  currentStage,
+  status,
+}: UpdateProcessStageButtonProps) {
   const router = useRouter();
   const [stage, setStage] = useState<ProcessStage>(currentStage);
   const [isUpdating, setIsUpdating] = useState(false);
 
   const handleStageChange = async (newStage: ProcessStage) => {
     if (isUpdating) return;
-    
+
     setIsUpdating(true);
     try {
       const result = await updateProcessStage(contactId, newStage);
-      
+
       if (result.success) {
         setStage(newStage);
         router.refresh();
@@ -50,21 +54,18 @@ export function UpdateProcessStageButton({ contactId, currentStage, status }: Up
       </label>
       <select
         value={stage || ''}
-        onChange={(e) => handleStageChange(e.target.value as ProcessStage || null)}
+        onChange={(e) => handleStageChange((e.target.value as ProcessStage) || null)}
         disabled={isUpdating}
         className={`w-full ${INPUT_STYLES.base} ${INPUT_STYLES.focus} disabled:opacity-50`}
       >
         <option value="">공정 시작 전</option>
         {PROCESS_STAGES_ARRAY.map((stageInfo) => (
-          <option key={stageInfo.id} value={stageInfo.id}>
+          <option key={stageInfo.id} value={stageInfo.id ?? ''}>
             {stageInfo.order}. {stageInfo.label}
           </option>
         ))}
       </select>
-      {isUpdating && (
-        <p className="text-xs text-gray-500 dark:text-gray-400">업데이트 중...</p>
-      )}
+      {isUpdating && <p className="text-xs text-gray-500 dark:text-gray-400">업데이트 중...</p>}
     </div>
   );
 }
-

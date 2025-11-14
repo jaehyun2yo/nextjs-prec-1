@@ -2,13 +2,25 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaTimes, FaCheckCircle, FaExclamationCircle, FaInfoCircle, FaExclamationTriangle } from 'react-icons/fa';
+import {
+  FaTimes,
+  FaCheckCircle,
+  FaExclamationCircle,
+  FaInfoCircle,
+  FaExclamationTriangle,
+} from 'react-icons/fa';
 import type { Toast } from './types';
 
 interface ToastItemProps {
   toast: Toast;
   onClose: (id: string) => void;
-  placement: 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
+  placement:
+    | 'top-left'
+    | 'top-center'
+    | 'top-right'
+    | 'bottom-left'
+    | 'bottom-center'
+    | 'bottom-right';
   index: number;
 }
 
@@ -75,11 +87,14 @@ export function ToastItem({ toast, onClose, placement, index }: ToastItemProps) 
   const getColorClasses = () => {
     const baseColors = {
       default: {
-        solid: 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700',
+        solid:
+          'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700',
         flat: 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700',
-        bordered: 'bg-transparent border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100',
+        bordered:
+          'bg-transparent border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100',
         faded: 'bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100',
-        shadow: 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-lg border-gray-200 dark:border-gray-700',
+        shadow:
+          'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-lg border-gray-200 dark:border-gray-700',
       },
       primary: {
         solid: 'bg-[#ED6C00] text-white border-[#ED6C00]',
@@ -93,26 +108,31 @@ export function ToastItem({ toast, onClose, placement, index }: ToastItemProps) 
         flat: 'bg-white dark:bg-gray-800 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800',
         bordered: 'bg-transparent border-green-500 text-green-700 dark:text-green-300',
         faded: 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300',
-        shadow: 'bg-white dark:bg-gray-800 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 shadow-lg',
+        shadow:
+          'bg-white dark:bg-gray-800 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 shadow-lg',
       },
       warning: {
         solid: 'bg-yellow-500 text-white border-yellow-500',
         flat: 'bg-white dark:bg-gray-800 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800',
         bordered: 'bg-transparent border-yellow-500 text-yellow-700 dark:text-yellow-300',
         faded: 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300',
-        shadow: 'bg-white dark:bg-gray-800 border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300 shadow-lg',
+        shadow:
+          'bg-white dark:bg-gray-800 border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300 shadow-lg',
       },
       danger: {
         solid: 'bg-red-500 text-white border-red-500',
         flat: 'bg-white dark:bg-gray-800 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800',
         bordered: 'bg-transparent border-red-500 text-red-700 dark:text-red-300',
         faded: 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300',
-        shadow: 'bg-white dark:bg-gray-800 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 shadow-lg',
+        shadow:
+          'bg-white dark:bg-gray-800 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 shadow-lg',
       },
     };
 
     const variant = toast.variant || 'flat';
-    return baseColors[toast.color || 'default'][variant];
+    const color = toast.color || 'default';
+    const colorKey = color === 'secondary' ? 'default' : color;
+    return baseColors[colorKey][variant];
   };
 
   const getIconColor = () => {
@@ -140,7 +160,7 @@ export function ToastItem({ toast, onClose, placement, index }: ToastItemProps) 
     const isCenter = placement.includes('center');
 
     let initialX = 0;
-    let initialY = isTop ? -20 : 20;
+    const initialY = isTop ? -20 : 20;
 
     if (isRight && !isCenter) {
       initialX = 100;
@@ -161,7 +181,7 @@ export function ToastItem({ toast, onClose, placement, index }: ToastItemProps) 
         y: 0,
         scale: 1,
         transition: {
-          type: 'spring',
+          type: 'spring' as const,
           stiffness: 500,
           damping: 30,
           mass: 0.8,
@@ -202,19 +222,22 @@ export function ToastItem({ toast, onClose, placement, index }: ToastItemProps) 
     }
   };
 
-  const handleToastClick = useCallback((e: React.MouseEvent) => {
-    // 닫기 버튼이나 action 버튼 클릭 시에는 토스트 클릭 이벤트 무시
-    const target = e.target as HTMLElement;
-    if (target.closest('button') || target.closest('[role="button"]')) {
-      return;
-    }
-    
-    // 토스트 클릭 시 onClick 핸들러 실행
-    if (toast.onClick) {
-      toast.onClick();
-      handleClose();
-    }
-  }, [toast.onClick, handleClose]);
+  const handleToastClick = useCallback(
+    (e: React.MouseEvent) => {
+      // 닫기 버튼이나 action 버튼 클릭 시에는 토스트 클릭 이벤트 무시
+      const target = e.target as HTMLElement;
+      if (target.closest('button') || target.closest('[role="button"]')) {
+        return;
+      }
+
+      // 토스트 클릭 시 onClick 핸들러 실행
+      if (toast.onClick) {
+        toast.onClick();
+        handleClose();
+      }
+    },
+    [toast.onClick, handleClose]
+  );
 
   return (
     <motion.div
@@ -244,22 +267,16 @@ export function ToastItem({ toast, onClose, placement, index }: ToastItemProps) 
     >
       {/* 아이콘 */}
       {icon && !toast.hideIcon && (
-        <div className={`flex-shrink-0 mt-0.5 ${getIconColor()}`}>
-          {icon}
-        </div>
+        <div className={`flex-shrink-0 mt-0.5 ${getIconColor()}`}>{icon}</div>
       )}
 
       {/* 내용 */}
       <div className="flex-1 min-w-0">
         {toast.title && (
-          <div className="text-sm font-semibold mb-1 leading-tight">
-            {toast.title}
-          </div>
+          <div className="text-sm font-semibold mb-1 leading-tight">{toast.title}</div>
         )}
         {toast.description && (
-          <div className="text-sm opacity-90 leading-relaxed">
-            {toast.description}
-          </div>
+          <div className="text-sm opacity-90 leading-relaxed">{toast.description}</div>
         )}
         {toast.action && (
           <button
@@ -287,7 +304,9 @@ export function ToastItem({ toast, onClose, placement, index }: ToastItemProps) 
 
       {/* 프로그레스 바 */}
       {toast.timeout && toast.timeout > 0 && toast.shouldShowTimeoutProgress && (
-        <div className={`absolute bottom-0 left-0 right-0 h-1 bg-black/10 dark:bg-white/20 overflow-hidden ${radius === 'full' ? 'rounded-b-full' : radius === 'lg' ? 'rounded-b-xl' : radius === 'md' ? 'rounded-b-lg' : radius === 'sm' ? 'rounded-b-sm' : ''}`}>
+        <div
+          className={`absolute bottom-0 left-0 right-0 h-1 bg-black/10 dark:bg-white/20 overflow-hidden ${radius === 'full' ? 'rounded-b-full' : radius === 'lg' ? 'rounded-b-xl' : radius === 'md' ? 'rounded-b-lg' : radius === 'sm' ? 'rounded-b-sm' : ''}`}
+        >
           <motion.div
             className="h-full bg-[#ED6C00] dark:bg-[#ff8533]"
             initial={{ width: '100%' }}

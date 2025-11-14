@@ -21,11 +21,10 @@ export interface ToastOptions {
   hideIcon?: boolean;
   hideCloseButton?: boolean;
   shouldShowTimeoutProgress?: boolean;
-  promise?: Promise<any>;
+  promise?: Promise<unknown>;
   loadingComponent?: ReactNode;
 }
 
 export interface Toast extends ToastOptions {
   id: string;
 }
-

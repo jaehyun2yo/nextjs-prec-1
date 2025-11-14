@@ -9,17 +9,11 @@ const apiLogger = logger.createLogger('ADMIN_BOOKINGS_API');
  * PUT /api/admin/bookings/[id]
  * 예약 수정
  */
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getSessionUser();
     if (!user?.userId) {
-      return NextResponse.json(
-        { error: '인증이 필요합니다.' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
     }
 
     // TODO: 관리자 권한 확인 추가
@@ -39,9 +33,11 @@ export async function PUT(
         .single();
 
       // 날짜나 시간이 변경되는 경우에만 확인
-      if (existingBooking && 
-          (existingBooking.visit_date !== visitDate || 
-           existingBooking.visit_time_slot !== visitTimeSlot)) {
+      if (
+        existingBooking &&
+        (existingBooking.visit_date !== visitDate ||
+          existingBooking.visit_time_slot !== visitTimeSlot)
+      ) {
         const { count } = await supabase
           .from('visit_bookings')
           .select('*', { count: 'exact', head: true })
@@ -59,7 +55,13 @@ export async function PUT(
       }
     }
 
-    const updateData: any = {};
+    const updateData: {
+      visit_date?: string;
+      visit_time_slot?: string;
+      company_name?: string;
+      status?: string;
+      notes?: string | null;
+    } = {};
     if (visitDate) updateData.visit_date = visitDate;
     if (visitTimeSlot) updateData.visit_time_slot = visitTimeSlot;
     if (companyName) updateData.company_name = companyName;
@@ -75,19 +77,13 @@ export async function PUT(
 
     if (error) {
       apiLogger.error('Error updating booking', error);
-      return NextResponse.json(
-        { error: '예약 수정 중 오류가 발생했습니다.' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '예약 수정 중 오류가 발생했습니다.' }, { status: 500 });
     }
 
     return NextResponse.json({ booking: data });
   } catch (error) {
     apiLogger.error('Unexpected error', error);
-    return NextResponse.json(
-      { error: '서버 오류가 발생했습니다.' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 });
   }
 }
 
@@ -102,10 +98,7 @@ export async function DELETE(
   try {
     const user = await getSessionUser();
     if (!user?.userId) {
-      return NextResponse.json(
-        { error: '인증이 필요합니다.' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
     }
 
     // TODO: 관리자 권한 확인 추가
@@ -123,19 +116,12 @@ export async function DELETE(
 
     if (error) {
       apiLogger.error('Error cancelling booking', error);
-      return NextResponse.json(
-        { error: '예약 취소 중 오류가 발생했습니다.' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: '예약 취소 중 오류가 발생했습니다.' }, { status: 500 });
     }
 
     return NextResponse.json({ booking: data });
   } catch (error) {
     apiLogger.error('Unexpected error', error);
-    return NextResponse.json(
-      { error: '서버 오류가 발생했습니다.' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 });
   }
 }
-

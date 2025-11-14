@@ -1,13 +1,26 @@
 'use client';
 
 import { useState } from 'react';
-import { FaChevronDown, FaChevronUp, FaFileAlt, FaCheckCircle, FaSpinner, FaEye, FaEdit, FaExclamationCircle } from 'react-icons/fa';
+import {
+  FaChevronDown,
+  FaChevronUp,
+  FaFileAlt,
+  FaCheckCircle,
+  FaSpinner,
+  FaEye,
+  FaEdit,
+  FaExclamationCircle,
+} from 'react-icons/fa';
 import { ProcessStageIndicatorToggle } from './ProcessStageIndicatorToggle';
-import { PROCESS_STAGES_ARRAY, getProcessStageInfo, isProcessStarted } from '@/lib/utils/processStages';
+import {
+  PROCESS_STAGES_ARRAY,
+  getProcessStageInfo,
+  isProcessStarted,
+} from '@/lib/utils/processStages';
 import { RevisionRequestModal } from './RevisionRequestModal';
 import { DownloadButton } from './DownloadButton';
 import type { ProcessStage } from '@/lib/utils/processStages';
-import type { RevisionRequestHistory } from '@/types/database.types';
+import type { RevisionRequestHistory, RevisionRequestHistoryItem } from '@/types/database.types';
 
 interface ContactCardToggleProps {
   contact: {
@@ -44,7 +57,7 @@ interface ContactCardToggleProps {
 export function ContactCardToggle({ contact, statusInfo }: ContactCardToggleProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
-  
+
   // 아이콘 매핑
   const iconMap = {
     spinner: FaSpinner,
@@ -52,15 +65,16 @@ export function ContactCardToggle({ contact, statusInfo }: ContactCardToggleProp
     checkCircle: FaCheckCircle,
     fileAlt: FaFileAlt,
   };
-  
+
   const StatusIcon = iconMap[statusInfo.iconName];
 
   // 수정요청 가능한 상태인지 확인 (작업중, 완료, 수정요청중 상태에서 수정요청 가능)
-  const canRequestRevision = contact.status === 'in_progress' || 
-                             contact.status === 'read' || 
-                             contact.status === 'completed' ||
-                             contact.status === 'replied' ||
-                             contact.status === 'revision_in_progress';
+  const canRequestRevision =
+    contact.status === 'in_progress' ||
+    contact.status === 'read' ||
+    contact.status === 'completed' ||
+    contact.status === 'replied' ||
+    contact.status === 'revision_in_progress';
 
   const handleRevisionSuccess = () => {
     // 모달이 닫힌 후 페이지 새로고침
@@ -82,13 +96,17 @@ export function ContactCardToggle({ contact, statusInfo }: ContactCardToggleProp
               <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-gray-100">
                 {contact.inquiry_title || `문의 #${contact.id}`}
               </h3>
-              <span className={`inline-flex items-center gap-1 px-2 md:px-3 py-1 rounded-full text-xs font-medium flex-shrink-0 ${statusInfo.bgColor} ${statusInfo.color}`}>
+              <span
+                className={`inline-flex items-center gap-1 px-2 md:px-3 py-1 rounded-full text-xs font-medium flex-shrink-0 ${statusInfo.bgColor} ${statusInfo.color}`}
+              >
                 <StatusIcon className="text-xs" />
                 {statusInfo.label}
               </span>
             </div>
             {/* 토글 아이콘 */}
-            <div className={`p-1.5 md:p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-all duration-300 flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`}>
+            <div
+              className={`p-1.5 md:p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-all duration-300 flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`}
+            >
               <FaChevronDown className="text-sm text-gray-500 dark:text-gray-400 transition-transform duration-300" />
             </div>
           </div>
@@ -103,7 +121,9 @@ export function ContactCardToggle({ contact, statusInfo }: ContactCardToggleProp
               {contact.revision_request_title && (
                 <div className="flex items-center gap-2 p-2 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
                   <FaExclamationCircle className="text-red-600 dark:text-red-400 text-xs flex-shrink-0" />
-                  <span className="text-xs font-medium text-red-700 dark:text-red-300 flex-shrink-0">수정요청:</span>
+                  <span className="text-xs font-medium text-red-700 dark:text-red-300 flex-shrink-0">
+                    수정요청:
+                  </span>
                   <span className="text-xs text-red-600 dark:text-red-400 truncate flex-1 min-w-0">
                     {contact.revision_request_title}
                   </span>
@@ -132,23 +152,20 @@ export function ContactCardToggle({ contact, statusInfo }: ContactCardToggleProp
       {/* 상세 정보 (토글) */}
       <div
         className={`overflow-hidden transition-all duration-500 ease-in-out ${
-          isExpanded 
-            ? 'max-h-[5000px] opacity-100' 
-            : 'max-h-0 opacity-0'
+          isExpanded ? 'max-h-[5000px] opacity-100' : 'max-h-0 opacity-0'
         }`}
       >
-        <div 
+        <div
           className={`px-6 pb-6 pt-4 border-t border-gray-200 dark:border-gray-700 transition-all duration-500 ease-in-out ${
-            isExpanded 
-              ? 'translate-y-0 opacity-100' 
-              : '-translate-y-4 opacity-0'
+            isExpanded ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0'
           }`}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 pt-4">
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">담당자</p>
               <p className="text-sm text-gray-900 dark:text-gray-100">
-                {contact.name}{contact.position ? ` (${contact.position})` : ''}
+                {contact.name}
+                {contact.position ? ` (${contact.position})` : ''}
               </p>
             </div>
             <div>
@@ -162,10 +179,10 @@ export function ContactCardToggle({ contact, statusInfo }: ContactCardToggleProp
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">문의일</p>
               <p className="text-sm text-gray-900 dark:text-gray-100">
-                {new Date(contact.created_at).toLocaleDateString("ko-KR", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
+                {new Date(contact.created_at).toLocaleDateString('ko-KR', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
                 })}
               </p>
             </div>
@@ -193,8 +210,8 @@ export function ContactCardToggle({ contact, statusInfo }: ContactCardToggleProp
           )}
 
           {/* 공정 단계 표시 (카드가 펼쳐지면 자동으로 펼쳐짐) */}
-          <ProcessStageIndicatorToggle 
-            currentStage={contact.process_stage} 
+          <ProcessStageIndicatorToggle
+            currentStage={contact.process_stage}
             status={contact.status}
             defaultExpanded={isExpanded}
           />
@@ -213,13 +230,17 @@ export function ContactCardToggle({ contact, statusInfo }: ContactCardToggleProp
                 </div>
                 <div className="space-y-3">
                   <div>
-                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">요청 제목</p>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                      요청 제목
+                    </p>
                     <p className="text-sm text-gray-900 dark:text-gray-100 font-medium">
                       {contact.revision_request_title}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">요청 내용</p>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                      요청 내용
+                    </p>
                     <div className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
                       <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
                         {contact.revision_request_content || '-'}
@@ -228,7 +249,9 @@ export function ContactCardToggle({ contact, statusInfo }: ContactCardToggleProp
                   </div>
                   {contact.revision_requested_at && (
                     <div>
-                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">요청 일시</p>
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                        요청 일시
+                      </p>
                       <p className="text-sm text-gray-900 dark:text-gray-100">
                         {new Date(contact.revision_requested_at).toLocaleString('ko-KR')}
                       </p>
@@ -236,7 +259,9 @@ export function ContactCardToggle({ contact, statusInfo }: ContactCardToggleProp
                   )}
                   {contact.revision_request_file_url && (
                     <div>
-                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">첨부 파일</p>
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                        첨부 파일
+                      </p>
                       <div className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
                         <p className="text-xs text-gray-900 dark:text-gray-100 flex-1 truncate mr-2">
                           {contact.revision_request_file_name || '파일명 없음'}
@@ -252,67 +277,75 @@ export function ContactCardToggle({ contact, statusInfo }: ContactCardToggleProp
                   )}
 
                   {/* 이전 수정요청 히스토리 */}
-                  {contact.revision_request_history && 
-                   Array.isArray(contact.revision_request_history) && 
-                   contact.revision_request_history.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
-                      <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                        이전 수정요청 기록 ({contact.revision_request_history.length}건)
-                      </h4>
-                      <div className="space-y-3">
-                        {contact.revision_request_history
-                          .slice()
-                          .reverse()
-                          .map((historyItem: any, index: number) => (
-                            <div
-                              key={index}
-                              className="p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600"
-                            >
-                              <div className="space-y-2">
-                                <div>
-                                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">요청 제목</p>
-                                  <p className="text-xs text-gray-900 dark:text-gray-100 font-medium">
-                                    {historyItem.title || '-'}
-                                  </p>
-                                </div>
-                                <div>
-                                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">요청 내용</p>
-                                  <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded border border-gray-200 dark:border-gray-600">
-                                    <p className="text-xs text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
-                                      {historyItem.content || '-'}
+                  {contact.revision_request_history &&
+                    Array.isArray(contact.revision_request_history) &&
+                    contact.revision_request_history.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+                        <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                          이전 수정요청 기록 ({contact.revision_request_history.length}건)
+                        </h4>
+                        <div className="space-y-3">
+                          {contact.revision_request_history
+                            .slice()
+                            .reverse()
+                            .map((historyItem: RevisionRequestHistoryItem, index: number) => (
+                              <div
+                                key={index}
+                                className="p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600"
+                              >
+                                <div className="space-y-2">
+                                  <div>
+                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">
+                                      요청 제목
+                                    </p>
+                                    <p className="text-xs text-gray-900 dark:text-gray-100 font-medium">
+                                      {historyItem.title || '-'}
                                     </p>
                                   </div>
-                                </div>
-                                {historyItem.requested_at && (
                                   <div>
-                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">요청 일시</p>
-                                    <p className="text-xs text-gray-900 dark:text-gray-100">
-                                      {new Date(historyItem.requested_at).toLocaleString('ko-KR')}
+                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">
+                                      요청 내용
                                     </p>
-                                  </div>
-                                )}
-                                {historyItem.file_url && (
-                                  <div>
-                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">첨부 파일</p>
-                                    <div className="flex items-center justify-between p-1.5 bg-gray-50 dark:bg-gray-700/50 rounded border border-gray-200 dark:border-gray-600">
-                                      <p className="text-xs text-gray-900 dark:text-gray-100 flex-1 truncate mr-2">
-                                        {historyItem.file_name || '파일명 없음'}
+                                    <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded border border-gray-200 dark:border-gray-600">
+                                      <p className="text-xs text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
+                                        {historyItem.content || '-'}
                                       </p>
-                                      <div onClick={(e) => e.stopPropagation()}>
-                                        <DownloadButton
-                                          url={historyItem.file_url}
-                                          fileName={historyItem.file_name}
-                                        />
-                                      </div>
                                     </div>
                                   </div>
-                                )}
+                                  {historyItem.requested_at && (
+                                    <div>
+                                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">
+                                        요청 일시
+                                      </p>
+                                      <p className="text-xs text-gray-900 dark:text-gray-100">
+                                        {new Date(historyItem.requested_at).toLocaleString('ko-KR')}
+                                      </p>
+                                    </div>
+                                  )}
+                                  {historyItem.file_url && (
+                                    <div>
+                                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">
+                                        첨부 파일
+                                      </p>
+                                      <div className="flex items-center justify-between p-1.5 bg-gray-50 dark:bg-gray-700/50 rounded border border-gray-200 dark:border-gray-600">
+                                        <p className="text-xs text-gray-900 dark:text-gray-100 flex-1 truncate mr-2">
+                                          {historyItem.file_name || '파일명 없음'}
+                                        </p>
+                                        <div onClick={(e) => e.stopPropagation()}>
+                                          <DownloadButton
+                                            url={historyItem.file_url}
+                                            fileName={historyItem.file_name}
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                 </div>
               </div>
             </div>
@@ -349,25 +382,37 @@ export function ContactCardToggle({ contact, statusInfo }: ContactCardToggleProp
 }
 
 // 공정 단계 요약본 컴포넌트
-function ProcessStageSummary({ currentStage, status }: { currentStage: ProcessStage; status: string }) {
+function ProcessStageSummary({
+  currentStage,
+  status,
+}: {
+  currentStage: ProcessStage;
+  status: string;
+}) {
   const started = isProcessStarted(status);
   if (!started) {
     return (
-      <span className="text-xs text-gray-500 dark:text-gray-400">공정이 아직 시작되지 않았습니다.</span>
+      <span className="text-xs text-gray-500 dark:text-gray-400">
+        공정이 아직 시작되지 않았습니다.
+      </span>
     );
   }
 
   // process_stage가 null이면 공정 단계가 설정되지 않은 상태
   if (!currentStage) {
     return (
-      <span className="text-xs text-gray-500 dark:text-gray-400">공정 단계가 설정되지 않았습니다.</span>
+      <span className="text-xs text-gray-500 dark:text-gray-400">
+        공정 단계가 설정되지 않았습니다.
+      </span>
     );
   }
 
   const currentStageInfo = getProcessStageInfo(currentStage);
   if (!currentStageInfo) {
     return (
-      <span className="text-xs text-gray-500 dark:text-gray-400">공정 단계 정보를 불러올 수 없습니다.</span>
+      <span className="text-xs text-gray-500 dark:text-gray-400">
+        공정 단계 정보를 불러올 수 없습니다.
+      </span>
     );
   }
 
@@ -384,11 +429,12 @@ function ProcessStageSummary({ currentStage, status }: { currentStage: ProcessSt
             <div
               className={`
                 flex items-center gap-1 px-2 py-1 rounded text-xs
-                ${isCompleted 
-                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' 
-                  : isCurrent
-                  ? 'bg-[#ED6C00] text-white font-medium'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                ${
+                  isCompleted
+                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                    : isCurrent
+                      ? 'bg-[#ED6C00] text-white font-medium'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                 }
               `}
               title={stageInfo.label}
@@ -407,4 +453,3 @@ function ProcessStageSummary({ currentStage, status }: { currentStage: ProcessSt
     </div>
   );
 }
-
