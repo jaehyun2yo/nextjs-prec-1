@@ -86,7 +86,16 @@ interface ContactsListProps {
   statusCounts?: StatusCounts;
 }
 
-export function ContactsList({ contacts: initialContacts, statusFilter, totalCount, itemsPerPage, currentPage, searchQuery = '', showFiltersOnly = false, statusCounts }: ContactsListProps) {
+export function ContactsList({
+  contacts: initialContacts,
+  statusFilter,
+  totalCount,
+  itemsPerPage,
+  currentPage,
+  searchQuery = '',
+  showFiltersOnly = false,
+  statusCounts,
+}: ContactsListProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [searchInput, setSearchInput] = useState(searchQuery);
@@ -97,7 +106,7 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
   }>({ isOpen: false, contact: null });
   const [restoringId, setRestoringId] = useState<number | null>(null);
   const [permanentlyDeletingId, setPermanentlyDeletingId] = useState<number | null>(null);
-  
+
   // 무한 스크롤 관련 상태
   const [contacts, setContacts] = useState<Contact[]>(initialContacts);
   const [currentPageState, setCurrentPageState] = useState(currentPage);
@@ -139,10 +148,18 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
   };
 
   // 영구 삭제 핸들러
-  const handlePermanentDelete = async (contactId: number, contactName: string, e: React.MouseEvent) => {
+  const handlePermanentDelete = async (
+    contactId: number,
+    contactName: string,
+    e: React.MouseEvent
+  ) => {
     e.stopPropagation();
-    
-    if (!confirm(`정말로 "${contactName}" 문의를 영구 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) {
+
+    if (
+      !confirm(
+        `정말로 "${contactName}" 문의를 영구 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`
+      )
+    ) {
       return;
     }
 
@@ -195,7 +212,7 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
     // searchQuery와 동일하면 업데이트하지 않음 (무한 루프 방지)
     const trimmedInput = searchInput.trim();
     const trimmedQuery = searchQuery.trim();
-    
+
     if (trimmedInput === trimmedQuery) {
       console.log('[ADMIN CONTACTS] ⏭️ Skipping search update (same value):', trimmedInput);
       return;
@@ -209,7 +226,7 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
 
     const timer = setTimeout(() => {
       const params = new URLSearchParams(searchParams.toString());
-      
+
       if (trimmedInput) {
         params.set('search', trimmedInput);
         console.log('[ADMIN CONTACTS] 🔍 Updating URL with search:', trimmedInput);
@@ -218,7 +235,7 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
         console.log('[ADMIN CONTACTS] 🗑️ Removing search from URL');
       }
       params.delete('page'); // 검색 시 첫 페이지로
-      
+
       const newUrl = `/admin/contacts?${params.toString()}`;
       console.log('[ADMIN CONTACTS] 🚀 Navigating to:', newUrl);
       router.push(newUrl, { scroll: false });
@@ -230,7 +247,7 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchInput]); // searchInput만 의존성으로 사용 (searchQuery 제외하여 무한 루프 방지)
-  
+
   // 다음 페이지 데이터 로드
   const loadMoreContacts = useCallback(async () => {
     if (isLoading || !hasMore) return;
@@ -249,7 +266,7 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
       const result = await response.json();
 
       if (result.contacts && result.contacts.length > 0) {
-        setContacts(prev => [...prev, ...result.contacts]);
+        setContacts((prev) => [...prev, ...result.contacts]);
         setCurrentPageState(nextPage);
         setHasMore(result.hasMore);
       } else {
@@ -302,7 +319,7 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
 
   const handleStartWork = async (contactId: number, e: React.MouseEvent) => {
     e.stopPropagation(); // 카드 클릭 이벤트 방지
-    
+
     try {
       const response = await fetch(`/api/contacts/${contactId}/status`, {
         method: 'PATCH',
@@ -327,15 +344,15 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
     if (e) {
       e.stopPropagation();
     }
-    
+
     // 토글 상태 변경
-    setExpandedContacts(prev => {
+    setExpandedContacts((prev) => {
       const newSet = new Set(prev);
       const wasExpanded = newSet.has(contactId);
-      
+
       if (wasExpanded) {
         // 창을 닫을 때 신규 상태인 경우 읽음으로 변경
-        const contact = contacts.find(c => c.id === contactId);
+        const contact = contacts.find((c) => c.id === contactId);
         if (contact && contact.status === 'new') {
           // 비동기로 상태 업데이트 (UI 블로킹 방지)
           fetch(`/api/contacts/${contactId}/status`, {
@@ -344,17 +361,19 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({ status: 'read' }),
-          }).then(() => {
-            router.refresh();
-          }).catch(error => {
-            console.error('Error updating status to read:', error);
-          });
+          })
+            .then(() => {
+              router.refresh();
+            })
+            .catch((error) => {
+              console.error('Error updating status to read:', error);
+            });
         }
         newSet.delete(contactId);
       } else {
         newSet.add(contactId);
       }
-      
+
       return newSet;
     });
   };
@@ -381,7 +400,7 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
               : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
           }`}
         >
-          신규 ({statusCounts?.new ?? contacts.filter(c => c.status === 'new').length})
+          신규 ({statusCounts?.new ?? contacts.filter((c) => c.status === 'new').length})
         </button>
         <button
           onClick={() => handleFilterChange('read')}
@@ -391,7 +410,7 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
               : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
           }`}
         >
-          읽음 ({statusCounts?.read ?? contacts.filter(c => c.status === 'read').length})
+          읽음 ({statusCounts?.read ?? contacts.filter((c) => c.status === 'read').length})
         </button>
         <button
           onClick={() => handleFilterChange('in_progress')}
@@ -401,7 +420,8 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
               : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
           }`}
         >
-          작업중 ({statusCounts?.in_progress ?? contacts.filter(c => c.status === 'in_progress').length})
+          작업중 (
+          {statusCounts?.in_progress ?? contacts.filter((c) => c.status === 'in_progress').length})
         </button>
         <button
           onClick={() => handleFilterChange('revision_in_progress')}
@@ -411,7 +431,10 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
               : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
           }`}
         >
-          수정작업중 ({statusCounts?.revision_in_progress ?? contacts.filter(c => c.status === 'revision_in_progress').length})
+          수정작업중 (
+          {statusCounts?.revision_in_progress ??
+            contacts.filter((c) => c.status === 'revision_in_progress').length}
+          )
         </button>
         <button
           onClick={() => handleFilterChange('completed')}
@@ -421,7 +444,8 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
               : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
           }`}
         >
-          납품완료 ({statusCounts?.completed ?? contacts.filter(c => c.status === 'completed').length})
+          납품완료 (
+          {statusCounts?.completed ?? contacts.filter((c) => c.status === 'completed').length})
         </button>
         <button
           onClick={() => handleFilterChange('on_hold')}
@@ -431,7 +455,7 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
               : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
           }`}
         >
-          보류 ({statusCounts?.on_hold ?? contacts.filter(c => c.status === 'on_hold').length})
+          보류 ({statusCounts?.on_hold ?? contacts.filter((c) => c.status === 'on_hold').length})
         </button>
         <button
           onClick={() => handleFilterChange('deleting')}
@@ -441,7 +465,8 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
               : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
           }`}
         >
-          삭제중 ({statusCounts?.deleting ?? contacts.filter(c => c.status === 'deleting').length})
+          삭제중 ({statusCounts?.deleting ?? contacts.filter((c) => c.status === 'deleting').length}
+          )
         </button>
       </div>
       {/* 문의번호 검색 */}
@@ -477,14 +502,14 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
         {filteredContacts.length > 0 ? (
           filteredContacts.map((contact, index) => {
             const isExpanded = expandedContacts.has(contact.id);
-            
+
             return (
               <div
                 key={contact.id}
                 className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:shadow-md transition-shadow bg-white dark:bg-gray-800"
               >
                 {/* 요약본 (항상 표시) - 카드 클릭 시 토글 */}
-                <div 
+                <div
                   className="p-4 md:p-6 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                   onClick={() => toggleContact(contact.id)}
                 >
@@ -496,28 +521,35 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                           contact.status === 'new'
                             ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
                             : contact.status === 'read'
-                            ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
-                            : contact.status === 'in_progress'
-                            ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'
-                            : contact.status === 'revision_in_progress'
-                            ? 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200'
-                            : contact.status === 'completed'
-                            ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
-                            : contact.status === 'on_hold'
-                            ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
-                            : contact.status === 'deleting'
-                            ? 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300'
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                              ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+                              : contact.status === 'in_progress'
+                                ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'
+                                : contact.status === 'revision_in_progress'
+                                  ? 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200'
+                                  : contact.status === 'completed'
+                                    ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
+                                    : contact.status === 'on_hold'
+                                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                                      : contact.status === 'deleting'
+                                        ? 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300'
+                                        : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
                         }`}
                       >
-                        {contact.status === 'new' ? '신규' 
-                          : contact.status === 'read' ? '읽음'
-                          : contact.status === 'in_progress' ? '작업중'
-                          : contact.status === 'revision_in_progress' ? '수정작업중'
-                          : contact.status === 'completed' ? '납품완료'
-                          : contact.status === 'on_hold' ? '보류'
-                          : contact.status === 'deleting' ? '삭제중'
-                          : contact.status}
+                        {contact.status === 'new'
+                          ? '신규'
+                          : contact.status === 'read'
+                            ? '읽음'
+                            : contact.status === 'in_progress'
+                              ? '작업중'
+                              : contact.status === 'revision_in_progress'
+                                ? '수정작업중'
+                                : contact.status === 'completed'
+                                  ? '납품완료'
+                                  : contact.status === 'on_hold'
+                                    ? '보류'
+                                    : contact.status === 'deleting'
+                                      ? '삭제중'
+                                      : contact.status}
                       </span>
                       {/* 문의명 */}
                       <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
@@ -549,29 +581,37 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                       )}
                     </div>
                     {/* 토글 아이콘 */}
-                    <div className={`p-1.5 md:p-2 rounded transition-all duration-300 flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`}>
+                    <div
+                      className={`p-1.5 md:p-2 rounded transition-all duration-300 flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`}
+                    >
                       <FaChevronDown className="text-sm text-gray-500 dark:text-gray-400 transition-transform duration-300" />
                     </div>
                   </div>
-                  
+
                   {/* 구분선 */}
                   {!isExpanded && (
                     <div className="border-t border-gray-200 dark:border-gray-700 my-3"></div>
                   )}
 
-
                   {/* 작업현황 (공정 단계) - 구분선 밑에 위치 */}
-                  {!isExpanded && (contact.status === 'read' || contact.status === 'in_progress' || contact.status === 'revision_in_progress' || contact.status === 'replied' || contact.status === 'completed') && (
-                    <div className="mb-3" onClick={(e) => e.stopPropagation()}>
-                      <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 block">작업현황</label>
-                      <QuickProcessStageSelect 
-                        contactId={contact.id} 
-                        currentStage={contact.process_stage} 
-                        status={contact.status} 
-                      />
-                    </div>
-                  )}
-                  
+                  {!isExpanded &&
+                    (contact.status === 'read' ||
+                      contact.status === 'in_progress' ||
+                      contact.status === 'revision_in_progress' ||
+                      contact.status === 'replied' ||
+                      contact.status === 'completed') && (
+                      <div className="mb-3" onClick={(e) => e.stopPropagation()}>
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 block">
+                          작업현황
+                        </label>
+                        <QuickProcessStageSelect
+                          contactId={contact.id}
+                          currentStage={contact.process_stage}
+                          status={contact.status}
+                        />
+                      </div>
+                    )}
+
                   {/* 요약 정보 (접혀있을 때만 표시) */}
                   {!isExpanded && (
                     <div className="space-y-3">
@@ -586,7 +626,11 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                         <div>
                           <span className="text-xs text-gray-500 dark:text-gray-400">연락처</span>
                           <p className="text-gray-900 dark:text-gray-100 mt-0.5">
-                            <a href={`tel:${contact.phone}`} className="text-orange-600 hover:underline" onClick={(e) => e.stopPropagation()}>
+                            <a
+                              href={`tel:${contact.phone}`}
+                              className="text-orange-600 hover:underline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               {contact.phone}
                             </a>
                           </p>
@@ -594,7 +638,11 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                         <div>
                           <span className="text-xs text-gray-500 dark:text-gray-400">이메일</span>
                           <p className="text-gray-900 dark:text-gray-100 mt-0.5 truncate">
-                            <a href={`mailto:${contact.email}`} className="text-orange-600 hover:underline" onClick={(e) => e.stopPropagation()}>
+                            <a
+                              href={`mailto:${contact.email}`}
+                              className="text-orange-600 hover:underline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               {contact.email}
                             </a>
                           </p>
@@ -604,7 +652,9 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                       {/* 도면 및 샘플 정보 */}
                       {contact.drawing_type && (
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-xs text-gray-500 dark:text-gray-400">도면/샘플:</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            도면/샘플:
+                          </span>
                           {contact.drawing_type === 'create' ? (
                             <span className="inline-block px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded font-medium">
                               제작 필요
@@ -630,7 +680,9 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                       {/* 일정 조율 정보 */}
                       {contact.receipt_method && (
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-xs text-gray-500 dark:text-gray-400">수령방법:</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            수령방법:
+                          </span>
                           {contact.receipt_method === 'visit' ? (
                             <>
                               <span className="inline-block px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 rounded font-medium">
@@ -645,7 +697,11 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                           ) : contact.receipt_method === 'delivery' ? (
                             <>
                               <span className="inline-block px-2 py-1 text-xs bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 rounded font-medium">
-                                {contact.delivery_type === 'parcel' ? '택배' : contact.delivery_type === 'quick' ? '퀵' : '배송'}
+                                {contact.delivery_type === 'parcel'
+                                  ? '택배'
+                                  : contact.delivery_type === 'quick'
+                                    ? '퀵'
+                                    : '배송'}
                               </span>
                               {contact.delivery_address && (
                                 <span className="text-xs text-gray-600 dark:text-gray-400 truncate max-w-xs">
@@ -658,11 +714,15 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                       )}
 
                       {/* 파일 다운로드 항목 */}
-                      {(contact.attachment_url || contact.attachment_filename || 
-                        contact.drawing_file_url || contact.drawing_file_name || 
+                      {(contact.attachment_url ||
+                        contact.attachment_filename ||
+                        contact.drawing_file_url ||
+                        contact.drawing_file_name ||
                         contact.reference_photos_urls) && (
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-xs text-gray-500 dark:text-gray-400">첨부파일:</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            첨부파일:
+                          </span>
                           {contact.attachment_filename && (
                             <a
                               href={contact.attachment_url || '#'}
@@ -687,7 +747,7 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                               📐 {contact.drawing_file_name}
                             </a>
                           )}
-                          {contact.reference_photos_urls && (
+                          {contact.reference_photos_urls &&
                             (() => {
                               try {
                                 const urls = JSON.parse(contact.reference_photos_urls) as string[];
@@ -702,15 +762,14 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                                 return null;
                               }
                               return null;
-                            })()
-                          )}
+                            })()}
                         </div>
                       )}
 
                       {/* 요약본 하단: 상태 변경 버튼 및 작업시작 버튼 */}
                       {contact.status !== 'deleting' && (
                         <div className="pt-3 border-t border-gray-200 dark:border-gray-700 mt-3">
-                          <div className="flex flex-wrap items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
                             <div className="flex flex-wrap items-center gap-2">
                               {/* 작업시작 버튼 */}
                               {contact.status === 'new' && (
@@ -721,155 +780,184 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                                   작업시작
                                 </button>
                               )}
-                            {/* 상태 변경 버튼들 */}
-                            {/* 신규 상태가 아닐 때만 상태 변경 버튼 표시 */}
-                            {contact.status !== 'new' && (
-                              <>
-                                {/* 보류 상태일 때는 작업중으로 변경 버튼 표시 */}
-                                {contact.status === 'on_hold' ? (
-                                  <button
-                                    onClick={async (e) => {
-                                      e.stopPropagation();
-                                      try {
-                                        const response = await fetch(`/api/contacts/${contact.id}/status`, {
-                                          method: 'PATCH',
-                                          headers: {
-                                            'Content-Type': 'application/json',
-                                          },
-                                          body: JSON.stringify({ status: 'in_progress' }),
-                                        });
-                                        if (response.ok) {
-                                          router.refresh();
-                                        } else {
-                                          alert('상태 변경에 실패했습니다.');
+                              {/* 상태 변경 버튼들 */}
+                              {/* 신규 상태가 아닐 때만 상태 변경 버튼 표시 */}
+                              {contact.status !== 'new' && (
+                                <>
+                                  {/* 보류 상태일 때는 작업중으로 변경 버튼 표시 */}
+                                  {contact.status === 'on_hold' ? (
+                                    <button
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        try {
+                                          const response = await fetch(
+                                            `/api/contacts/${contact.id}/status`,
+                                            {
+                                              method: 'PATCH',
+                                              headers: {
+                                                'Content-Type': 'application/json',
+                                              },
+                                              body: JSON.stringify({ status: 'in_progress' }),
+                                            }
+                                          );
+                                          if (response.ok) {
+                                            router.refresh();
+                                          } else {
+                                            alert('상태 변경에 실패했습니다.');
+                                          }
+                                        } catch (error) {
+                                          console.error('Error updating status:', error);
+                                          alert('상태 변경 중 오류가 발생했습니다.');
                                         }
-                                      } catch (error) {
-                                        console.error('Error updating status:', error);
-                                        alert('상태 변경 중 오류가 발생했습니다.');
-                                      }
-                                    }}
-                                    className="px-3 py-1.5 text-xs bg-yellow-100 dark:bg-yellow-900 hover:bg-yellow-200 dark:hover:bg-yellow-800 text-yellow-700 dark:text-yellow-300 rounded-lg transition-colors"
-                                  >
-                                    작업중으로 변경
-                                  </button>
-                                ) : (
-                                  <button
-                                    onClick={async (e) => {
-                                      e.stopPropagation();
-                                      try {
-                                        const response = await fetch(`/api/contacts/${contact.id}/status`, {
-                                          method: 'PATCH',
-                                          headers: {
-                                            'Content-Type': 'application/json',
-                                          },
-                                          body: JSON.stringify({ status: 'on_hold' }),
-                                        });
-                                        if (response.ok) {
-                                          router.refresh();
-                                        } else {
-                                          alert('상태 변경에 실패했습니다.');
+                                      }}
+                                      className="px-3 py-1.5 text-xs bg-yellow-100 dark:bg-yellow-900 hover:bg-yellow-200 dark:hover:bg-yellow-800 text-yellow-700 dark:text-yellow-300 rounded-lg transition-colors"
+                                    >
+                                      작업중으로 변경
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        try {
+                                          const response = await fetch(
+                                            `/api/contacts/${contact.id}/status`,
+                                            {
+                                              method: 'PATCH',
+                                              headers: {
+                                                'Content-Type': 'application/json',
+                                              },
+                                              body: JSON.stringify({ status: 'on_hold' }),
+                                            }
+                                          );
+                                          if (response.ok) {
+                                            router.refresh();
+                                          } else {
+                                            alert('상태 변경에 실패했습니다.');
+                                          }
+                                        } catch (error) {
+                                          console.error('Error updating status:', error);
+                                          alert('상태 변경 중 오류가 발생했습니다.');
                                         }
-                                      } catch (error) {
-                                        console.error('Error updating status:', error);
-                                        alert('상태 변경 중 오류가 발생했습니다.');
-                                      }
-                                    }}
-                                    className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
-                                  >
-                                    보류 중으로 변경
-                                  </button>
-                                )}
-                                {/* 수정작업중 상태일 때는 작업중으로 변경 버튼 표시 */}
-                                {contact.status === 'revision_in_progress' ? (
-                                  <button
-                                    onClick={async (e) => {
-                                      e.stopPropagation();
-                                      try {
-                                        const response = await fetch(`/api/contacts/${contact.id}/status`, {
-                                          method: 'PATCH',
-                                          headers: {
-                                            'Content-Type': 'application/json',
-                                          },
-                                          body: JSON.stringify({ status: 'in_progress' }),
-                                        });
-                                        if (response.ok) {
-                                          router.refresh();
-                                        } else {
-                                          alert('상태 변경에 실패했습니다.');
+                                      }}
+                                      className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
+                                    >
+                                      보류 중으로 변경
+                                    </button>
+                                  )}
+                                  {/* 수정작업중 상태일 때는 작업중으로 변경 버튼 표시 */}
+                                  {contact.status === 'revision_in_progress' ? (
+                                    <button
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        try {
+                                          const response = await fetch(
+                                            `/api/contacts/${contact.id}/status`,
+                                            {
+                                              method: 'PATCH',
+                                              headers: {
+                                                'Content-Type': 'application/json',
+                                              },
+                                              body: JSON.stringify({ status: 'in_progress' }),
+                                            }
+                                          );
+                                          if (response.ok) {
+                                            router.refresh();
+                                          } else {
+                                            alert('상태 변경에 실패했습니다.');
+                                          }
+                                        } catch (error) {
+                                          console.error('Error updating status:', error);
+                                          alert('상태 변경 중 오류가 발생했습니다.');
                                         }
-                                      } catch (error) {
-                                        console.error('Error updating status:', error);
-                                        alert('상태 변경 중 오류가 발생했습니다.');
-                                      }
-                                    }}
-                                    className="px-3 py-1.5 text-xs bg-yellow-100 dark:bg-yellow-900 hover:bg-yellow-200 dark:hover:bg-yellow-800 text-yellow-700 dark:text-yellow-300 rounded-lg transition-colors"
-                                  >
-                                    작업중으로 변경
-                                  </button>
-                                ) : (
-                                  <button
-                                    onClick={async (e) => {
-                                      e.stopPropagation();
-                                      try {
-                                        const response = await fetch(`/api/contacts/${contact.id}/status`, {
-                                          method: 'PATCH',
-                                          headers: {
-                                            'Content-Type': 'application/json',
-                                          },
-                                          body: JSON.stringify({ status: 'revision_in_progress' }),
-                                        });
-                                        if (response.ok) {
-                                          router.refresh();
-                                        } else {
-                                          alert('상태 변경에 실패했습니다.');
+                                      }}
+                                      className="px-3 py-1.5 text-xs bg-yellow-100 dark:bg-yellow-900 hover:bg-yellow-200 dark:hover:bg-yellow-800 text-yellow-700 dark:text-yellow-300 rounded-lg transition-colors"
+                                    >
+                                      작업중으로 변경
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        try {
+                                          const response = await fetch(
+                                            `/api/contacts/${contact.id}/status`,
+                                            {
+                                              method: 'PATCH',
+                                              headers: {
+                                                'Content-Type': 'application/json',
+                                              },
+                                              body: JSON.stringify({
+                                                status: 'revision_in_progress',
+                                              }),
+                                            }
+                                          );
+                                          if (response.ok) {
+                                            router.refresh();
+                                          } else {
+                                            alert('상태 변경에 실패했습니다.');
+                                          }
+                                        } catch (error) {
+                                          console.error('Error updating status:', error);
+                                          alert('상태 변경 중 오류가 발생했습니다.');
                                         }
-                                      } catch (error) {
-                                        console.error('Error updating status:', error);
-                                        alert('상태 변경 중 오류가 발생했습니다.');
-                                      }
-                                    }}
-                                    className="px-3 py-1.5 text-xs bg-orange-100 dark:bg-orange-900 hover:bg-orange-200 dark:hover:bg-orange-800 text-orange-700 dark:text-orange-300 rounded-lg transition-colors"
-                                  >
-                                    수정작업중으로 변경
-                                  </button>
-                                )}
-                              </>
-                            )}
+                                      }}
+                                      className="px-3 py-1.5 text-xs bg-orange-100 dark:bg-orange-900 hover:bg-orange-200 dark:hover:bg-orange-800 text-orange-700 dark:text-orange-300 rounded-lg transition-colors"
+                                    >
+                                      수정작업중으로 변경
+                                    </button>
+                                  )}
+                                </>
+                              )}
                             </div>
-                            {/* 오른쪽: 삭제 버튼 */}
+                            {/* 삭제 버튼 */}
                             <div onClick={(e) => e.stopPropagation()}>
-                              <DeleteButton 
-                                contactId={contact.id} 
-                                contactName={contact.company_name || contact.name || `문의 #${contact.id}`}
+                              <DeleteButton
+                                contactId={contact.id}
+                                contactName={
+                                  contact.company_name || contact.name || `문의 #${contact.id}`
+                                }
                               />
                             </div>
                           </div>
                         </div>
                       )}
-                      
-                          {/* 삭제중 상태일 때 복구 및 영구 삭제 버튼 (왼쪽 하단) */}
-                          {contact.status === 'deleting' && (
-                            <div className="pt-3 border-t border-gray-200 dark:border-gray-700 mt-3">
-                              <div className="flex items-center justify-start gap-2" onClick={(e) => e.stopPropagation()}>
-                                <button
-                                  onClick={(e) => handleRestore(contact.id, e)}
-                                  disabled={restoringId === contact.id || permanentlyDeletingId === contact.id}
-                                  className="px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
-                                >
-                                  <FaUndo className="text-xs" />
-                                  {restoringId === contact.id ? '복구 중...' : '복구'}
-                                </button>
-                                <button
-                                  onClick={(e) => handlePermanentDelete(contact.id, contact.company_name || contact.name || `문의 #${contact.id}`, e)}
-                                  disabled={restoringId === contact.id || permanentlyDeletingId === contact.id}
-                                  className="px-3 py-1.5 text-xs border border-red-300 dark:border-red-600 rounded-lg bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
-                                >
-                                  <FaTrash className="text-xs" />
-                                  {permanentlyDeletingId === contact.id ? '삭제 중...' : '지금삭제'}
-                                </button>
-                              </div>
-                            </div>
-                          )}
+
+                      {/* 삭제중 상태일 때 복구 및 영구 삭제 버튼 (왼쪽 하단) */}
+                      {contact.status === 'deleting' && (
+                        <div className="pt-3 border-t border-gray-200 dark:border-gray-700 mt-3">
+                          <div
+                            className="flex items-center justify-start gap-2"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              onClick={(e) => handleRestore(contact.id, e)}
+                              disabled={
+                                restoringId === contact.id || permanentlyDeletingId === contact.id
+                              }
+                              className="px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                            >
+                              <FaUndo className="text-xs" />
+                              {restoringId === contact.id ? '복구 중...' : '복구'}
+                            </button>
+                            <button
+                              onClick={(e) =>
+                                handlePermanentDelete(
+                                  contact.id,
+                                  contact.company_name || contact.name || `문의 #${contact.id}`,
+                                  e
+                                )
+                              }
+                              disabled={
+                                restoringId === contact.id || permanentlyDeletingId === contact.id
+                              }
+                              className="px-3 py-1.5 text-xs border border-red-300 dark:border-red-600 rounded-lg bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                            >
+                              <FaTrash className="text-xs" />
+                              {permanentlyDeletingId === contact.id ? '삭제 중...' : '지금삭제'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -877,16 +965,12 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                 {/* 상세 정보 (토글) */}
                 <div
                   className={`overflow-hidden transition-all duration-500 ease-in-out ${
-                    isExpanded 
-                      ? 'max-h-[5000px] opacity-100' 
-                      : 'max-h-0 opacity-0'
+                    isExpanded ? 'max-h-[5000px] opacity-100' : 'max-h-0 opacity-0'
                   }`}
                 >
-                  <div 
+                  <div
                     className={`px-6 pb-6 pt-4 border-t border-gray-200 dark:border-gray-700 transition-all duration-500 ease-in-out ${
-                      isExpanded 
-                        ? 'translate-y-0 opacity-100' 
-                        : '-translate-y-4 opacity-0'
+                      isExpanded ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0'
                     }`}
                   >
                     {/* 연락처 정보 */}
@@ -897,7 +981,9 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                       <div className="space-y-3">
                         {contact.contact_type && (
                           <div>
-                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">문의 유형</label>
+                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                              문의 유형
+                            </label>
                             <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                               {contact.contact_type === 'individual' ? '개인' : '업체'}
                             </p>
@@ -905,7 +991,9 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                         )}
                         {contact.contact_type === 'individual' && (
                           <div>
-                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">서비스 유형</label>
+                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                              서비스 유형
+                            </label>
                             <div className="mt-1 flex flex-wrap gap-2">
                               {contact.service_mold_request && (
                                 <span className="px-2 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded">
@@ -917,9 +1005,10 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                                   납품까지 중개
                                 </span>
                               )}
-                              {!contact.service_mold_request && !contact.service_delivery_brokerage && (
-                                <span className="text-sm text-gray-400">-</span>
-                              )}
+                              {!contact.service_mold_request &&
+                                !contact.service_delivery_brokerage && (
+                                  <span className="text-sm text-gray-400">-</span>
+                                )}
                             </div>
                           </div>
                         )}
@@ -928,32 +1017,52 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                             <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
                               {contact.contact_type === 'individual' ? '이름' : '업체명'}
                             </label>
-                            <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{contact.company_name}</p>
+                            <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                              {contact.company_name}
+                            </p>
                           </div>
                           {contact.contact_type === 'company' && (
                             <>
                               <div>
-                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">담당자명</label>
-                                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{contact.name}</p>
+                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                  담당자명
+                                </label>
+                                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                                  {contact.name}
+                                </p>
                               </div>
                               <div>
-                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">직책</label>
-                                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{contact.position}</p>
+                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                  직책
+                                </label>
+                                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                                  {contact.position}
+                                </p>
                               </div>
                             </>
                           )}
                           <div>
-                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">연락처</label>
+                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                              연락처
+                            </label>
                             <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                              <a href={`tel:${contact.phone}`} className="text-orange-600 hover:underline">
+                              <a
+                                href={`tel:${contact.phone}`}
+                                className="text-orange-600 hover:underline"
+                              >
                                 {contact.phone}
                               </a>
                             </p>
                           </div>
                           <div className="col-span-2">
-                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">이메일</label>
+                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                              이메일
+                            </label>
                             <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                              <a href={`mailto:${contact.email}`} className="text-orange-600 hover:underline">
+                              <a
+                                href={`mailto:${contact.email}`}
+                                className="text-orange-600 hover:underline"
+                              >
                                 {contact.email}
                               </a>
                             </p>
@@ -969,34 +1078,42 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                       </h3>
                       <div className="space-y-3">
                         <div>
-                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">도면 상태</label>
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            도면 상태
+                          </label>
                           <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                            {contact.drawing_type === 'create' 
-                              ? '도면 제작이 필요합니다' 
-                              : contact.drawing_type === 'have' 
-                              ? '도면을 가지고 있습니다' 
-                              : '-'}
+                            {contact.drawing_type === 'create'
+                              ? '도면 제작이 필요합니다'
+                              : contact.drawing_type === 'have'
+                                ? '도면을 가지고 있습니다'
+                                : '-'}
                           </p>
                         </div>
 
                         {contact.drawing_type === 'create' && (
                           <>
                             <div>
-                              <label className="text-sm font-medium text-gray-500 dark:text-gray-400">실물 샘플</label>
+                              <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                실물 샘플
+                              </label>
                               <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                                 {contact.has_physical_sample ? '있음' : '없음'}
                               </p>
                             </div>
                             {contact.has_physical_sample && contact.sample_notes && (
                               <div>
-                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">샘플 특이사항</label>
+                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                  샘플 특이사항
+                                </label>
                                 <p className="mt-1 text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap bg-white dark:bg-gray-800 p-3 rounded">
                                   {contact.sample_notes}
                                 </p>
                               </div>
                             )}
                             <div>
-                              <label className="text-sm font-medium text-gray-500 dark:text-gray-400">제작 자료</label>
+                              <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                제작 자료
+                              </label>
                               <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                                 {contact.has_reference_photos ? '있음' : '없음'}
                               </p>
@@ -1006,37 +1123,52 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
 
                         {contact.drawing_type === 'have' && (
                           <div>
-                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">도면 수정</label>
+                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                              도면 수정
+                            </label>
                             <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                               {contact.drawing_modification === 'needed'
                                 ? '도면의 수정이 필요합니다'
                                 : contact.drawing_modification === 'not_needed'
-                                ? '도면의 수정이 필요없습니다'
-                                : '-'}
+                                  ? '도면의 수정이 필요없습니다'
+                                  : '-'}
                             </p>
                           </div>
                         )}
 
                         <div>
-                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">박스 형태</label>
-                          <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{contact.box_shape || '-'}</p>
-                        </div>
-
-                        <div>
-                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">크기 (장×폭×고)</label>
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            박스 형태
+                          </label>
                           <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                            {contact.length || '-'} mm × {contact.width || '-'} mm × {contact.height || '-'} mm
+                            {contact.box_shape || '-'}
                           </p>
                         </div>
 
                         <div>
-                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">재질</label>
-                          <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{contact.material || '-'}</p>
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            크기 (장×폭×고)
+                          </label>
+                          <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                            {contact.length || '-'} mm × {contact.width || '-'} mm ×{' '}
+                            {contact.height || '-'} mm
+                          </p>
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            재질
+                          </label>
+                          <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                            {contact.material || '-'}
+                          </p>
                         </div>
 
                         {contact.drawing_notes && (
                           <div>
-                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">도면 및 샘플 제작 시 유의사항</label>
+                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                              도면 및 샘플 제작 시 유의사항
+                            </label>
                             <p className="mt-1 text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap bg-white dark:bg-gray-800 p-3 rounded">
                               {contact.drawing_notes}
                             </p>
@@ -1053,35 +1185,52 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                         </h3>
                         <div className="space-y-3">
                           <div>
-                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">납품 방법</label>
+                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                              납품 방법
+                            </label>
                             <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                              {contact.delivery_method === 'company_address' 
-                                ? '회사주소로 납품' 
+                              {contact.delivery_method === 'company_address'
+                                ? '회사주소로 납품'
                                 : contact.delivery_method === 'delivery_company'
-                                ? '납품받을 업체가 있습니다'
-                                : contact.delivery_method || '-'}
+                                  ? '납품받을 업체가 있습니다'
+                                  : contact.delivery_method || '-'}
                             </p>
                           </div>
-                          
+
                           {contact.delivery_method === 'delivery_company' && (
                             <>
                               <div>
-                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">납품업체명</label>
-                                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{contact.delivery_company_name || '-'}</p>
-                              </div>
-                              <div>
-                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">연락처</label>
+                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                  납품업체명
+                                </label>
                                 <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                                  {contact.delivery_company_phone ? (
-                                    <a href={`tel:${contact.delivery_company_phone}`} className="text-orange-600 hover:underline">
-                                      {contact.delivery_company_phone}
-                                    </a>
-                                  ) : '-'}
+                                  {contact.delivery_company_name || '-'}
                                 </p>
                               </div>
                               <div>
-                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">주소</label>
-                                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{contact.delivery_company_address || '-'}</p>
+                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                  연락처
+                                </label>
+                                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                                  {contact.delivery_company_phone ? (
+                                    <a
+                                      href={`tel:${contact.delivery_company_phone}`}
+                                      className="text-orange-600 hover:underline"
+                                    >
+                                      {contact.delivery_company_phone}
+                                    </a>
+                                  ) : (
+                                    '-'
+                                  )}
+                                </p>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                  주소
+                                </label>
+                                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                                  {contact.delivery_company_address || '-'}
+                                </p>
                               </div>
                             </>
                           )}
@@ -1097,29 +1246,40 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                         </h3>
                         <div className="space-y-3">
                           <div>
-                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">수령 방법</label>
+                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                              수령 방법
+                            </label>
                             <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                              {contact.receipt_method === 'visit' 
-                                ? '방문 수령' 
-                                : contact.receipt_method === 'delivery' 
-                                ? '택배 및 퀵으로 수령' 
-                                : contact.receipt_method || '-'}
+                              {contact.receipt_method === 'visit'
+                                ? '방문 수령'
+                                : contact.receipt_method === 'delivery'
+                                  ? '택배 및 퀵으로 수령'
+                                  : contact.receipt_method || '-'}
                             </p>
                           </div>
 
                           {contact.receipt_method === 'visit' && (
                             <>
                               <div>
-                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">방문 날짜</label>
-                                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{contact.visit_date || '-'}</p>
+                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                  방문 날짜
+                                </label>
+                                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                                  {contact.visit_date || '-'}
+                                </p>
                               </div>
                               <div>
-                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">방문 시간</label>
-                                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{contact.visit_time_slot || '-'}</p>
+                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                  방문 시간
+                                </label>
+                                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                                  {contact.visit_time_slot || '-'}
+                                </p>
                               </div>
                               <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded">
                                 <p className="text-sm text-gray-700 dark:text-gray-300">
-                                  <strong>회사위치:</strong> 서울 중구 퇴계로39길 20, 2층 유진레이져목형 사무실
+                                  <strong>회사위치:</strong> 서울 중구 퇴계로39길 20, 2층
+                                  유진레이져목형 사무실
                                 </p>
                                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                                   (평일 9:00 ~ 19:00 주말 및 공휴일 휴무)
@@ -1131,27 +1291,48 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                           {contact.receipt_method === 'delivery' && (
                             <>
                               <div>
-                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">배송 방법</label>
+                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                  배송 방법
+                                </label>
                                 <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                                  {contact.delivery_type === 'parcel' ? '택배' : contact.delivery_type === 'quick' ? '퀵' : '-'}
+                                  {contact.delivery_type === 'parcel'
+                                    ? '택배'
+                                    : contact.delivery_type === 'quick'
+                                      ? '퀵'
+                                      : '-'}
                                 </p>
                               </div>
                               <div>
-                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">배송 주소</label>
-                                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{contact.delivery_address || '-'}</p>
+                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                  배송 주소
+                                </label>
+                                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                                  {contact.delivery_address || '-'}
+                                </p>
                               </div>
                               <div>
-                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">수령인</label>
-                                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{contact.delivery_name || '-'}</p>
+                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                  수령인
+                                </label>
+                                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                                  {contact.delivery_name || '-'}
+                                </p>
                               </div>
                               <div>
-                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">수령인 연락처</label>
+                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                  수령인 연락처
+                                </label>
                                 <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                                   {contact.delivery_phone ? (
-                                    <a href={`tel:${contact.delivery_phone}`} className="text-orange-600 hover:underline">
+                                    <a
+                                      href={`tel:${contact.delivery_phone}`}
+                                      className="text-orange-600 hover:underline"
+                                    >
                                       {contact.delivery_phone}
                                     </a>
-                                  ) : '-'}
+                                  ) : (
+                                    '-'
+                                  )}
                                 </p>
                               </div>
                             </>
@@ -1173,13 +1354,17 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                         </div>
                         <div className="space-y-3">
                           <div>
-                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400">요청 제목</label>
+                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                              요청 제목
+                            </label>
                             <p className="mt-1 text-sm text-gray-900 dark:text-gray-100 font-medium">
                               {contact.revision_request_title}
                             </p>
                           </div>
                           <div>
-                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400">요청 내용</label>
+                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                              요청 내용
+                            </label>
                             <div className="mt-1 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
                               <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
                                 {contact.revision_request_content || '-'}
@@ -1188,7 +1373,9 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                           </div>
                           {contact.revision_requested_at && (
                             <div>
-                              <label className="text-xs font-medium text-gray-500 dark:text-gray-400">요청 일시</label>
+                              <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                요청 일시
+                              </label>
                               <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                                 {new Date(contact.revision_requested_at).toLocaleString('ko-KR')}
                               </p>
@@ -1196,7 +1383,9 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                           )}
                           {contact.revision_request_file_url && (
                             <div>
-                              <label className="text-xs font-medium text-gray-500 dark:text-gray-400">첨부 파일</label>
+                              <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                첨부 파일
+                              </label>
                               <div className="mt-1 flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
                                 <p className="text-xs text-gray-900 dark:text-gray-100 flex-1 truncate mr-2">
                                   {contact.revision_request_file_name || '파일명 없음'}
@@ -1215,8 +1404,10 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                     )}
 
                     {/* 첨부 파일 */}
-                    {(contact.attachment_url || contact.attachment_filename || 
-                      contact.drawing_file_url || contact.drawing_file_name || 
+                    {(contact.attachment_url ||
+                      contact.attachment_filename ||
+                      contact.drawing_file_url ||
+                      contact.drawing_file_name ||
                       contact.reference_photos_urls) && (
                       <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 mb-4">
                         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3 border-b border-gray-200 dark:border-gray-700 pb-2">
@@ -1225,7 +1416,9 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                         <div className="space-y-3">
                           {(contact.attachment_filename || contact.attachment_url) && (
                             <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-white dark:bg-gray-800">
-                              <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-2">첨부 파일</label>
+                              <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-2">
+                                첨부 파일
+                              </label>
                               <div className="flex items-center justify-between">
                                 <p className="text-sm text-gray-900 dark:text-gray-100 flex-1 truncate mr-2">
                                   {contact.attachment_filename || '파일명 없음'}
@@ -1241,10 +1434,12 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                               </div>
                             </div>
                           )}
-                          
+
                           {(contact.drawing_file_name || contact.drawing_file_url) && (
                             <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-white dark:bg-gray-800">
-                              <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-2">도면 파일</label>
+                              <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-2">
+                                도면 파일
+                              </label>
                               <div className="flex items-center justify-between">
                                 <p className="text-sm text-gray-900 dark:text-gray-100 flex-1 truncate mr-2">
                                   {contact.drawing_file_name || '파일명 없음'}
@@ -1260,18 +1455,27 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                               </div>
                             </div>
                           )}
-                          
+
                           {contact.reference_photos_urls && (
                             <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-white dark:bg-gray-800">
-                              <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-3">참고 사진</label>
+                              <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-3">
+                                참고 사진
+                              </label>
                               <div className="space-y-2">
                                 {(() => {
                                   try {
-                                    const urls = JSON.parse(contact.reference_photos_urls) as string[];
+                                    const urls = JSON.parse(
+                                      contact.reference_photos_urls
+                                    ) as string[];
                                     if (urls.length === 0) return null;
                                     return urls.map((url, idx) => (
-                                      <div key={idx} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 p-2 rounded border border-gray-200 dark:border-gray-600">
-                                        <span className="text-sm text-gray-900 dark:text-gray-100">사진 {idx + 1}</span>
+                                      <div
+                                        key={idx}
+                                        className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 p-2 rounded border border-gray-200 dark:border-gray-600"
+                                      >
+                                        <span className="text-sm text-gray-900 dark:text-gray-100">
+                                          사진 {idx + 1}
+                                        </span>
                                         <div onClick={(e) => e.stopPropagation()}>
                                           <DownloadButton
                                             url={url}
@@ -1281,7 +1485,11 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                                       </div>
                                     ));
                                   } catch {
-                                    return <p className="text-sm text-gray-500 dark:text-gray-400">파일 정보를 불러올 수 없습니다.</p>;
+                                    return (
+                                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                                        파일 정보를 불러올 수 없습니다.
+                                      </p>
+                                    );
                                   }
                                 })()}
                               </div>
@@ -1299,21 +1507,30 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                       <div className="space-y-3">
                         {contact.status !== 'deleting' && (
                           <div>
-                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">상태</label>
+                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                              상태
+                            </label>
                             <div className="mt-1">
-                              <UpdateStatusButton contactId={contact.id} currentStatus={contact.status} />
+                              <UpdateStatusButton
+                                contactId={contact.id}
+                                currentStatus={contact.status}
+                              />
                             </div>
                           </div>
                         )}
                         <div>
-                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">등록일</label>
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            등록일
+                          </label>
                           <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                             {new Date(contact.created_at).toLocaleString('ko-KR')}
                           </p>
                         </div>
                         {contact.updated_at && (
                           <div>
-                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">수정일</label>
+                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                              수정일
+                            </label>
                             <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                               {new Date(contact.updated_at).toLocaleString('ko-KR')}
                             </p>
@@ -1321,7 +1538,9 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                         )}
                         {contact.status === 'deleting' && contact.deleted_at && (
                           <div>
-                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">삭제일</label>
+                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                              삭제일
+                            </label>
                             <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                               {new Date(contact.deleted_at).toLocaleString('ko-KR')}
                             </p>
@@ -1354,8 +1573,8 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
 
                     {/* 공정 단계 표시 */}
                     <div className="mb-4">
-                      <ProcessStageIndicatorToggle 
-                        currentStage={contact.process_stage} 
+                      <ProcessStageIndicatorToggle
+                        currentStage={contact.process_stage}
                         status={contact.status}
                         defaultExpanded={isExpanded}
                       />
@@ -1375,8 +1594,8 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
 
                     {/* 하단: 상태 변경 버튼 및 삭제 버튼 */}
                     {contact.status !== 'deleting' && (
-                      <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
-                        {/* 왼쪽: 상태 변경 버튼들 */}
+                      <div className="flex flex-col gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        {/* 상태 변경 버튼들 */}
                         <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
                           {/* 신규 상태가 아닐 때만 상태 변경 버튼 표시 */}
                           {contact.status !== 'new' && (
@@ -1387,13 +1606,16 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                                   onClick={async (e) => {
                                     e.stopPropagation();
                                     try {
-                                      const response = await fetch(`/api/contacts/${contact.id}/status`, {
-                                        method: 'PATCH',
-                                        headers: {
-                                          'Content-Type': 'application/json',
-                                        },
-                                        body: JSON.stringify({ status: 'in_progress' }),
-                                      });
+                                      const response = await fetch(
+                                        `/api/contacts/${contact.id}/status`,
+                                        {
+                                          method: 'PATCH',
+                                          headers: {
+                                            'Content-Type': 'application/json',
+                                          },
+                                          body: JSON.stringify({ status: 'in_progress' }),
+                                        }
+                                      );
                                       if (response.ok) {
                                         router.refresh();
                                       } else {
@@ -1413,13 +1635,16 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                                   onClick={async (e) => {
                                     e.stopPropagation();
                                     try {
-                                      const response = await fetch(`/api/contacts/${contact.id}/status`, {
-                                        method: 'PATCH',
-                                        headers: {
-                                          'Content-Type': 'application/json',
-                                        },
-                                        body: JSON.stringify({ status: 'on_hold' }),
-                                      });
+                                      const response = await fetch(
+                                        `/api/contacts/${contact.id}/status`,
+                                        {
+                                          method: 'PATCH',
+                                          headers: {
+                                            'Content-Type': 'application/json',
+                                          },
+                                          body: JSON.stringify({ status: 'on_hold' }),
+                                        }
+                                      );
                                       if (response.ok) {
                                         router.refresh();
                                       } else {
@@ -1441,13 +1666,16 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                                   onClick={async (e) => {
                                     e.stopPropagation();
                                     try {
-                                      const response = await fetch(`/api/contacts/${contact.id}/status`, {
-                                        method: 'PATCH',
-                                        headers: {
-                                          'Content-Type': 'application/json',
-                                        },
-                                        body: JSON.stringify({ status: 'in_progress' }),
-                                      });
+                                      const response = await fetch(
+                                        `/api/contacts/${contact.id}/status`,
+                                        {
+                                          method: 'PATCH',
+                                          headers: {
+                                            'Content-Type': 'application/json',
+                                          },
+                                          body: JSON.stringify({ status: 'in_progress' }),
+                                        }
+                                      );
                                       if (response.ok) {
                                         router.refresh();
                                       } else {
@@ -1467,13 +1695,16 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                                   onClick={async (e) => {
                                     e.stopPropagation();
                                     try {
-                                      const response = await fetch(`/api/contacts/${contact.id}/status`, {
-                                        method: 'PATCH',
-                                        headers: {
-                                          'Content-Type': 'application/json',
-                                        },
-                                        body: JSON.stringify({ status: 'revision_in_progress' }),
-                                      });
+                                      const response = await fetch(
+                                        `/api/contacts/${contact.id}/status`,
+                                        {
+                                          method: 'PATCH',
+                                          headers: {
+                                            'Content-Type': 'application/json',
+                                          },
+                                          body: JSON.stringify({ status: 'revision_in_progress' }),
+                                        }
+                                      );
                                       if (response.ok) {
                                         router.refresh();
                                       } else {
@@ -1492,23 +1723,27 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                             </>
                           )}
                         </div>
-                        {/* 오른쪽: 삭제 버튼 */}
+                        {/* 삭제 버튼 */}
                         <div onClick={(e) => e.stopPropagation()}>
-                          <DeleteButton 
-                            contactId={contact.id} 
-                            contactName={contact.company_name || contact.name || `문의 #${contact.id}`}
+                          <DeleteButton
+                            contactId={contact.id}
+                            contactName={
+                              contact.company_name || contact.name || `문의 #${contact.id}`
+                            }
                           />
                         </div>
                       </div>
                     )}
-                    
+
                     {/* 삭제중 상태일 때 복구 및 영구 삭제 버튼 (확장된 뷰 - 왼쪽 하단) */}
                     {contact.status === 'deleting' && (
                       <div className="flex items-center justify-start gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
                         <div onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={(e) => handleRestore(contact.id, e)}
-                            disabled={restoringId === contact.id || permanentlyDeletingId === contact.id}
+                            disabled={
+                              restoringId === contact.id || permanentlyDeletingId === contact.id
+                            }
                             className="px-4 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                           >
                             <FaUndo className="text-sm" />
@@ -1517,8 +1752,16 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
                         </div>
                         <div onClick={(e) => e.stopPropagation()}>
                           <button
-                            onClick={(e) => handlePermanentDelete(contact.id, contact.company_name || contact.name || `문의 #${contact.id}`, e)}
-                            disabled={restoringId === contact.id || permanentlyDeletingId === contact.id}
+                            onClick={(e) =>
+                              handlePermanentDelete(
+                                contact.id,
+                                contact.company_name || contact.name || `문의 #${contact.id}`,
+                                e
+                              )
+                            }
+                            disabled={
+                              restoringId === contact.id || permanentlyDeletingId === contact.id
+                            }
                             className="px-4 py-2.5 text-sm border border-red-300 dark:border-red-600 rounded-lg bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                           >
                             <FaTrash className="text-sm" />
@@ -1549,7 +1792,7 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
             )}
           </div>
         )}
-        
+
         {/* 더 이상 불러올 데이터가 없을 때 */}
         {!hasMore && filteredContacts.length > 0 && (
           <div className="text-center py-8 text-sm text-gray-500 dark:text-gray-400">
@@ -1578,4 +1821,3 @@ export function ContactsList({ contacts: initialContacts, statusFilter, totalCou
     </>
   );
 }
-
