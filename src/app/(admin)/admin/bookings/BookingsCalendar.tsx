@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaClock } from 'react-icons/fa';
+import { FaClock, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 interface Contact {
   id: number; // BIGSERIAL
@@ -31,6 +31,7 @@ interface BookingsCalendarProps {
 
 export function BookingsCalendar({ initialBookings }: BookingsCalendarProps) {
   const router = useRouter();
+  const [dayOffset, setDayOffset] = useState(0); // 오늘 기준으로 며칠 뒤인지
 
   // 날짜별로 예약 그룹화
   const bookingsByDate = useMemo(() => {
@@ -45,10 +46,11 @@ export function BookingsCalendar({ initialBookings }: BookingsCalendarProps) {
     return grouped;
   }, [initialBookings]);
 
-  // 오늘 기준으로 3일 생성 (오늘 포함)
+  // 기준 날짜로부터 3일 생성
   const calendarDays = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const baseDate = new Date();
+    baseDate.setHours(0, 0, 0, 0);
+    baseDate.setDate(baseDate.getDate() + dayOffset);
 
     const days: Array<{
       date: Date;
@@ -57,8 +59,8 @@ export function BookingsCalendar({ initialBookings }: BookingsCalendarProps) {
     }> = [];
 
     for (let i = 0; i < 3; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + i);
+      const date = new Date(baseDate);
+      date.setDate(baseDate.getDate() + i);
       const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
       days.push({
         date: new Date(date),
@@ -68,17 +70,22 @@ export function BookingsCalendar({ initialBookings }: BookingsCalendarProps) {
     }
 
     return days;
-  }, [bookingsByDate]);
+  }, [dayOffset, bookingsByDate]);
 
-  // 오늘 기준 날짜 범위 표시
-  const weekRange = useMemo(() => {
-    if (calendarDays.length === 0) return '';
-    const start = calendarDays[0].date;
-    const end = calendarDays[calendarDays.length - 1].date;
-    const startStr = `${start.getMonth() + 1}/${start.getDate()}`;
-    const endStr = `${end.getMonth() + 1}/${end.getDate()}`;
-    return `${start.getFullYear()}년 ${startStr} ~ ${endStr}`;
-  }, [calendarDays]);
+  // 이전 3일
+  const goToPrevious3Days = () => {
+    setDayOffset(dayOffset - 3);
+  };
+
+  // 다음 3일
+  const goToNext3Days = () => {
+    setDayOffset(dayOffset + 3);
+  };
+
+  // 오늘로 이동
+  const goToToday = () => {
+    setDayOffset(0);
+  };
 
   // 태그 클릭 핸들러
   const handleBookingClick = (booking: Booking) => {
@@ -91,9 +98,28 @@ export function BookingsCalendar({ initialBookings }: BookingsCalendarProps) {
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
-      {/* 헤더 */}
-      <div className="bg-orange-500 text-white px-6 py-4">
-        <h2 className="text-xl font-bold">{weekRange}</h2>
+      {/* 네비게이션 버튼 */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <button
+          onClick={goToPrevious3Days}
+          className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors text-gray-700 dark:text-gray-300"
+        >
+          <FaChevronLeft />
+          <span>이전 3일</span>
+        </button>
+        <button
+          onClick={goToToday}
+          className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors text-gray-700 dark:text-gray-300 text-sm"
+        >
+          오늘
+        </button>
+        <button
+          onClick={goToNext3Days}
+          className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors text-gray-700 dark:text-gray-300"
+        >
+          <span>다음 3일</span>
+          <FaChevronRight />
+        </button>
       </div>
 
       {/* 캘린더 그리드 */}
@@ -102,26 +128,38 @@ export function BookingsCalendar({ initialBookings }: BookingsCalendarProps) {
         <div className="grid grid-cols-3 gap-6">
           {calendarDays.map((day, index) => {
             const isToday = day.date.toDateString() === new Date().toDateString();
+            const hasBookings = day.bookings.length > 0;
 
             return (
               <div
                 key={index}
-                className={`min-h-[600px] border border-gray-200 dark:border-gray-700 rounded-lg p-6 bg-white dark:bg-gray-800 ${
-                  isToday ? 'ring-2 ring-orange-500' : ''
-                }`}
+                className={`min-h-[600px] border rounded-lg p-6 ${
+                  hasBookings
+                    ? 'border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/10'
+                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
+                } ${isToday ? 'ring-2 ring-gray-400 dark:ring-gray-600' : ''}`}
               >
                 {/* 날짜 정보 */}
                 <div
-                  className={`text-xl font-bold mb-5 pb-4 border-b border-gray-200 dark:border-gray-700 ${
-                    isToday
-                      ? 'text-orange-600 dark:text-orange-400'
-                      : 'text-gray-900 dark:text-gray-100'
+                  className={`text-xl font-bold mb-5 pb-4 border-b ${
+                    hasBookings
+                      ? 'text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800'
+                      : 'text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700'
                   }`}
                 >
-                  <div className="text-base text-gray-500 dark:text-gray-400 mb-2">
+                  <div
+                    className={`text-base mb-2 ${
+                      hasBookings
+                        ? 'text-orange-600 dark:text-orange-400'
+                        : 'text-gray-500 dark:text-gray-400'
+                    }`}
+                  >
                     {weekDays[day.date.getDay()]}
                   </div>
                   {day.date.getMonth() + 1}월 {day.date.getDate()}일
+                  {isToday && (
+                    <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">(오늘)</span>
+                  )}
                 </div>
 
                 {/* 예약 태그들 - 모두 표시 */}
