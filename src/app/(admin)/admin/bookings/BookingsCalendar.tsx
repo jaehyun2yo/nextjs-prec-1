@@ -89,8 +89,10 @@ export function BookingsCalendar({ initialBookings }: BookingsCalendarProps) {
 
   // 태그 클릭 핸들러
   const handleBookingClick = (booking: Booking) => {
-    if (booking.contact_id) {
+    if (booking.contact_id && booking.contact_id > 0) {
       router.push(`/admin/contacts/${booking.contact_id}`);
+    } else {
+      console.warn('Invalid contact_id:', booking.contact_id);
     }
   };
 

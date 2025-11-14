@@ -52,11 +52,23 @@ export default async function RootLayout({
     isPortfolioPage = pathname === '/portfolio';
     // /admin으로 시작하는 모든 경로는 관리자 페이지
     isAdminPage = pathname.startsWith('/admin');
-  } catch {
+  } catch (error) {
     // headers() 호출 실패 시 기본값 사용
+    layoutLogger.warn('Failed to get pathname from headers', error);
     isCompanyPage = false;
     isPortfolioPage = false;
     isAdminPage = false;
+  }
+
+  // 디버깅: isAdminPage 상태 로깅
+  if (process.env.NODE_ENV === 'development') {
+    try {
+      const headersList = await headers();
+      const pathname = headersList.get('x-pathname') || '';
+      layoutLogger.info('Layout pathname check', { pathname, isAdminPage });
+    } catch {
+      // 무시
+    }
   }
 
   // 업체 정보 가져오기 (업체 로그인인 경우)

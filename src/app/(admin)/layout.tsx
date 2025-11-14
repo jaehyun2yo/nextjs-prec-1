@@ -22,7 +22,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
   return (
     <ToastProvider placement="top-center" maxVisibleToasts={10}>
-      <div className="flex min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
+      <div className="admin-page flex min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
         <aside className="hidden lg:block fixed left-0 top-0 h-screen w-48 bg-gray-800 dark:bg-gray-900 text-white dark:text-gray-100 p-3 lg:p-4 border-r border-gray-700 dark:border-gray-700 flex-shrink-0 overflow-y-auto">
           <h1 className="text-xl lg:text-2xl font-bold mb-6 lg:mb-8">Admin Panel</h1>
           <nav className="flex flex-col space-y-2 lg:space-y-4">
