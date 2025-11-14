@@ -30,66 +30,66 @@
 
 ### 코어 프레임워크
 
-| 기술 | 버전 | 용도 |
-|------|------|------|
-| **Next.js** | 15.5.5 | React 프레임워크, App Router |
-| **React** | 19.1.0 | UI 라이브러리 |
-| **TypeScript** | ^5 | 타입 안정성 |
-| **Node.js** | ^20 | 런타임 환경 |
+| 기술           | 버전   | 용도                         |
+| -------------- | ------ | ---------------------------- |
+| **Next.js**    | 15.5.5 | React 프레임워크, App Router |
+| **React**      | 19.1.0 | UI 라이브러리                |
+| **TypeScript** | ^5     | 타입 안정성                  |
+| **Node.js**    | ^20    | 런타임 환경                  |
 
 ### 스타일링 및 UI
 
-| 기술 | 버전 | 용도 |
-|------|------|------|
-| **Tailwind CSS** | ^4 | 유틸리티 CSS 프레임워크 |
-| **Framer Motion** | ^12.23.24 | 애니메이션 라이브러리 |
-| **Radix UI** | ^1.1.15, ^1.2.15 | 접근성 높은 UI 컴포넌트 |
-| **Lucide React** | ^0.548.0 | 아이콘 라이브러리 |
-| **React Icons** | ^5.5.0 | 아이콘 라이브러리 |
-| **class-variance-authority** | ^0.7.1 | 컴포넌트 변형 관리 |
+| 기술                         | 버전             | 용도                    |
+| ---------------------------- | ---------------- | ----------------------- |
+| **Tailwind CSS**             | ^4               | 유틸리티 CSS 프레임워크 |
+| **Framer Motion**            | ^12.23.24        | 애니메이션 라이브러리   |
+| **Radix UI**                 | ^1.1.15, ^1.2.15 | 접근성 높은 UI 컴포넌트 |
+| **Lucide React**             | ^0.548.0         | 아이콘 라이브러리       |
+| **React Icons**              | ^5.5.0           | 아이콘 라이브러리       |
+| **class-variance-authority** | ^0.7.1           | 컴포넌트 변형 관리      |
 
 ### 상태 관리
 
-| 기술 | 버전 | 용도 |
-|------|------|------|
-| **Zustand** | ^5.0.8 | 클라이언트 전역 상태 관리 |
-| **TanStack React Query** | ^5.90.5 | 서버 상태 관리 및 캐싱 |
+| 기술                     | 버전    | 용도                      |
+| ------------------------ | ------- | ------------------------- |
+| **Zustand**              | ^5.0.8  | 클라이언트 전역 상태 관리 |
+| **TanStack React Query** | ^5.90.5 | 서버 상태 관리 및 캐싱    |
 
 ### 폼 및 검증
 
-| 기술 | 버전 | 용도 |
-|------|------|------|
-| **React Hook Form** | ^7.65.0 | 폼 상태 관리 |
-| **Zod** | ^4.1.12 | 스키마 검증 |
-| **@hookform/resolvers** | ^5.2.2 | React Hook Form + Zod 통합 |
+| 기술                    | 버전    | 용도                       |
+| ----------------------- | ------- | -------------------------- |
+| **React Hook Form**     | ^7.65.0 | 폼 상태 관리               |
+| **Zod**                 | ^4.1.12 | 스키마 검증                |
+| **@hookform/resolvers** | ^5.2.2  | React Hook Form + Zod 통합 |
 
 ### 백엔드 및 데이터베이스
 
-| 기술 | 버전 | 용도 |
-|------|------|------|
-| **Supabase** | ^2.75.0 | 백엔드 및 데이터베이스 |
-| **@supabase/ssr** | ^0.7.0 | SSR 지원 |
+| 기술              | 버전    | 용도                   |
+| ----------------- | ------- | ---------------------- |
+| **Supabase**      | ^2.75.0 | 백엔드 및 데이터베이스 |
+| **@supabase/ssr** | ^0.7.0  | SSR 지원               |
 
 ### 에디터
 
-| 기술 | 버전 | 용도 |
-|------|------|------|
-| **Lexical** | ^0.37.0 | 리치 텍스트 에디터 프레임워크 |
-| **@lexical/react** | ^0.37.0 | Lexical React 통합 |
+| 기술               | 버전    | 용도                          |
+| ------------------ | ------- | ----------------------------- |
+| **Lexical**        | ^0.37.0 | 리치 텍스트 에디터 프레임워크 |
+| **@lexical/react** | ^0.37.0 | Lexical React 통합            |
 
 ### 유틸리티
 
-| 기술 | 버전 | 용도 |
-|------|------|------|
-| **Sonner** | ^2.0.7 | 토스트 알림 |
-| **clsx** | ^2.1.1 | 조건부 클래스명 유틸리티 |
-| **Recharts** | ^3.3.0 | 차트 라이브러리 |
+| 기술         | 버전   | 용도                     |
+| ------------ | ------ | ------------------------ |
+| **Sonner**   | ^2.0.7 | 토스트 알림              |
+| **clsx**     | ^2.1.1 | 조건부 클래스명 유틸리티 |
+| **Recharts** | ^3.3.0 | 차트 라이브러리          |
 
 ### 개발 도구
 
-| 기술 | 버전 | 용도 |
-|------|------|------|
-| **ESLint** | ^9 | 코드 린팅 |
+| 기술          | 버전 | 용도           |
+| ------------- | ---- | -------------- |
+| **ESLint**    | ^9   | 코드 린팅      |
 | **Turbopack** | 내장 | Next.js 번들러 |
 
 ## 프로젝트 구조
@@ -150,7 +150,6 @@ nextjs-prec-1/
   - `(admin)`: 라우트 그룹 (URL에 반영되지 않음)
   - `[id]`, `[slug]`: 동적 라우트 세그먼트
   - `_actions`: 서버 액션 디렉토리
-  
 - **`components/`**: 재사용 가능한 React 컴포넌트
 - **`lib/`**: 공통 유틸리티 함수 및 라이브러리 설정
 - **`store/`**: 클라이언트 상태 관리 (Zustand)
@@ -290,11 +289,27 @@ npm run build
 # 프로덕션 서버 실행
 npm start
 
+# 배포 전 로컬 테스트 (빌드 + 프로덕션 서버 실행)
+npm run build:test
+
 # 린트 체크
 npm run lint
 ```
 
 개발 서버는 기본적으로 `http://localhost:3000`에서 실행됩니다.
+
+### 빠른 배포 테스트
+
+Vercel 배포 전에 로컬에서 프로덕션 빌드를 테스트하려면:
+
+```bash
+# 1. 빌드 + 프로덕션 서버 실행 (가장 빠름)
+npm run build:test
+
+# 2. 브라우저에서 http://localhost:3000 접속하여 테스트
+```
+
+자세한 내용은 [로컬 테스트 가이드](docs/LOCAL_TESTING.md)를 참고하세요.
 
 ## 개발 가이드
 
@@ -324,6 +339,7 @@ npm run lint
 ### 데이터 페칭 패턴
 
 **서버 컴포넌트에서 데이터 페칭:**
+
 ```typescript
 async function getData() {
   const res = await fetch('...');
@@ -337,6 +353,7 @@ export default async function Page() {
 ```
 
 **클라이언트 컴포넌트에서 데이터 페칭:**
+
 ```typescript
 'use client';
 
@@ -358,10 +375,10 @@ export default function Component() {
 ```typescript
 // middleware.ts
 export function middleware(request: NextRequest) {
-  if (request.nextUrl.pathname.startsWith("/admin")) {
-    const isAuth = request.cookies.get("admin-auth")?.value;
-    if (isAuth !== "true") {
-      return NextResponse.redirect(new URL("/login", request.url));
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    const isAuth = request.cookies.get('admin-auth')?.value;
+    if (isAuth !== 'true') {
+      return NextResponse.redirect(new URL('/login', request.url));
     }
   }
   return NextResponse.next();
