@@ -1597,7 +1597,7 @@ export function ContactsList({
 
                     {/* 하단: 상태 변경 버튼 및 삭제 버튼 */}
                     {contact.status !== 'deleting' && (
-                      <div className="flex flex-col items-start gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <div className="flex flex-row items-center justify-between gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
                         {/* 상태 변경 버튼들 */}
                         <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
                           {/* 신규 상태가 아닐 때만 상태 변경 버튼 표시 */}
