@@ -90,13 +90,11 @@ export default async function AdminBookingsPage() {
         <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
           <p className="text-yellow-800 dark:text-yellow-200 text-sm">
             ⚠️ {errorMessage}
-            {errorMessage.includes('relation') ||
-              (errorMessage.includes('does not exist') && (
-                <span className="block mt-2">
-                  visit_bookings 테이블이 존재하지 않을 수 있습니다. 데이터베이스 설정을
-                  확인해주세요.
-                </span>
-              ))}
+            {(errorMessage.includes('relation') || errorMessage.includes('does not exist')) && (
+              <span className="block mt-2">
+                visit_bookings 테이블이 존재하지 않을 수 있습니다. 데이터베이스 설정을 확인해주세요.
+              </span>
+            )}
           </p>
         </div>
       )}
