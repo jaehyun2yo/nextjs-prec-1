@@ -6,7 +6,7 @@ import { ConfirmModal } from '@/components/modals/ConfirmModal';
 import { motion } from 'framer-motion';
 
 interface PortfolioDeleteButtonProps {
-  portfolioId: number;
+  portfolioId: string; // UUID
   portfolioTitle: string;
   deletePortfolio: (formData: FormData) => Promise<{ success: boolean; error?: string }>;
 }

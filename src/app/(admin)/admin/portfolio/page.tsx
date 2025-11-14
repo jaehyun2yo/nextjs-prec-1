@@ -15,7 +15,7 @@ interface UploadedImage {
 }
 
 interface PortfolioItem {
-  id: number;
+  id: string; // UUID
   title: string;
   field: string;
   purpose: string;
@@ -114,9 +114,9 @@ async function deletePortfolio(formData: FormData): Promise<{ success: boolean; 
     return { success: false, error: 'invalid' };
   }
 
-  // ID를 숫자로 변환 시도
-  const portfolioId = typeof id === 'string' ? parseInt(id, 10) : Number(id);
-  if (isNaN(portfolioId)) {
+  // ID는 UUID 문자열
+  const portfolioId = String(id).trim();
+  if (!portfolioId) {
     portfolioLogger.error('Invalid portfolio ID', { id });
     return { success: false, error: 'invalid' };
   }
