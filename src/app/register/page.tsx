@@ -55,6 +55,15 @@ function RegisterForm() {
       // registerCompany는 redirect를 사용하므로 여기까지 오지 않음
       // 하지만 에러가 발생하면 catch로 이동
     } catch (error) {
+      // NEXT_REDIRECT는 정상적인 리다이렉트이므로 무시
+      const errorDigest = (error as { digest?: string })?.digest;
+      if (
+        error instanceof Error &&
+        (error.message === 'NEXT_REDIRECT' || errorDigest?.startsWith('NEXT_REDIRECT'))
+      ) {
+        // redirect는 정상 동작이므로 에러로 처리하지 않음
+        return;
+      }
       console.error('Registration error:', error);
       // 에러는 registerCompany 내부에서 redirect로 처리됨
     } finally {
@@ -67,7 +76,7 @@ function RegisterForm() {
     try {
       const result = await createTestAccount();
       console.log('Test account creation result:', result);
-      
+
       if (result && result.success) {
         setShowSuccessModal(true);
       } else {
@@ -75,6 +84,15 @@ function RegisterForm() {
         alert('테스트 계정 생성에 실패했습니다. 다시 시도해주세요.');
       }
     } catch (error) {
+      // NEXT_REDIRECT는 정상적인 리다이렉트이므로 무시
+      const errorDigest = (error as { digest?: string })?.digest;
+      if (
+        error instanceof Error &&
+        (error.message === 'NEXT_REDIRECT' || errorDigest?.startsWith('NEXT_REDIRECT'))
+      ) {
+        // redirect는 정상 동작이므로 에러로 처리하지 않음
+        return;
+      }
       console.error('Test account creation error:', error);
       alert('테스트 계정 생성 중 오류가 발생했습니다. 다시 시도해주세요.');
     } finally {
@@ -86,9 +104,7 @@ function RegisterForm() {
     <div className="min-h-screen bg-white dark:bg-gray-900 py-8 px-4">
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            업체등록
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">업체등록</h1>
           <p className="text-gray-600 dark:text-gray-400">
             업체 정보를 입력하여 업체등록을 진행해주세요.
           </p>
@@ -96,9 +112,7 @@ function RegisterForm() {
 
         {error && getErrorMessage(error) && (
           <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <p className="text-sm text-red-600 dark:text-red-400">
-              {getErrorMessage(error)}
-            </p>
+            <p className="text-sm text-red-600 dark:text-red-400">{getErrorMessage(error)}</p>
           </div>
         )}
 
@@ -118,7 +132,10 @@ function RegisterForm() {
             </h2>
             <div className="space-y-4">
               <div>
-                <label htmlFor="username" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                <label
+                  htmlFor="username"
+                  className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2"
+                >
                   아이디 <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -131,7 +148,10 @@ function RegisterForm() {
                 />
               </div>
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2"
+                >
                   비밀번호 <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -145,7 +165,10 @@ function RegisterForm() {
                 />
               </div>
               <div>
-                <label htmlFor="password_confirm" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                <label
+                  htmlFor="password_confirm"
+                  className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2"
+                >
                   비밀번호 확인 <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -168,7 +191,10 @@ function RegisterForm() {
             </h2>
             <div className="space-y-4">
               <div>
-                <label htmlFor="company_name" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                <label
+                  htmlFor="company_name"
+                  className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2"
+                >
                   업체명 <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -181,7 +207,10 @@ function RegisterForm() {
                 />
               </div>
               <div>
-                <label htmlFor="business_registration_number" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                <label
+                  htmlFor="business_registration_number"
+                  className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2"
+                >
                   사업자등록번호 <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -194,7 +223,10 @@ function RegisterForm() {
                 />
               </div>
               <div>
-                <label htmlFor="representative_name" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                <label
+                  htmlFor="representative_name"
+                  className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2"
+                >
                   대표자명 <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -208,7 +240,10 @@ function RegisterForm() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="business_type" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                  <label
+                    htmlFor="business_type"
+                    className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2"
+                  >
                     업태 <span className="text-gray-500 text-xs">(선택사항)</span>
                   </label>
                   <input
@@ -220,7 +255,10 @@ function RegisterForm() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="business_category" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                  <label
+                    htmlFor="business_category"
+                    className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2"
+                  >
                     업종 <span className="text-gray-500 text-xs">(선택사항)</span>
                   </label>
                   <input
@@ -233,7 +271,10 @@ function RegisterForm() {
                 </div>
               </div>
               <div>
-                <label htmlFor="business_address" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                <label
+                  htmlFor="business_address"
+                  className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2"
+                >
                   사업자주소 <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -248,8 +289,8 @@ function RegisterForm() {
               <div className="my-6">
                 <FileUpload
                   name="business_registration_file"
-                    id="business_registration_file"
-                    accept=".pdf,.jpg,.jpeg,.png"
+                  id="business_registration_file"
+                  accept=".pdf,.jpg,.jpeg,.png"
                   maxSize={10 * 1024 * 1024}
                   disabled={isSubmitting}
                   files={selectedFiles}
@@ -269,7 +310,10 @@ function RegisterForm() {
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="manager_name" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                  <label
+                    htmlFor="manager_name"
+                    className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2"
+                  >
                     성함 <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -282,7 +326,10 @@ function RegisterForm() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="manager_position" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                  <label
+                    htmlFor="manager_position"
+                    className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2"
+                  >
                     직함 <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -297,7 +344,10 @@ function RegisterForm() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="manager_phone" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                  <label
+                    htmlFor="manager_phone"
+                    className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2"
+                  >
                     연락처 <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -310,7 +360,10 @@ function RegisterForm() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="manager_email" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                  <label
+                    htmlFor="manager_email"
+                    className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2"
+                  >
                     이메일 <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -334,7 +387,10 @@ function RegisterForm() {
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="accountant_name" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                  <label
+                    htmlFor="accountant_name"
+                    className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2"
+                  >
                     성함 <span className="text-gray-500 text-xs">(선택사항)</span>
                   </label>
                   <input
@@ -346,7 +402,10 @@ function RegisterForm() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="accountant_phone" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                  <label
+                    htmlFor="accountant_phone"
+                    className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2"
+                  >
                     연락처 <span className="text-gray-500 text-xs">(선택사항)</span>
                   </label>
                   <input
@@ -360,8 +419,12 @@ function RegisterForm() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="accountant_email" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                    세금계산서 발행할 이메일 <span className="text-gray-500 text-xs">(선택사항)</span>
+                  <label
+                    htmlFor="accountant_email"
+                    className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2"
+                  >
+                    세금계산서 발행할 이메일{' '}
+                    <span className="text-gray-500 text-xs">(선택사항)</span>
                   </label>
                   <input
                     type="email"
@@ -372,7 +435,10 @@ function RegisterForm() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="accountant_fax" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                  <label
+                    htmlFor="accountant_fax"
+                    className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2"
+                  >
                     팩스번호 <span className="text-gray-500 text-xs">(선택사항)</span>
                   </label>
                   <input
@@ -384,7 +450,7 @@ function RegisterForm() {
                   />
                 </div>
               </div>
-              
+
               {/* 견적서 제공받을 방법 */}
               <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                 <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
@@ -443,11 +509,7 @@ function RegisterForm() {
             >
               이미 계정이 있으신가요? 로그인
             </Link>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className={BUTTON_STYLES.primaryDisabled}
-            >
+            <button type="submit" disabled={isSubmitting} className={BUTTON_STYLES.primaryDisabled}>
               {isSubmitting ? '처리 중...' : '업체등록'}
             </button>
           </div>
@@ -473,17 +535,18 @@ function RegisterForm() {
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-white dark:bg-gray-900 py-8 px-4">
-        <div className="max-w-2xl mx-auto">
-          <div className="text-center py-12">
-            <p className="text-gray-600 dark:text-gray-400">로딩 중...</p>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-white dark:bg-gray-900 py-8 px-4">
+          <div className="max-w-2xl mx-auto">
+            <div className="text-center py-12">
+              <p className="text-gray-600 dark:text-gray-400">로딩 중...</p>
+            </div>
           </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <RegisterForm />
     </Suspense>
   );
 }
-

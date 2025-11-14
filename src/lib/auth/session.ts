@@ -12,7 +12,10 @@ const SESSION_MAX_AGE = 60 * 60 * 24; // 1일
  * @param userType - 사용자 타입 ('admin' | 'company')
  * @param userId - 사용자 ID (company의 경우 company id)
  */
-export async function createSession(userType: 'admin' | 'company' = 'admin', userId?: number): Promise<string> {
+export async function createSession(
+  userType: 'admin' | 'company' = 'admin',
+  userId?: number
+): Promise<string> {
   const token = generateSessionToken();
   const cookieStore = await cookies();
 
@@ -22,7 +25,9 @@ export async function createSession(userType: 'admin' | 'company' = 'admin', use
 
   cookieStore.set(SESSION_COOKIE_NAME, signedToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    // secure는 HTTPS에서만 쿠키를 전송하므로, 로컬 개발이나 HTTP에서는 false
+    // 프로덕션에서도 HTTPS가 아닌 경우를 고려하여 환경 변수로 제어 가능
+    secure: process.env.NODE_ENV === 'production' && process.env.USE_SECURE_COOKIES !== 'false',
     sameSite: 'lax',
     maxAge: SESSION_MAX_AGE,
     path: '/',
@@ -34,7 +39,10 @@ export async function createSession(userType: 'admin' | 'company' = 'admin', use
 /**
  * 세션에서 사용자 타입과 ID를 가져옵니다
  */
-export async function getSessionUser(): Promise<{ userType: 'admin' | 'company'; userId?: number } | null> {
+export async function getSessionUser(): Promise<{
+  userType: 'admin' | 'company';
+  userId?: number;
+} | null> {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get(SESSION_COOKIE_NAME);
 
@@ -102,10 +110,11 @@ function signToken(token: string): string {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const crypto = require('crypto');
   const sessionSecret = getSessionSecret();
-  const hash = crypto.createHash('sha256')
+  const hash = crypto
+    .createHash('sha256')
     .update(token + sessionSecret)
     .digest('hex');
-  
+
   return `${token}.${hash}`;
 }
 
@@ -114,7 +123,7 @@ function signToken(token: string): string {
  */
 function verifySignedToken(signedToken: string): boolean {
   const [token, signature] = signedToken.split('.');
-  
+
   if (!token || !signature) {
     return false;
   }
@@ -123,4 +132,3 @@ function verifySignedToken(signedToken: string): boolean {
   const expectedSignature = signToken(token).split('.')[1];
   return signature === expectedSignature;
 }
-
