@@ -1,12 +1,12 @@
 // src/app/(admin)/admin/portfolio/page.tsx
 
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import Image from 'next/image';
 import { transparentBlurDataURL } from '@/lib/images/placeholder';
 import { logger } from '@/lib/utils/logger';
 import { PortfolioForm } from '@/components/portfolio/PortfolioForm';
+import { PortfolioDeleteButton } from '@/components/portfolio/PortfolioDeleteButton';
 
 interface UploadedImage {
   original: string;
@@ -106,12 +106,12 @@ async function savePortfolio(formData: FormData): Promise<{ success: boolean; er
   }
 }
 
-async function deletePortfolio(formData: FormData) {
+async function deletePortfolio(formData: FormData): Promise<{ success: boolean; error?: string }> {
   'use server';
   const portfolioLogger = logger.createLogger('PORTFOLIO_ADMIN');
   const id = formData.get('id');
   if (!id) {
-    redirect('/admin/portfolio?error=invalid');
+    return { success: false, error: 'invalid' };
   }
   try {
     const supabase = await createSupabaseServerClient();
@@ -121,21 +121,13 @@ async function deletePortfolio(formData: FormData) {
       .eq('id', id as string);
     if (error) {
       portfolioLogger.error('Portfolio delete error', error);
-      redirect('/admin/portfolio?error=supabase');
+      return { success: false, error: 'supabase' };
     }
     portfolioLogger.debug('Portfolio delete success');
-    redirect('/admin/portfolio?success=1');
+    return { success: true };
   } catch (error: unknown) {
-    // Next.js redirect는 NEXT_REDIRECT 에러를 throw하므로 이를 무시해야 함
-    if (
-      error instanceof Error &&
-      (error.message === 'NEXT_REDIRECT' ||
-        (error as { digest?: string }).digest?.startsWith('NEXT_REDIRECT'))
-    ) {
-      throw error; // redirect 예외는 다시 throw
-    }
     portfolioLogger.error('Portfolio delete exception', error);
-    redirect('/admin/portfolio?warn=noconfig');
+    return { success: false, error: 'noconfig' };
   }
 }
 
@@ -268,15 +260,11 @@ export default async function AdminPortfolioPage({
                   >
                     수정
                   </Link>
-                  <form action={deletePortfolio}>
-                    <input type="hidden" name="id" value={it.id} />
-                    <button
-                      type="submit"
-                      className="px-3 py-1.5 rounded-md text-sm bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/40"
-                    >
-                      삭제
-                    </button>
-                  </form>
+                  <PortfolioDeleteButton
+                    portfolioId={it.id}
+                    portfolioTitle={it.title}
+                    deletePortfolio={deletePortfolio}
+                  />
                 </div>
               </li>
             ))}
