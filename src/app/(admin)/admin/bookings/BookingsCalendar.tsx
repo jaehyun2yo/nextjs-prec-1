@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { FaChevronLeft, FaChevronRight, FaClock } from 'react-icons/fa';
 
 interface Contact {
-  id: string; // UUID
+  id: number; // BIGSERIAL
   company_name: string;
   name: string;
   phone: string;
@@ -18,7 +18,7 @@ interface Booking {
   visit_date: string;
   visit_time_slot: string;
   company_name: string;
-  contact_id: string | null; // UUID
+  contact_id: number | null; // BIGINT (BIGSERIAL)
   status: string;
   notes: string | null;
   created_at: string;
@@ -96,8 +96,7 @@ export function BookingsCalendar({ initialBookings }: BookingsCalendarProps) {
   // 태그 클릭 핸들러
   const handleBookingClick = (booking: Booking) => {
     if (booking.contact_id) {
-      // contact_id는 UUID이므로 문자열로 변환
-      router.push(`/admin/contacts/${String(booking.contact_id)}`);
+      router.push(`/admin/contacts/${booking.contact_id}`);
     }
   };
 

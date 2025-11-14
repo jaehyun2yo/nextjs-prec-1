@@ -17,7 +17,7 @@ export default async function AdminBookingsPage() {
   const supabase = await createSupabaseServerClient();
 
   interface Contact {
-    id: string; // UUID
+    id: number; // BIGSERIAL
     company_name: string;
     name: string;
     phone: string;
@@ -30,7 +30,7 @@ export default async function AdminBookingsPage() {
     visit_date: string;
     visit_time_slot: string;
     company_name: string;
-    contact_id: string | null; // UUID
+    contact_id: number | null; // BIGINT (BIGSERIAL)
     status: string;
     notes: string | null;
     created_at: string;
