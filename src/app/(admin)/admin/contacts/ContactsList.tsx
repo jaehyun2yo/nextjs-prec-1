@@ -768,7 +768,7 @@ export function ContactsList({
 
                       {/* 요약본 하단: 상태 변경 버튼 및 작업시작 버튼 */}
                       {contact.status !== 'deleting' && (
-                        <div className="pt-3 border-t border-gray-200 dark:border-gray-700 mt-3">
+                        <div className="pt-4 md:pt-6 border-t border-gray-200 dark:border-gray-700 mt-4 md:mt-6">
                           <div
                             className="flex flex-row items-center justify-between gap-2"
                             onClick={(e) => e.stopPropagation()}
