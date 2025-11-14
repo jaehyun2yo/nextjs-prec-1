@@ -31,7 +31,6 @@ interface BookingsCalendarProps {
 
 export function BookingsCalendar({ initialBookings }: BookingsCalendarProps) {
   const router = useRouter();
-  const [currentDate, setCurrentDate] = useState(new Date());
 
   // 날짜별로 예약 그룹화
   const bookingsByDate = useMemo(() => {
@@ -46,19 +45,11 @@ export function BookingsCalendar({ initialBookings }: BookingsCalendarProps) {
     return grouped;
   }, [initialBookings]);
 
-  // 현재 주의 시작일(일요일) 계산
-  const getWeekStart = (date: Date): Date => {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day; // 일요일까지의 차이
-    const weekStart = new Date(d.setDate(diff));
-    weekStart.setHours(0, 0, 0, 0);
-    return weekStart;
-  };
-
-  // 현재 주의 7일 생성
+  // 오늘 기준으로 7일 생성 (오늘 포함)
   const calendarDays = useMemo(() => {
-    const weekStart = getWeekStart(currentDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     const days: Array<{
       date: Date;
       dateString: string;
@@ -66,8 +57,8 @@ export function BookingsCalendar({ initialBookings }: BookingsCalendarProps) {
     }> = [];
 
     for (let i = 0; i < 7; i++) {
-      const date = new Date(weekStart);
-      date.setDate(weekStart.getDate() + i);
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
       const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
       days.push({
         date: new Date(date),
@@ -77,26 +68,9 @@ export function BookingsCalendar({ initialBookings }: BookingsCalendarProps) {
     }
 
     return days;
-  }, [currentDate, bookingsByDate]);
+  }, [bookingsByDate]);
 
-  // 주 이동
-  const goToPreviousWeek = () => {
-    const newDate = new Date(currentDate);
-    newDate.setDate(newDate.getDate() - 7);
-    setCurrentDate(newDate);
-  };
-
-  const goToNextWeek = () => {
-    const newDate = new Date(currentDate);
-    newDate.setDate(newDate.getDate() + 7);
-    setCurrentDate(newDate);
-  };
-
-  const goToToday = () => {
-    setCurrentDate(new Date());
-  };
-
-  // 현재 주의 날짜 범위 표시
+  // 오늘 기준 날짜 범위 표시
   const weekRange = useMemo(() => {
     if (calendarDays.length === 0) return '';
     const start = calendarDays[0].date;
