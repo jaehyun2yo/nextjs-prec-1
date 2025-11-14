@@ -1,27 +1,24 @@
 // src/app/(admin)/layout.tsx
 
-import Link from "next/link";
-import { verifySession, getSessionUser } from "@/lib/auth/session";
-import { redirect } from "next/navigation";
-import { ToastProvider } from "@/components/toast/ToastProvider";
-import { AdminToastProvider } from "./AdminToastProvider";
+import Link from 'next/link';
+import { verifySession, getSessionUser } from '@/lib/auth/session';
+import { redirect } from 'next/navigation';
+import { ToastProvider } from '@/components/toast/ToastProvider';
+import { AdminToastProvider } from './AdminToastProvider';
+import { AdminNavLink } from './components/AdminNavLink';
 
-export default async function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   // 세션 검증
   const isAuthenticated = await verifySession();
-  
+
   if (!isAuthenticated) {
-    redirect("/login");
+    redirect('/login');
   }
 
   // 관리자만 접근 가능
   const user = await getSessionUser();
   if (user?.userType === 'company') {
-    redirect("/company/dashboard");
+    redirect('/company/dashboard');
   }
   return (
     <ToastProvider placement="top-center" maxVisibleToasts={10}>
@@ -47,12 +44,9 @@ export default async function AdminLayout({
             >
               포트폴리오 관리
             </Link>
-            <Link
-              href="/admin/contacts"
-              className="hover:bg-gray-700 dark:hover:bg-gray-800 p-2 rounded transition-colors duration-300 text-sm lg:text-base"
-            >
+            <AdminNavLink href="/admin/contacts" showBadge={true}>
               문의하기 관리
-            </Link>
+            </AdminNavLink>
             <Link
               href="/admin/companies"
               className="hover:bg-gray-700 dark:hover:bg-gray-800 p-2 rounded transition-colors duration-300 text-sm lg:text-base"
@@ -73,7 +67,9 @@ export default async function AdminLayout({
             </Link>
           </nav>
         </aside>
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 transition-colors duration-300 min-w-0">{children}</main>
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 transition-colors duration-300 min-w-0">
+          {children}
+        </main>
         <AdminToastProvider />
       </div>
     </ToastProvider>
