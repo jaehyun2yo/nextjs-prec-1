@@ -2,8 +2,9 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { FaBuilding, FaCheckCircle, FaTimesCircle, FaEye, FaSearch } from 'react-icons/fa';
+import { FaBuilding, FaCheckCircle, FaTimesCircle, FaEye } from 'react-icons/fa';
 import { QuickApproveButton } from './quick-approve-button';
+import { SearchInput } from '@/components/SearchInput';
 
 interface Company {
   id: number;
@@ -152,18 +153,15 @@ export function CompaniesList({
       <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">업체 목록</h2>
-          <div className="relative w-full max-w-md">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <FaSearch className="text-gray-400 dark:text-gray-500" />
-            </div>
-            <input
-              type="text"
-              placeholder="업체명, 사업자등록번호, 대표자명, 아이디로 검색..."
+          <div className="w-full max-w-md">
+            <SearchInput
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#ED6C00] focus:border-transparent"
+              onChange={setSearchQuery}
+              placeholder="업체명, 사업자등록번호, 대표자명, 아이디로 검색..."
+              icon={true}
+              size="default"
             />
-            {searchQuery && (
+            {false && (
               <button
                 onClick={() => setSearchQuery('')}
                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
