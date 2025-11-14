@@ -4,28 +4,12 @@ import { loginAction } from '@/app/actions/auth';
 import { INPUT_STYLES, BUTTON_STYLES } from '@/lib/styles';
 
 export function LoginForm({ loginAction }: { loginAction: (formData: FormData) => Promise<void> }) {
-  const handleSubmit = async (formData: FormData) => {
-    try {
-      await loginAction(formData);
-      // loginAction은 redirect를 사용하므로 여기까지 오지 않음
-      // 하지만 에러가 발생하면 catch로 이동
-    } catch (error) {
-      // NEXT_REDIRECT는 정상적인 리다이렉트이므로 무시
-      const errorDigest = (error as { digest?: string })?.digest;
-      if (
-        error instanceof Error &&
-        (error.message === 'NEXT_REDIRECT' || errorDigest?.startsWith('NEXT_REDIRECT'))
-      ) {
-        // redirect는 정상 동작이므로 에러로 처리하지 않음
-        return;
-      }
-      // 다른 에러는 서버 액션 내부에서 redirect로 처리되므로 여기서는 로깅만
-      console.error('Login error:', error);
-    }
-  };
+  // Next.js 15에서는 form action에 서버 액션을 직접 바인딩하면
+  // NEXT_REDIRECT 에러가 자동으로 처리됩니다.
+  // 클라이언트에서 래핑하지 않고 직접 사용합니다.
 
   return (
-    <form action={handleSubmit} className="space-y-4">
+    <form action={loginAction} className="space-y-4">
       <div>
         <label
           htmlFor="username"

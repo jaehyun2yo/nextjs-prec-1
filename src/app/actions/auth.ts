@@ -71,11 +71,22 @@ export async function loginAction(formData: FormData) {
           authLogger.info('Admin login successful', { username });
           redirect('/admin');
         } catch (sessionError) {
+          // NEXT_REDIRECT 에러는 다시 throw
+          if (sessionError instanceof Error) {
+            const errorDigest = (sessionError as { digest?: string }).digest;
+            if (
+              sessionError.message === 'NEXT_REDIRECT' ||
+              errorDigest?.startsWith('NEXT_REDIRECT')
+            ) {
+              throw sessionError;
+            }
+          }
           authLogger.error('Session creation failed', sessionError);
           redirect('/login?error=server');
         }
       } else {
         authLogger.debug('Invalid admin password', { username });
+        redirect('/login?error=invalid');
       }
     }
 
@@ -111,6 +122,13 @@ export async function loginAction(formData: FormData) {
       authLogger.info('Company login successful', { username, companyId: company.id });
       redirect('/company/dashboard');
     } catch (sessionError) {
+      // NEXT_REDIRECT 에러는 다시 throw
+      if (sessionError instanceof Error) {
+        const errorDigest = (sessionError as { digest?: string }).digest;
+        if (sessionError.message === 'NEXT_REDIRECT' || errorDigest?.startsWith('NEXT_REDIRECT')) {
+          throw sessionError;
+        }
+      }
       authLogger.error('Session creation failed', sessionError);
       redirect('/login?error=server');
     }

@@ -16,24 +16,32 @@ export async function createSession(
   userType: 'admin' | 'company' = 'admin',
   userId?: number
 ): Promise<string> {
-  const token = generateSessionToken();
-  const cookieStore = await cookies();
+  try {
+    const token = generateSessionToken();
+    const cookieStore = await cookies();
 
-  // 토큰에 사용자 타입과 ID를 포함하여 서명
-  const sessionData = JSON.stringify({ userType, userId });
-  const signedToken = signToken(`${token}:${sessionData}`);
+    // 토큰에 사용자 타입과 ID를 포함하여 서명
+    const sessionData = JSON.stringify({ userType, userId });
+    const signedToken = signToken(`${token}:${sessionData}`);
 
-  cookieStore.set(SESSION_COOKIE_NAME, signedToken, {
-    httpOnly: true,
-    // secure는 HTTPS에서만 쿠키를 전송하므로, 로컬 개발이나 HTTP에서는 false
-    // 프로덕션에서도 HTTPS가 아닌 경우를 고려하여 환경 변수로 제어 가능
-    secure: process.env.NODE_ENV === 'production' && process.env.USE_SECURE_COOKIES !== 'false',
-    sameSite: 'lax',
-    maxAge: SESSION_MAX_AGE,
-    path: '/',
-  });
+    cookieStore.set(SESSION_COOKIE_NAME, signedToken, {
+      httpOnly: true,
+      // secure는 HTTPS에서만 쿠키를 전송하므로, 로컬 개발이나 HTTP에서는 false
+      // 프로덕션에서도 HTTPS가 아닌 경우를 고려하여 환경 변수로 제어 가능
+      secure: process.env.NODE_ENV === 'production' && process.env.USE_SECURE_COOKIES !== 'false',
+      sameSite: 'lax',
+      maxAge: SESSION_MAX_AGE,
+      path: '/',
+    });
 
-  return token;
+    return token;
+  } catch (error) {
+    // 쿠키 설정 실패 시 에러를 다시 throw하여 호출자가 처리할 수 있도록 함
+    console.error('Session creation error:', error);
+    throw new Error(
+      `Failed to create session: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
 }
 
 /**
