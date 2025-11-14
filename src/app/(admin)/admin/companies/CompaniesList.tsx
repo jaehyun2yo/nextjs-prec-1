@@ -157,7 +157,7 @@ export function CompaniesList({
             <SearchInput
               value={searchQuery}
               onChange={setSearchQuery}
-              placeholder="업체명, 사업자등록번호, 대표자명, 아이디로 검색..."
+              placeholder="검색어를 입력해주세요."
               icon={true}
               size="default"
             />
