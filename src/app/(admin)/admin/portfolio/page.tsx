@@ -1,13 +1,12 @@
 // src/app/(admin)/admin/portfolio/page.tsx
 
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { createAndUploadVariants } from "@/lib/images/process";
-import Image from "next/image";
-import { transparentBlurDataURL } from "@/lib/images/placeholder";
-import { logger } from "@/lib/utils/logger";
-import { FileUpload } from "@/components/FileUpload";
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
+import Image from 'next/image';
+import { transparentBlurDataURL } from '@/lib/images/placeholder';
+import { logger } from '@/lib/utils/logger';
+import { PortfolioForm } from '@/components/portfolio/PortfolioForm';
 
 interface UploadedImage {
   original: string;
@@ -32,109 +31,121 @@ interface PortfolioItem {
 }
 
 async function savePortfolio(formData: FormData) {
-  "use server";
+  'use server';
   const portfolioLogger = logger.createLogger('PORTFOLIO_ADMIN');
   // 간단 검증
   const required = [
-    "title",
-    "field",
-    "purpose",
-    "type",
-    "format",
-    "size",
-    "paper",
-    "printing",
-    "finishing",
-    "description",
+    'title',
+    'field',
+    'purpose',
+    'type',
+    'format',
+    'size',
+    'paper',
+    'printing',
+    'finishing',
+    'description',
   ];
   for (const key of required) {
     const v = formData.get(key);
-    if (!v || String(v).trim() === "") {
-      redirect("/admin/portfolio?error=invalid");
+    if (!v || String(v).trim() === '') {
+      redirect('/admin/portfolio?error=invalid');
     }
   }
 
-  // 이미지 업로드 (여러장)
-  const images = formData.getAll("images");
+  // 이미지 업로드 (이미 API Route에서 업로드된 URL 사용)
+  const uploadedImagesJson = formData.getAll('uploadedImages');
   const uploaded: UploadedImage[] = [];
   try {
-    for (const f of images) {
-      if (typeof f === "object" && "arrayBuffer" in f) {
-        const res = await createAndUploadVariants(f as File);
-        uploaded.push(res);
+    for (const imgJson of uploadedImagesJson) {
+      if (typeof imgJson === 'string') {
+        const img = JSON.parse(imgJson) as UploadedImage;
+        uploaded.push(img);
       }
     }
   } catch (error) {
-    portfolioLogger.error("R2 upload error", error);
-    // R2 설정/업로드 실패 시 경고로 안내
-    redirect("/admin/portfolio?warn=r2config");
+    portfolioLogger.error('Failed to parse uploaded images', error);
+    redirect('/admin/portfolio?error=invalid');
   }
 
   const payload = {
-    title: String(formData.get("title") || "").trim(),
-    field: String(formData.get("field") || "").trim(),
-    purpose: String(formData.get("purpose") || "").trim(),
-    type: String(formData.get("type") || "").trim(),
-    format: String(formData.get("format") || "").trim(),
-    size: String(formData.get("size") || "").trim(),
-    paper: String(formData.get("paper") || "").trim(),
-    printing: String(formData.get("printing") || "").trim(),
-    finishing: String(formData.get("finishing") || "").trim(),
-    description: String(formData.get("description") || "").trim(),
+    title: String(formData.get('title') || '').trim(),
+    field: String(formData.get('field') || '').trim(),
+    purpose: String(formData.get('purpose') || '').trim(),
+    type: String(formData.get('type') || '').trim(),
+    format: String(formData.get('format') || '').trim(),
+    size: String(formData.get('size') || '').trim(),
+    paper: String(formData.get('paper') || '').trim(),
+    printing: String(formData.get('printing') || '').trim(),
+    finishing: String(formData.get('finishing') || '').trim(),
+    description: String(formData.get('description') || '').trim(),
     images: uploaded,
     created_at: new Date().toISOString(),
   };
 
   try {
     const supabase = await createSupabaseServerClient();
-    const { error, data } = await supabase.from("portfolio").insert(payload as Record<string, unknown>);
+    const { error, data } = await supabase
+      .from('portfolio')
+      .insert(payload as Record<string, unknown>);
     if (error) {
-      console.error("[PORTFOLIO INSERT ERROR]", error);
-      console.error("[PORTFOLIO INSERT ERROR DETAILS]", {
+      console.error('[PORTFOLIO INSERT ERROR]', error);
+      console.error('[PORTFOLIO INSERT ERROR DETAILS]', {
         message: error.message,
         details: error.details,
         hint: error.hint,
         code: error.code,
       });
-      redirect("/admin/portfolio?error=supabase");
+      redirect('/admin/portfolio?error=supabase');
     }
-    console.log("[PORTFOLIO INSERT SUCCESS]", data);
+    console.log('[PORTFOLIO INSERT SUCCESS]', data);
     // Next.js redirect는 예외를 throw하므로 catch에서 잡히면 안됨
-    redirect("/admin/portfolio?success=1");
+    redirect('/admin/portfolio?success=1');
   } catch (error: unknown) {
     // Next.js redirect는 NEXT_REDIRECT 에러를 throw하므로 이를 무시해야 함
-    if (error instanceof Error && (error.message === "NEXT_REDIRECT" || (error as { digest?: string }).digest?.startsWith("NEXT_REDIRECT"))) {
+    if (
+      error instanceof Error &&
+      (error.message === 'NEXT_REDIRECT' ||
+        (error as { digest?: string }).digest?.startsWith('NEXT_REDIRECT'))
+    ) {
       throw error; // redirect 예외는 다시 throw
     }
     // 실제 에러만 catch
-    portfolioLogger.error("Portfolio insert exception", error);
-    redirect("/admin/portfolio?warn=noconfig");
+    portfolioLogger.error('Portfolio insert exception', error);
+    redirect('/admin/portfolio?warn=noconfig');
   }
 }
 
 async function deletePortfolio(formData: FormData) {
-  "use server";
+  'use server';
   const portfolioLogger = logger.createLogger('PORTFOLIO_ADMIN');
-  const id = formData.get("id");
+  const id = formData.get('id');
   if (!id) {
-    redirect("/admin/portfolio?error=invalid");
+    redirect('/admin/portfolio?error=invalid');
   }
   try {
     const supabase = await createSupabaseServerClient();
-    const { error } = await supabase.from("portfolio").delete().eq("id", id as string);
+    const { error } = await supabase
+      .from('portfolio')
+      .delete()
+      .eq('id', id as string);
     if (error) {
-      portfolioLogger.error("Portfolio delete error", error);
-      redirect("/admin/portfolio?error=supabase");
+      portfolioLogger.error('Portfolio delete error', error);
+      redirect('/admin/portfolio?error=supabase');
     }
-    portfolioLogger.debug("Portfolio delete success");
-    redirect("/admin/portfolio?success=1");
+    portfolioLogger.debug('Portfolio delete success');
+    redirect('/admin/portfolio?success=1');
   } catch (error: unknown) {
     // Next.js redirect는 NEXT_REDIRECT 에러를 throw하므로 이를 무시해야 함
-    if (error instanceof Error && (error.message === "NEXT_REDIRECT" || (error as { digest?: string }).digest?.startsWith("NEXT_REDIRECT"))) {
+    if (
+      error instanceof Error &&
+      (error.message === 'NEXT_REDIRECT' ||
+        (error as { digest?: string }).digest?.startsWith('NEXT_REDIRECT'))
+    ) {
       throw error; // redirect 예외는 다시 throw
     }
-    portfolioLogger.error("Portfolio delete exception", error);
-    redirect("/admin/portfolio?warn=noconfig");
+    portfolioLogger.error('Portfolio delete exception', error);
+    redirect('/admin/portfolio?warn=noconfig');
   }
 }
 
@@ -144,9 +155,9 @@ export default async function AdminPortfolioPage({
   searchParams?: Promise<{ success?: string; error?: string; warn?: string }>;
 }) {
   const params = (await searchParams) || {};
-  const success = params.success === "1";
-  const error = params.error === "invalid";
-  const warnNoConfig = params.warn === "noconfig";
+  const success = params.success === '1';
+  const error = params.error === 'invalid';
+  const warnNoConfig = params.warn === 'noconfig';
 
   // 목록 조회 (Supabase가 설정되어 있을 때만)
   const portfolioLogger = logger.createLogger('PORTFOLIO_ADMIN');
@@ -154,24 +165,26 @@ export default async function AdminPortfolioPage({
   try {
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase
-      .from("portfolio")
-      .select("id, title, field, purpose, type, format, size, paper, printing, finishing, images, created_at")
-      .order("created_at", { ascending: false });
+      .from('portfolio')
+      .select(
+        'id, title, field, purpose, type, format, size, paper, printing, finishing, images, created_at'
+      )
+      .order('created_at', { ascending: false });
     if (error) {
-      portfolioLogger.error("Portfolio select error", error);
+      portfolioLogger.error('Portfolio select error', error);
     } else {
       items = (data || []) as PortfolioItem[];
     }
   } catch (error) {
-    portfolioLogger.error("Portfolio select exception", error);
+    portfolioLogger.error('Portfolio select exception', error);
     // 미구성 시 목록은 비움
   }
 
   // 선택 옵션 (문자열로 저장)
-  const FIELD_OPTIONS = ["브랜딩", "편집", "패키지", "간판", "웹", "기타"];
-  const PURPOSE_OPTIONS = ["홍보", "판매", "안내", "행사", "기타"];
-  const TYPE_OPTIONS = ["전단", "리플렛", "브로슈어", "포스터", "명함", "카탈로그", "책자", "기타"];
-  const FORMAT_OPTIONS = ["단면", "양면", "2단접지", "3단접지", "책자", "기타"];
+  const FIELD_OPTIONS = ['브랜딩', '편집', '패키지', '간판', '웹', '기타'];
+  const PURPOSE_OPTIONS = ['홍보', '판매', '안내', '행사', '기타'];
+  const TYPE_OPTIONS = ['전단', '리플렛', '브로슈어', '포스터', '명함', '카탈로그', '책자', '기타'];
+  const FORMAT_OPTIONS = ['단면', '양면', '2단접지', '3단접지', '책자', '기타'];
 
   return (
     <div className="space-y-6">
@@ -194,169 +207,25 @@ export default async function AdminPortfolioPage({
       )}
       {warnNoConfig && (
         <div className="rounded-md border border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-800 p-3 text-sm text-yellow-800 dark:text-yellow-200">
-          Supabase 환경 변수(NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY)가 설정되지 않아 저장하지 못했습니다. 설정 후 다시 시도해주세요.
+          Supabase 환경 변수(NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY)가 설정되지
+          않아 저장하지 못했습니다. 설정 후 다시 시도해주세요.
         </div>
       )}
-      {params.warn === "r2config" && (
+      {params.warn === 'r2config' && (
         <div className="rounded-md border border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-800 p-3 text-sm text-yellow-800 dark:text-yellow-200">
-          R2 설정이 누락되었습니다. .env.local에 R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_PUBLIC_BASE_URL를 설정하고 서버를 재시작하세요.
+          R2 설정이 누락되었습니다. .env.local에 R2_ENDPOINT, R2_ACCESS_KEY_ID,
+          R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_PUBLIC_BASE_URL를 설정하고 서버를 재시작하세요.
         </div>
       )}
 
       <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
-        <form action={savePortfolio} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">제목</label>
-              <input
-                type="text"
-                name="title"
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                placeholder="프로젝트 제목"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">분야</label>
-              <select
-                name="field"
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                defaultValue=""
-                required
-              >
-                <option value="" disabled>분야 선택</option>
-                {FIELD_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">목적</label>
-              <select
-                name="purpose"
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                defaultValue=""
-                required
-              >
-                <option value="" disabled>목적 선택</option>
-                {PURPOSE_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">종류</label>
-              <select
-                name="type"
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                defaultValue=""
-                required
-              >
-                <option value="" disabled>종류 선택</option>
-                {TYPE_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">형태</label>
-              <select
-                name="format"
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                defaultValue=""
-                required
-              >
-                <option value="" disabled>형태 선택</option>
-                {FORMAT_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">장폭고 (규격/사이즈)</label>
-              <input
-                type="text"
-                name="size"
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                placeholder="예: 210x297mm (A4)"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">지류 (종이)</label>
-              <input
-                type="text"
-                name="paper"
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                placeholder="예: 스노우지 200g, 랑데뷰 240g"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">인쇄</label>
-              <input
-                type="text"
-                name="printing"
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                placeholder="예: 컬러 4도 / 별색 / 양면"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">후가공</label>
-              <input
-                type="text"
-                name="finishing"
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                placeholder="예: 코팅, 박, 형압, 오시, 접지"
-                required
-              />
-            </div>
-          </div>
-
-          <FileUpload
-            name="images"
-            accept="image/*"
-            multiple
-            maxSize={10 * 1024 * 1024}
-            label="이미지 (여러 장)"
-            helpText="여러 이미지를 선택할 수 있습니다."
-          />
-
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">설명</label>
-            <textarea
-              name="description"
-              rows={6}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              placeholder="프로젝트에 대한 상세 설명"
-              required
-            />
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              type="submit"
-              className="px-4 py-2 rounded-lg bg-[#ED6C00] text-white hover:bg-[#d15f00] transition-colors"
-            >
-              저장
-            </button>
-            <Link
-              href="/admin"
-              className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-            >
-              대시보드로 돌아가기
-            </Link>
-          </div>
-        </form>
+        <PortfolioForm
+          savePortfolio={savePortfolio}
+          fieldOptions={FIELD_OPTIONS}
+          purposeOptions={PURPOSE_OPTIONS}
+          typeOptions={TYPE_OPTIONS}
+          formatOptions={FORMAT_OPTIONS}
+        />
       </div>
 
       {/* 목록 */}
@@ -370,7 +239,11 @@ export default async function AdminPortfolioPage({
               <li key={it.id} className="py-3 flex items-start gap-4">
                 {Array.isArray(it.images) && it.images[0] && (
                   <Image
-                    src={typeof it.images[0] === "string" ? it.images[0] : (it.images[0].thumbnail || it.images[0].medium || it.images[0].original)}
+                    src={
+                      typeof it.images[0] === 'string'
+                        ? it.images[0]
+                        : it.images[0].thumbnail || it.images[0].medium || it.images[0].original
+                    }
                     alt={it.title}
                     width={96}
                     height={72}
@@ -384,7 +257,9 @@ export default async function AdminPortfolioPage({
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
                     <h3 className="font-medium">{it.title}</h3>
-                    <span className="text-xs text-gray-500">{new Date(it.created_at).toLocaleString()}</span>
+                    <span className="text-xs text-gray-500">
+                      {new Date(it.created_at).toLocaleString()}
+                    </span>
                   </div>
                   <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                     {it.field} · {it.purpose} · {it.type} · {it.format} · {it.size}
@@ -421,5 +296,3 @@ export default async function AdminPortfolioPage({
     </div>
   );
 }
-
-
