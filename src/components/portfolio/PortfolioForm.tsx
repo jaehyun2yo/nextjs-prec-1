@@ -85,9 +85,33 @@ export function PortfolioForm({
       return;
     }
 
-    const formData = new FormData(e.currentTarget);
+    // FormData를 직접 생성하여 이미지 파일을 제외하고 텍스트 필드만 포함
+    const form = e.currentTarget;
+    const formData = new FormData();
 
-    // 업로드된 이미지 URL을 hidden input에 추가
+    // 텍스트 필드만 추가 (이미지 파일 제외)
+    const textFields = [
+      'title',
+      'field',
+      'purpose',
+      'type',
+      'format',
+      'size',
+      'paper',
+      'printing',
+      'finishing',
+      'description',
+    ];
+    textFields.forEach((fieldName) => {
+      const input = form.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+        `[name="${fieldName}"]`
+      );
+      if (input && input.value) {
+        formData.append(fieldName, input.value);
+      }
+    });
+
+    // 업로드된 이미지 URL 추가
     uploadedImages.forEach((img) => {
       formData.append('uploadedImages', JSON.stringify(img));
     });
