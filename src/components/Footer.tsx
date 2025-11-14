@@ -2,14 +2,21 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import { FaPhone, FaFax, FaEnvelope } from 'react-icons/fa';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+  const pathname = usePathname();
+
+  // 관리자 페이지에서는 Footer 숨김
+  if (pathname?.startsWith('/admin')) {
+    return null;
+  }
 
   return (
     <footer
-      className="bg-gray-100 dark:bg-gray-800 border-t border-gray-300 dark:border-gray-700 mt-auto transition-colors duration-300 [.admin-page_&]:hidden"
+      className="bg-gray-100 dark:bg-gray-800 border-t border-gray-300 dark:border-gray-700 mt-auto transition-colors duration-300"
       role="contentinfo"
     >
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12">
