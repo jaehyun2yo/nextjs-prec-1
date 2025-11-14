@@ -1,19 +1,11 @@
-import { getSessionUser } from '@/lib/auth/session';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
-import { redirect } from 'next/navigation';
 import { BookingsCalendar } from './BookingsCalendar';
 
 const adminLogger = logger.createLogger('ADMIN_BOOKINGS');
 
 export default async function AdminBookingsPage() {
-  const user = await getSessionUser();
-  if (!user?.userId) {
-    redirect('/login');
-  }
-
-  // TODO: 관리자 권한 확인 추가
-
+  // 인증은 layout에서 처리됨
   const supabase = await createSupabaseServerClient();
 
   interface Contact {
