@@ -45,7 +45,7 @@ export function BookingsCalendar({ initialBookings }: BookingsCalendarProps) {
     return grouped;
   }, [initialBookings]);
 
-  // 오늘 기준으로 7일 생성 (오늘 포함)
+  // 오늘 기준으로 3일 생성 (오늘 포함)
   const calendarDays = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -56,7 +56,7 @@ export function BookingsCalendar({ initialBookings }: BookingsCalendarProps) {
       bookings: Booking[];
     }> = [];
 
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 3; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
       const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -74,7 +74,7 @@ export function BookingsCalendar({ initialBookings }: BookingsCalendarProps) {
   const weekRange = useMemo(() => {
     if (calendarDays.length === 0) return '';
     const start = calendarDays[0].date;
-    const end = calendarDays[6].date;
+    const end = calendarDays[calendarDays.length - 1].date;
     const startStr = `${start.getMonth() + 1}/${start.getDate()}`;
     const endStr = `${end.getMonth() + 1}/${end.getDate()}`;
     return `${start.getFullYear()}년 ${startStr} ~ ${endStr}`;
@@ -98,36 +98,36 @@ export function BookingsCalendar({ initialBookings }: BookingsCalendarProps) {
 
       {/* 캘린더 그리드 */}
       <div className="p-6">
-        {/* 날짜 셀 - 7일 모두 표시 */}
-        <div className="grid grid-cols-7 gap-4">
+        {/* 날짜 셀 - 3일 모두 표시 */}
+        <div className="grid grid-cols-3 gap-6">
           {calendarDays.map((day, index) => {
             const isToday = day.date.toDateString() === new Date().toDateString();
 
             return (
               <div
                 key={index}
-                className={`min-h-[500px] border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800 ${
+                className={`min-h-[600px] border border-gray-200 dark:border-gray-700 rounded-lg p-6 bg-white dark:bg-gray-800 ${
                   isToday ? 'ring-2 ring-orange-500' : ''
                 }`}
               >
                 {/* 날짜 정보 */}
                 <div
-                  className={`text-lg font-bold mb-4 pb-3 border-b border-gray-200 dark:border-gray-700 ${
+                  className={`text-xl font-bold mb-5 pb-4 border-b border-gray-200 dark:border-gray-700 ${
                     isToday
                       ? 'text-orange-600 dark:text-orange-400'
                       : 'text-gray-900 dark:text-gray-100'
                   }`}
                 >
-                  <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                  <div className="text-base text-gray-500 dark:text-gray-400 mb-2">
                     {weekDays[day.date.getDay()]}
                   </div>
                   {day.date.getMonth() + 1}월 {day.date.getDate()}일
                 </div>
 
                 {/* 예약 태그들 - 모두 표시 */}
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {day.bookings.length === 0 ? (
-                    <div className="text-sm text-gray-400 dark:text-gray-600 text-center py-8">
+                    <div className="text-base text-gray-400 dark:text-gray-600 text-center py-12">
                       예약 없음
                     </div>
                   ) : (
@@ -135,14 +135,14 @@ export function BookingsCalendar({ initialBookings }: BookingsCalendarProps) {
                       <button
                         key={booking.id}
                         onClick={() => handleBookingClick(booking)}
-                        className="w-full text-left px-3 py-2.5 bg-orange-100 dark:bg-orange-900/30 hover:bg-orange-200 dark:hover:bg-orange-900/50 rounded-lg transition-colors cursor-pointer border border-orange-200 dark:border-orange-800"
+                        className="w-full text-left px-4 py-3 bg-orange-100 dark:bg-orange-900/30 hover:bg-orange-200 dark:hover:bg-orange-900/50 rounded-lg transition-colors cursor-pointer border border-orange-200 dark:border-orange-800"
                         title={`${booking.company_name} - ${booking.visit_time_slot}`}
                       >
-                        <div className="flex items-center gap-2 text-orange-700 dark:text-orange-300 mb-1">
-                          <FaClock className="text-sm flex-shrink-0" />
-                          <span className="font-semibold">{booking.company_name}</span>
+                        <div className="flex items-center gap-2 text-orange-700 dark:text-orange-300 mb-2">
+                          <FaClock className="text-base flex-shrink-0" />
+                          <span className="font-bold text-base">{booking.company_name}</span>
                         </div>
-                        <div className="text-sm text-orange-600 dark:text-orange-400">
+                        <div className="text-base text-orange-600 dark:text-orange-400 font-medium">
                           {booking.visit_time_slot}
                         </div>
                       </button>
