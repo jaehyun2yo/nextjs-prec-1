@@ -1,6 +1,6 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import type { Metadata } from 'next';
+import { Geist, Geist_Mono } from 'next/font/google';
+import './globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Providers } from './providers';
@@ -14,18 +14,18 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 const layoutLogger = logger.createLogger('LAYOUT');
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+  variable: '--font-geist-sans',
+  subsets: ['latin'],
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  variable: '--font-geist-mono',
+  subsets: ['latin'],
 });
 
 export const metadata: Metadata = {
-  title: "타이틀",
-  description: "소개",
+  title: '타이틀',
+  description: '소개',
 };
 
 export default async function RootLayout({
@@ -36,11 +36,12 @@ export default async function RootLayout({
   // 세션 확인 (관리자 페이지가 아닌 경우에도 로그인 상태 확인)
   const isAuthenticated = await verifySession();
   const user = await getSessionUser();
-  
+
   // 현재 경로 확인 (업체 전용 페이지인지 확인)
   // middleware에서 설정한 x-pathname 헤더를 확인
   let isCompanyPage = false;
   let isPortfolioPage = false;
+  let isAdminPage = false;
   try {
     const headersList = await headers();
     const pathname = headersList.get('x-pathname') || '';
@@ -49,12 +50,15 @@ export default async function RootLayout({
     isCompanyPage = pathname.startsWith('/company/');
     // /portfolio 페이지는 자체 네비게이션바를 사용하므로 일반 Header 숨김
     isPortfolioPage = pathname === '/portfolio';
+    // /admin으로 시작하는 모든 경로는 관리자 페이지
+    isAdminPage = pathname.startsWith('/admin');
   } catch {
     // headers() 호출 실패 시 기본값 사용
     isCompanyPage = false;
     isPortfolioPage = false;
+    isAdminPage = false;
   }
-  
+
   // 업체 정보 가져오기 (업체 로그인인 경우)
   let companyName: string | null = null;
   if (user?.userType === 'company' && user?.userId) {
@@ -65,7 +69,7 @@ export default async function RootLayout({
         .select('company_name')
         .eq('id', user.userId)
         .single();
-      
+
       if (companyData) {
         companyName = companyData.company_name;
       }
@@ -118,19 +122,22 @@ export default async function RootLayout({
         />
         <Providers>
           <ErrorBoundary>
-            {/* 업체 전용 페이지와 포트폴리오 페이지가 아닐 때만 Header 표시 */}
-            {!isCompanyPage && !isPortfolioPage && (
-              <Header 
-                isAuthenticated={isAuthenticated} 
+            {/* 업체 전용 페이지, 포트폴리오 페이지, 관리자 페이지가 아닐 때만 Header 표시 */}
+            {!isCompanyPage && !isPortfolioPage && !isAdminPage && (
+              <Header
+                isAuthenticated={isAuthenticated}
                 userType={user?.userType || null}
                 companyName={companyName}
               />
             )}
-            <main className={`flex-1 bg-white dark:bg-gray-900 transition-colors duration-300 ${!isPortfolioPage ? 'min-h-[calc(100vh-80px)]' : ''}`} suppressHydrationWarning>
+            <main
+              className={`flex-1 bg-white dark:bg-gray-900 transition-colors duration-300 ${!isPortfolioPage ? 'min-h-[calc(100vh-80px)]' : ''}`}
+              suppressHydrationWarning
+            >
               {children}
             </main>
-            {/* 업체 전용 페이지와 포트폴리오 페이지가 아닐 때만 Footer 표시 */}
-            {!isCompanyPage && !isPortfolioPage && <Footer />}
+            {/* 업체 전용 페이지, 포트폴리오 페이지, 관리자 페이지가 아닐 때만 Footer 표시 */}
+            {!isCompanyPage && !isPortfolioPage && !isAdminPage && <Footer />}
             <Toaster position="top-right" richColors />
           </ErrorBoundary>
         </Providers>
