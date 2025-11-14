@@ -1,52 +1,52 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { NextRequest, NextResponse } from "next/server";
-import { verifySession } from "@/lib/auth/session";
-import { logger } from "@/lib/utils/logger";
-import { toApiErrorResponse, convertSupabaseError, AuthenticationError, DatabaseError } from "@/lib/utils/errors";
+import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { verifySession } from '@/lib/auth/session';
+import { logger } from '@/lib/utils/logger';
+import {
+  toApiErrorResponse,
+  convertSupabaseError,
+  AuthenticationError,
+  DatabaseError,
+} from '@/lib/utils/errors';
 
 const contactApiLogger = logger.createLogger('CONTACT_API');
 
 /**
  * GET /api/contacts/[id]
- * 
+ *
  * 문의 상세 정보를 조회합니다.
- * 
+ *
  * @param request - Next.js 요청 객체
  * @param params - 라우트 파라미터 (id: 문의 ID)
  * @returns 문의 상세 정보 또는 에러 응답
- * 
+ *
  * @requires 인증 - 세션 쿠키 필요
- * 
+ *
  * @example
  * ```typescript
  * const response = await fetch('/api/contacts/123');
  * const contact = await response.json();
  * ```
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     // 세션 확인
     const isAuthenticated = await verifySession();
     if (!isAuthenticated) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
 
     // 문의 조회 (삭제중이 아닌 것만)
+    // UUID 또는 숫자 ID 모두 처리
     const { data: contact, error } = await supabase
       .from('contacts')
       .select('*')
       .eq('id', id)
       .neq('status', 'deleting')
-      .single();
+      .maybeSingle(); // single() 대신 maybeSingle() 사용하여 0개 결과도 처리
 
     if (error) {
       contactApiLogger.error('Error fetching contact', error, { contactId: id });
@@ -56,7 +56,9 @@ export async function GET(
     }
 
     if (!contact) {
-      const errorResponse = toApiErrorResponse(new DatabaseError('문의를 찾을 수 없습니다.', { contactId: id }));
+      const errorResponse = toApiErrorResponse(
+        new DatabaseError('문의를 찾을 수 없습니다.', { contactId: id })
+      );
       return NextResponse.json(errorResponse.body, { status: 404 });
     }
 
@@ -70,26 +72,26 @@ export async function GET(
 
 /**
  * DELETE /api/contacts/[id]
- * 
+ *
  * 문의를 삭제합니다.
- * 
+ *
  * @param request - Next.js 요청 객체 (body에 permanent 옵션 포함 가능)
  * @param params - 라우트 파라미터 (id: 문의 ID)
  * @returns 성공 여부 또는 에러 응답
- * 
+ *
  * @requires 인증 - 세션 쿠키 필요
- * 
+ *
  * @remarks
  * - permanent=true: 영구 삭제 (실제 DB에서 삭제)
  * - permanent 없음: status를 'deleting'으로 변경 (삭제중 상태, 10일 후 영구 삭제)
- * 
+ *
  * @example
  * ```typescript
  * // 소프트 삭제
  * await fetch('/api/contacts/123', { method: 'DELETE' });
- * 
+ *
  * // 영구 삭제
- * await fetch('/api/contacts/123', { 
+ * await fetch('/api/contacts/123', {
  *   method: 'DELETE',
  *   body: JSON.stringify({ permanent: true })
  * });
@@ -120,12 +122,26 @@ export async function DELETE(
 
     const isPermanent = body.permanent === true;
 
+    // 문의 삭제 전에 관련 예약도 삭제
+    // 소프트 삭제와 영구 삭제 모두에서 예약 삭제
+    const { error: bookingDeleteError } = await supabase
+      .from('visit_bookings')
+      .delete()
+      .eq('contact_id', id);
+
+    if (bookingDeleteError) {
+      contactApiLogger.warn('Error deleting related bookings', bookingDeleteError, {
+        contactId: id,
+      });
+      // 예약 삭제 실패해도 문의 삭제는 계속 진행
+    } else {
+      contactApiLogger.info('Deleted related bookings for contact', { contactId: id });
+    }
+
     if (isPermanent) {
       // 영구 삭제: 실제 DB에서 삭제
-      const { error } = await supabase
-        .from('contacts')
-        .delete()
-        .eq('id', id);
+      // CASCADE로 인해 예약도 자동 삭제되지만, 위에서 이미 삭제했으므로 중복이지만 안전함
+      const { error } = await supabase.from('contacts').delete().eq('id', id);
 
       if (error) {
         contactApiLogger.error('Error permanently deleting contact', error, { contactId: id });
@@ -137,10 +153,10 @@ export async function DELETE(
       // 삭제중 상태로 변경: status를 'deleting'으로, deleted_at 설정
       const { error } = await supabase
         .from('contacts')
-        .update({ 
+        .update({
           status: 'deleting',
           deleted_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', id)
         .neq('status', 'deleting'); // 이미 삭제중인 것은 제외
@@ -160,4 +176,3 @@ export async function DELETE(
     return NextResponse.json(errorResponse.body, { status: errorResponse.status });
   }
 }
-

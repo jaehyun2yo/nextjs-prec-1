@@ -96,7 +96,31 @@ export default async function CompanyDashboardPage() {
     if (bookingsError) {
       dashboardLogger.error('Error fetching bookings', bookingsError);
     } else {
-      bookings = bookingsData || [];
+      // 현재 날짜/시간보다 지난 예약 필터링
+      const now = new Date();
+      bookings = (bookingsData || []).filter((booking) => {
+        const visitDate = new Date(booking.visit_date);
+        visitDate.setHours(0, 0, 0, 0);
+
+        // visit_time_slot에서 종료 시간 추출 (예: "14:00~15:00" -> "15:00")
+        const timeSlot = booking.visit_time_slot || '';
+        const endTimeMatch = timeSlot.match(/~(\d{1,2}):(\d{2})/);
+
+        if (!endTimeMatch) {
+          // 시간 슬롯 형식이 올바르지 않으면 포함하지 않음
+          return false;
+        }
+
+        const endHour = parseInt(endTimeMatch[1], 10);
+        const endMinute = parseInt(endTimeMatch[2], 10);
+
+        // 예약 종료 시간 생성
+        const bookingEndTime = new Date(visitDate);
+        bookingEndTime.setHours(endHour, endMinute, 0, 0);
+
+        // 현재 시간이 예약 종료 시간보다 이후인지 확인
+        return now < bookingEndTime;
+      });
     }
   } catch (error) {
     dashboardLogger.error('Error', error);

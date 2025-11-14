@@ -2,9 +2,17 @@
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { createSupabaseClient } from '@/lib/supabase/client';
-import { FaFileAlt, FaCheckCircle, FaSpinner, FaEye, FaEnvelope, FaCalendarAlt, FaClock } from "react-icons/fa";
-import Link from "next/link";
-import { BUTTON_STYLES } from "@/lib/styles";
+import {
+  FaFileAlt,
+  FaCheckCircle,
+  FaSpinner,
+  FaEye,
+  FaEnvelope,
+  FaCalendarAlt,
+  FaClock,
+} from 'react-icons/fa';
+import Link from 'next/link';
+import { BUTTON_STYLES } from '@/lib/styles';
 import { ContactCardToggle } from '@/components/ContactCardToggle';
 import type { ProcessStage } from '@/lib/utils/processStages';
 import type { RevisionRequestHistory } from '@/types/database.types';
@@ -55,7 +63,11 @@ interface CompanyDashboardClientProps {
   initialBookings?: Booking[];
 }
 
-export function CompanyDashboardClient({ initialCompany, initialContacts, initialBookings = [] }: CompanyDashboardClientProps) {
+export function CompanyDashboardClient({
+  initialCompany,
+  initialContacts,
+  initialBookings = [],
+}: CompanyDashboardClientProps) {
   const [contacts, setContacts] = useState<Contact[]>(initialContacts);
   const [bookings] = useState<Booking[]>(initialBookings);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -67,9 +79,9 @@ export function CompanyDashboardClient({ initialCompany, initialContacts, initia
     // 현재 한국 시간 가져오기
     const now = new Date();
     const koreaOffset = 9 * 60; // 한국은 UTC+9
-    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-    const koreaTime = new Date(utc + (koreaOffset * 60000));
-    
+    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+    const koreaTime = new Date(utc + koreaOffset * 60000);
+
     switch (type) {
       case 'this_week': {
         // 이번 주 월요일 00:00:00 (한국 시간)
@@ -79,30 +91,38 @@ export function CompanyDashboardClient({ initialCompany, initialContacts, initia
         monday.setDate(koreaTime.getDate() + diff);
         monday.setHours(0, 0, 0, 0);
         // UTC로 변환 (Supabase는 UTC로 저장)
-        const mondayUTC = new Date(monday.getTime() - (koreaOffset * 60000));
-        
+        const mondayUTC = new Date(monday.getTime() - koreaOffset * 60000);
+
         // 이번 주 일요일 23:59:59 (한국 시간)
         const sunday = new Date(monday);
         sunday.setDate(monday.getDate() + 6);
         sunday.setHours(23, 59, 59, 999);
         // UTC로 변환
-        const sundayUTC = new Date(sunday.getTime() - (koreaOffset * 60000));
-        
+        const sundayUTC = new Date(sunday.getTime() - koreaOffset * 60000);
+
         return { start: mondayUTC, end: sundayUTC };
       }
-      
+
       case 'this_month': {
         // 이번 달 1일 00:00:00 (한국 시간)
         const firstDay = new Date(koreaTime.getFullYear(), koreaTime.getMonth(), 1, 0, 0, 0, 0);
-        const firstDayUTC = new Date(firstDay.getTime() - (koreaOffset * 60000));
-        
+        const firstDayUTC = new Date(firstDay.getTime() - koreaOffset * 60000);
+
         // 이번 달 마지막 날 23:59:59 (한국 시간)
-        const lastDay = new Date(koreaTime.getFullYear(), koreaTime.getMonth() + 1, 0, 23, 59, 59, 999);
-        const lastDayUTC = new Date(lastDay.getTime() - (koreaOffset * 60000));
-        
+        const lastDay = new Date(
+          koreaTime.getFullYear(),
+          koreaTime.getMonth() + 1,
+          0,
+          23,
+          59,
+          59,
+          999
+        );
+        const lastDayUTC = new Date(lastDay.getTime() - koreaOffset * 60000);
+
         return { start: firstDayUTC, end: lastDayUTC };
       }
-      
+
       case 'last_week': {
         // 지난 주 월요일 00:00:00 (한국 시간)
         const dayOfWeek = koreaTime.getDay();
@@ -110,32 +130,32 @@ export function CompanyDashboardClient({ initialCompany, initialContacts, initia
         const thisMonday = new Date(koreaTime);
         thisMonday.setDate(koreaTime.getDate() + diff);
         thisMonday.setHours(0, 0, 0, 0);
-        
+
         const lastMonday = new Date(thisMonday);
         lastMonday.setDate(thisMonday.getDate() - 7);
-        const lastMondayUTC = new Date(lastMonday.getTime() - (koreaOffset * 60000));
-        
+        const lastMondayUTC = new Date(lastMonday.getTime() - koreaOffset * 60000);
+
         // 지난 주 일요일 23:59:59 (한국 시간)
         const lastSunday = new Date(lastMonday);
         lastSunday.setDate(lastMonday.getDate() + 6);
         lastSunday.setHours(23, 59, 59, 999);
-        const lastSundayUTC = new Date(lastSunday.getTime() - (koreaOffset * 60000));
-        
+        const lastSundayUTC = new Date(lastSunday.getTime() - koreaOffset * 60000);
+
         return { start: lastMondayUTC, end: lastSundayUTC };
       }
-      
+
       case 'last_month': {
         // 지난 달 1일 00:00:00 (한국 시간)
         const firstDay = new Date(koreaTime.getFullYear(), koreaTime.getMonth() - 1, 1, 0, 0, 0, 0);
-        const firstDayUTC = new Date(firstDay.getTime() - (koreaOffset * 60000));
-        
+        const firstDayUTC = new Date(firstDay.getTime() - koreaOffset * 60000);
+
         // 지난 달 마지막 날 23:59:59 (한국 시간)
         const lastDay = new Date(koreaTime.getFullYear(), koreaTime.getMonth(), 0, 23, 59, 59, 999);
-        const lastDayUTC = new Date(lastDay.getTime() - (koreaOffset * 60000));
-        
+        const lastDayUTC = new Date(lastDay.getTime() - koreaOffset * 60000);
+
         return { start: firstDayUTC, end: lastDayUTC };
       }
-      
+
       default:
         return null;
     }
@@ -146,13 +166,13 @@ export function CompanyDashboardClient({ initialCompany, initialContacts, initia
     if (filterType === 'all') {
       return contacts;
     }
-    
+
     const dateRange = getDateRange(filterType);
     if (!dateRange) {
       return contacts;
     }
-    
-    return contacts.filter(contact => {
+
+    return contacts.filter((contact) => {
       const contactDate = new Date(contact.created_at);
       return contactDate >= dateRange.start && contactDate <= dateRange.end;
     });
@@ -222,7 +242,7 @@ export function CompanyDashboardClient({ initialCompany, initialContacts, initia
   // 문의사항 데이터 새로고침 함수
   const refreshContacts = useCallback(async () => {
     if (isRefreshingRef.current) return;
-    
+
     isRefreshingRef.current = true;
     setIsRefreshing(true);
     try {
@@ -251,7 +271,7 @@ export function CompanyDashboardClient({ initialCompany, initialContacts, initia
   useEffect(() => {
     const supabase = createSupabaseClient();
     const companyName = initialCompany.company_name;
-    
+
     // contacts 테이블 변경사항 구독
     // 문자열 필터는 따옴표로 감싸야 함
     const channel = supabase
@@ -266,7 +286,7 @@ export function CompanyDashboardClient({ initialCompany, initialContacts, initia
         },
         (payload) => {
           console.log('Contacts table changed:', payload);
-          
+
           // 데이터 새로고침
           refreshContacts();
         }
@@ -293,16 +313,19 @@ export function CompanyDashboardClient({ initialCompany, initialContacts, initia
   }, [initialCompany.company_name, refreshContacts]);
 
   // 통계 계산 (필터링된 데이터 기준)
-  const stats = useMemo(() => ({
-    total: filteredContacts.length,
-    new: filteredContacts.filter(c => c.status === 'new').length,
-    inProgress: filteredContacts.filter(c => 
-      c.status === 'read' || 
-      c.status === 'in_progress' || 
-      c.status === 'revision_in_progress'
-    ).length,
-    completed: filteredContacts.filter(c => c.status === 'replied' || c.status === 'completed').length,
-  }), [filteredContacts]);
+  const stats = useMemo(
+    () => ({
+      total: filteredContacts.length,
+      new: filteredContacts.filter((c) => c.status === 'new').length,
+      inProgress: filteredContacts.filter(
+        (c) =>
+          c.status === 'read' || c.status === 'in_progress' || c.status === 'revision_in_progress'
+      ).length,
+      completed: filteredContacts.filter((c) => c.status === 'replied' || c.status === 'completed')
+        .length,
+    }),
+    [filteredContacts]
+  );
 
   // 필터 옵션
   const filterOptions: { value: FilterType; label: string }[] = [
@@ -321,15 +344,10 @@ export function CompanyDashboardClient({ initialCompany, initialContacts, initia
           <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-gray-100">진행상황</h1>
           <p className="text-gray-600 dark:text-gray-400">
             {initialCompany.company_name}의 문의 및 주문 진행상황을 확인하실 수 있습니다.
-            {isRefreshing && (
-              <span className="ml-2 text-xs text-gray-500">업데이트 중...</span>
-            )}
+            {isRefreshing && <span className="ml-2 text-xs text-gray-500">업데이트 중...</span>}
           </p>
         </div>
-        <Link
-          href="/contact"
-          className={`${BUTTON_STYLES.primary} flex items-center gap-2`}
-        >
+        <Link href="/contact" className={`${BUTTON_STYLES.primary} flex items-center gap-2`}>
           <FaEnvelope className="text-sm" />
           <span>견적 / 문의하기</span>
         </Link>
@@ -339,17 +357,17 @@ export function CompanyDashboardClient({ initialCompany, initialContacts, initia
       {bookings.length > 0 && (
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 mb-8">
           <div className="flex items-center gap-2 mb-4">
-            <FaCalendarAlt className="text-orange-600 dark:text-orange-400" />
+            <FaCalendarAlt className="text-gray-600 dark:text-gray-400" />
             <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">예약 일정</h2>
           </div>
           <div className="space-y-3">
             {bookings.map((booking) => (
               <div
                 key={booking.id}
-                className="flex items-center justify-between p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800"
+                className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700"
               >
                 <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
+                  <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                     <FaCalendarAlt />
                     <span className="font-semibold">
                       {new Date(booking.visit_date).toLocaleDateString('ko-KR', {
@@ -365,7 +383,7 @@ export function CompanyDashboardClient({ initialCompany, initialContacts, initia
                     <span className="font-medium">{booking.visit_time_slot}</span>
                   </div>
                 </div>
-                <div className="px-3 py-1 bg-orange-600 text-white text-xs font-medium rounded-full">
+                <div className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium rounded-full">
                   예약 확정
                 </div>
               </div>
@@ -402,7 +420,9 @@ export function CompanyDashboardClient({ initialCompany, initialContacts, initia
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 dark:text-gray-400 text-xs mb-1">작업중</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.inProgress}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {stats.inProgress}
+              </p>
             </div>
             <div className="bg-orange-500 p-2.5 rounded-full">
               <FaEye className="text-white text-lg" />
@@ -413,7 +433,9 @@ export function CompanyDashboardClient({ initialCompany, initialContacts, initia
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 dark:text-gray-400 text-xs mb-1">완료</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.completed}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {stats.completed}
+              </p>
             </div>
             <div className="bg-green-500 p-2.5 rounded-full">
               <FaCheckCircle className="text-white text-lg" />
@@ -452,24 +474,18 @@ export function CompanyDashboardClient({ initialCompany, initialContacts, initia
                 {filterType === 'last_week' && '지난 주 (월요일 ~ 일요일)'}
                 {filterType === 'last_month' && '지난 달 (1일 ~ 말일)'}
               </span>
-              <span className="ml-2 font-medium">
-                ({filteredContacts.length}건)
-              </span>
+              <span className="ml-2 font-medium">({filteredContacts.length}건)</span>
             </div>
           </div>
         )}
-        
+
         {filteredContacts.length > 0 ? (
           <div className="space-y-4">
             {filteredContacts.map((contact) => {
               const statusInfo = getStatusInfo(contact.status);
-              
+
               return (
-                <ContactCardToggle
-                  key={contact.id}
-                  contact={contact}
-                  statusInfo={statusInfo}
-                />
+                <ContactCardToggle key={contact.id} contact={contact} statusInfo={statusInfo} />
               );
             })}
           </div>
@@ -477,8 +493,8 @@ export function CompanyDashboardClient({ initialCompany, initialContacts, initia
           <div className="text-center py-12">
             <FaFileAlt className="mx-auto text-4xl text-gray-400 dark:text-gray-500 mb-3" />
             <p className="text-gray-500 dark:text-gray-400">
-              {filterType === 'all' 
-                ? '진행중인 문의가 없습니다' 
+              {filterType === 'all'
+                ? '진행중인 문의가 없습니다'
                 : '선택한 기간에 해당하는 문의가 없습니다'}
             </p>
           </div>
@@ -487,4 +503,3 @@ export function CompanyDashboardClient({ initialCompany, initialContacts, initia
     </div>
   );
 }
-

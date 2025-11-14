@@ -45,7 +45,7 @@ interface Contact {
 }
 
 interface ContactDetailModalProps {
-  contactId: number | null;
+  contactId: number | string | null;
   isOpen: boolean;
   onClose: () => void;
   onUpdate?: () => void;
@@ -58,14 +58,21 @@ export function ContactDetailModal({ contactId, isOpen, onClose }: ContactDetail
 
   const fetchContactDetail = async () => {
     if (!contactId) return;
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch(`/api/contacts/${contactId}`);
       if (!response.ok) {
-        throw new Error('문의 정보를 불러올 수 없습니다.');
+        if (response.status === 404) {
+          setError(
+            '해당 문의 정보를 찾을 수 없습니다. 문의가 삭제되었거나 존재하지 않을 수 있습니다.'
+          );
+        } else {
+          setError('문의 정보를 불러올 수 없습니다.');
+        }
+        return;
       }
       const data = await response.json();
       setContact(data);
@@ -90,7 +97,7 @@ export function ContactDetailModal({ contactId, isOpen, onClose }: ContactDetail
     if (isOpen) {
       // 스크롤바 너비 계산
       const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-      
+
       // body에 padding-right를 추가하여 스크롤바 공간 확보
       document.body.style.paddingRight = `${scrollbarWidth}px`;
       document.body.style.overflow = 'hidden';
@@ -128,11 +135,11 @@ export function ContactDetailModal({ contactId, isOpen, onClose }: ContactDetail
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn p-4 overflow-y-auto modal-scrollbar-hide"
       onClick={onClose}
     >
-      <div 
+      <div
         className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-600 max-w-4xl w-full max-h-[90vh] overflow-y-auto modal-scrollbar-hide animate-scaleIn my-8"
         onClick={(e) => e.stopPropagation()}
       >
@@ -143,8 +150,8 @@ export function ContactDetailModal({ contactId, isOpen, onClose }: ContactDetail
             {contact && (
               <>
                 <UpdateStatusButton contactId={contact.id} currentStatus={contact.status} />
-                <DeleteButton 
-                  contactId={contact.id} 
+                <DeleteButton
+                  contactId={contact.id}
                   contactName={contact.company_name || contact.name || `문의 #${contact.id}`}
                 />
               </>
@@ -153,8 +160,18 @@ export function ContactDetailModal({ contactId, isOpen, onClose }: ContactDetail
               onClick={onClose}
               className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
-              <svg className="w-6 h-6 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-6 h-6 text-gray-500 dark:text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -189,14 +206,18 @@ export function ContactDetailModal({ contactId, isOpen, onClose }: ContactDetail
                 </h3>
                 <div className="space-y-3">
                   <div>
-                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">문의 유형</label>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      문의 유형
+                    </label>
                     <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                       {contact.contact_type === 'individual' ? '개인' : '업체'}
                     </p>
                   </div>
                   {contact.contact_type === 'individual' && (
                     <div>
-                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">서비스 유형</label>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        서비스 유형
+                      </label>
                       <div className="mt-1 flex flex-wrap gap-2">
                         {contact.service_mold_request && (
                           <span className="px-2 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded">
@@ -219,32 +240,52 @@ export function ContactDetailModal({ contactId, isOpen, onClose }: ContactDetail
                       <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
                         {contact.contact_type === 'individual' ? '이름' : '업체명'}
                       </label>
-                      <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{contact.company_name}</p>
+                      <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                        {contact.company_name}
+                      </p>
                     </div>
                     {contact.contact_type === 'company' && (
                       <>
                         <div>
-                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">담당자명</label>
-                          <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{contact.name}</p>
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            담당자명
+                          </label>
+                          <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                            {contact.name}
+                          </p>
                         </div>
                         <div>
-                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">직책</label>
-                          <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{contact.position}</p>
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            직책
+                          </label>
+                          <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                            {contact.position}
+                          </p>
                         </div>
                       </>
                     )}
                     <div>
-                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">연락처</label>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        연락처
+                      </label>
                       <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                        <a href={`tel:${contact.phone}`} className="text-orange-600 hover:underline">
+                        <a
+                          href={`tel:${contact.phone}`}
+                          className="text-orange-600 hover:underline"
+                        >
                           {contact.phone}
                         </a>
                       </p>
                     </div>
                     <div className="col-span-2">
-                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">이메일</label>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        이메일
+                      </label>
                       <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                        <a href={`mailto:${contact.email}`} className="text-orange-600 hover:underline">
+                        <a
+                          href={`mailto:${contact.email}`}
+                          className="text-orange-600 hover:underline"
+                        >
                           {contact.email}
                         </a>
                       </p>
@@ -260,34 +301,42 @@ export function ContactDetailModal({ contactId, isOpen, onClose }: ContactDetail
                 </h3>
                 <div className="space-y-3">
                   <div>
-                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">도면 상태</label>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      도면 상태
+                    </label>
                     <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                      {contact.drawing_type === 'create' 
-                        ? '도면 제작이 필요합니다' 
-                        : contact.drawing_type === 'have' 
-                        ? '도면을 가지고 있습니다' 
-                        : '-'}
+                      {contact.drawing_type === 'create'
+                        ? '도면 제작이 필요합니다'
+                        : contact.drawing_type === 'have'
+                          ? '도면을 가지고 있습니다'
+                          : '-'}
                     </p>
                   </div>
 
                   {contact.drawing_type === 'create' && (
                     <>
                       <div>
-                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">실물 샘플</label>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          실물 샘플
+                        </label>
                         <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                           {contact.has_physical_sample ? '있음' : '없음'}
                         </p>
                       </div>
                       {contact.has_physical_sample && contact.sample_notes && (
                         <div>
-                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">샘플 특이사항</label>
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            샘플 특이사항
+                          </label>
                           <p className="mt-1 text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap bg-white dark:bg-gray-800 p-3 rounded">
                             {contact.sample_notes}
                           </p>
                         </div>
                       )}
                       <div>
-                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">제작 자료</label>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          제작 자료
+                        </label>
                         <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                           {contact.has_reference_photos ? '있음' : '없음'}
                         </p>
@@ -297,37 +346,52 @@ export function ContactDetailModal({ contactId, isOpen, onClose }: ContactDetail
 
                   {contact.drawing_type === 'have' && (
                     <div>
-                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">도면 수정</label>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        도면 수정
+                      </label>
                       <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                         {contact.drawing_modification === 'needed'
                           ? '도면의 수정이 필요합니다'
                           : contact.drawing_modification === 'not_needed'
-                          ? '도면의 수정이 필요없습니다'
-                          : '-'}
+                            ? '도면의 수정이 필요없습니다'
+                            : '-'}
                       </p>
                     </div>
                   )}
 
                   <div>
-                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">박스 형태</label>
-                    <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{contact.box_shape || '-'}</p>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">크기 (장×폭×고)</label>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      박스 형태
+                    </label>
                     <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                      {contact.length || '-'} mm × {contact.width || '-'} mm × {contact.height || '-'} mm
+                      {contact.box_shape || '-'}
                     </p>
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">재질</label>
-                    <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{contact.material || '-'}</p>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      크기 (장×폭×고)
+                    </label>
+                    <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                      {contact.length || '-'} mm × {contact.width || '-'} mm ×{' '}
+                      {contact.height || '-'} mm
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      재질
+                    </label>
+                    <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                      {contact.material || '-'}
+                    </p>
                   </div>
 
                   {contact.drawing_notes && (
                     <div>
-                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">도면 및 샘플 제작 시 유의사항</label>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        도면 및 샘플 제작 시 유의사항
+                      </label>
                       <p className="mt-1 text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap bg-white dark:bg-gray-800 p-3 rounded">
                         {contact.drawing_notes}
                       </p>
@@ -345,29 +409,40 @@ export function ContactDetailModal({ contactId, isOpen, onClose }: ContactDetail
                   {contact.receipt_method ? (
                     <>
                       <div>
-                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">수령 방법</label>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          수령 방법
+                        </label>
                         <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                          {contact.receipt_method === 'visit' 
-                            ? '방문 수령' 
-                            : contact.receipt_method === 'delivery' 
-                            ? '택배 및 퀵으로 수령' 
-                            : contact.receipt_method || '-'}
+                          {contact.receipt_method === 'visit'
+                            ? '방문 수령'
+                            : contact.receipt_method === 'delivery'
+                              ? '택배 및 퀵으로 수령'
+                              : contact.receipt_method || '-'}
                         </p>
                       </div>
 
                       {contact.receipt_method === 'visit' && (
                         <>
                           <div>
-                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">방문 날짜</label>
-                            <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{contact.visit_date || '-'}</p>
+                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                              방문 날짜
+                            </label>
+                            <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                              {contact.visit_date || '-'}
+                            </p>
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">방문 시간</label>
-                            <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{contact.visit_time_slot || '-'}</p>
+                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                              방문 시간
+                            </label>
+                            <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                              {contact.visit_time_slot || '-'}
+                            </p>
                           </div>
                           <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded">
                             <p className="text-sm text-gray-700 dark:text-gray-300">
-                              <strong>회사위치:</strong> 서울 중구 퇴계로39길 20, 2층 유진레이져목형 사무실
+                              <strong>회사위치:</strong> 서울 중구 퇴계로39길 20, 2층 유진레이져목형
+                              사무실
                             </p>
                             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                               (평일 9:00 ~ 19:00 주말 및 공휴일 휴무)
@@ -379,41 +454,66 @@ export function ContactDetailModal({ contactId, isOpen, onClose }: ContactDetail
                       {contact.receipt_method === 'delivery' && (
                         <>
                           <div>
-                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">배송 방법</label>
+                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                              배송 방법
+                            </label>
                             <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                              {contact.delivery_type === 'parcel' ? '택배' : contact.delivery_type === 'quick' ? '퀵' : '-'}
+                              {contact.delivery_type === 'parcel'
+                                ? '택배'
+                                : contact.delivery_type === 'quick'
+                                  ? '퀵'
+                                  : '-'}
                             </p>
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">배송 주소</label>
-                            <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{contact.delivery_address || '-'}</p>
+                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                              배송 주소
+                            </label>
+                            <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                              {contact.delivery_address || '-'}
+                            </p>
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">수령인</label>
-                            <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{contact.delivery_name || '-'}</p>
+                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                              수령인
+                            </label>
+                            <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                              {contact.delivery_name || '-'}
+                            </p>
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">수령인 연락처</label>
+                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                              수령인 연락처
+                            </label>
                             <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                               {contact.delivery_phone ? (
-                                <a href={`tel:${contact.delivery_phone}`} className="text-orange-600 hover:underline">
+                                <a
+                                  href={`tel:${contact.delivery_phone}`}
+                                  className="text-orange-600 hover:underline"
+                                >
                                   {contact.delivery_phone}
                                 </a>
-                              ) : '-'}
+                              ) : (
+                                '-'
+                              )}
                             </p>
                           </div>
                         </>
                       )}
                     </>
                   ) : (
-                    <p className="text-sm text-gray-500 dark:text-gray-400">입력된 정보가 없습니다.</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      입력된 정보가 없습니다.
+                    </p>
                   )}
                 </div>
               </div>
 
               {/* 첨부 파일 */}
-              {(contact.attachment_url || contact.attachment_filename || 
-                contact.drawing_file_url || contact.drawing_file_name || 
+              {(contact.attachment_url ||
+                contact.attachment_filename ||
+                contact.drawing_file_url ||
+                contact.drawing_file_name ||
                 contact.reference_photos_urls) && (
                 <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4">
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3 border-b border-gray-200 dark:border-gray-700 pb-2">
@@ -422,7 +522,9 @@ export function ContactDetailModal({ contactId, isOpen, onClose }: ContactDetail
                   <div className="space-y-3">
                     {(contact.attachment_filename || contact.attachment_url) && (
                       <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-white dark:bg-gray-800">
-                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-2">첨부 파일</label>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-2">
+                          첨부 파일
+                        </label>
                         <div className="flex items-center justify-between">
                           <p className="text-sm text-gray-900 dark:text-gray-100 flex-1 truncate mr-2">
                             {contact.attachment_filename || '파일명 없음'}
@@ -441,10 +543,12 @@ export function ContactDetailModal({ contactId, isOpen, onClose }: ContactDetail
                         </div>
                       </div>
                     )}
-                    
+
                     {(contact.drawing_file_name || contact.drawing_file_url) && (
                       <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-white dark:bg-gray-800">
-                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-2">도면 파일</label>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-2">
+                          도면 파일
+                        </label>
                         <div className="flex items-center justify-between">
                           <p className="text-sm text-gray-900 dark:text-gray-100 flex-1 truncate mr-2">
                             {contact.drawing_file_name || '파일명 없음'}
@@ -458,18 +562,25 @@ export function ContactDetailModal({ contactId, isOpen, onClose }: ContactDetail
                         </div>
                       </div>
                     )}
-                    
+
                     {contact.reference_photos_urls && (
                       <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-white dark:bg-gray-800">
-                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-3">참고 사진</label>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-3">
+                          참고 사진
+                        </label>
                         <div className="space-y-2">
                           {(() => {
                             try {
                               const urls = JSON.parse(contact.reference_photos_urls) as string[];
                               if (urls.length === 0) return null;
                               return urls.map((url, idx) => (
-                                <div key={idx} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 p-2 rounded border border-gray-200 dark:border-gray-600">
-                                  <span className="text-sm text-gray-900 dark:text-gray-100">사진 {idx + 1}</span>
+                                <div
+                                  key={idx}
+                                  className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 p-2 rounded border border-gray-200 dark:border-gray-600"
+                                >
+                                  <span className="text-sm text-gray-900 dark:text-gray-100">
+                                    사진 {idx + 1}
+                                  </span>
                                   <DownloadButton
                                     url={url}
                                     fileName={`reference-photo-${idx + 1}.jpg`}
@@ -477,7 +588,11 @@ export function ContactDetailModal({ contactId, isOpen, onClose }: ContactDetail
                                 </div>
                               ));
                             } catch {
-                              return <p className="text-sm text-gray-500 dark:text-gray-400">파일 정보를 불러올 수 없습니다.</p>;
+                              return (
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                  파일 정보를 불러올 수 없습니다.
+                                </p>
+                              );
                             }
                           })()}
                         </div>
@@ -494,29 +609,39 @@ export function ContactDetailModal({ contactId, isOpen, onClose }: ContactDetail
                 </h3>
                 <div className="space-y-3">
                   <div>
-                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">상태</label>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      상태
+                    </label>
                     <p className="mt-1">
                       <span
                         className={`px-3 py-1 text-sm rounded ${
                           contact.status === 'new'
                             ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
                             : contact.status === 'read'
-                            ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'
-                            : 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
+                              ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'
+                              : 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
                         }`}
                       >
-                        {contact.status === 'new' ? '신규' : contact.status === 'read' ? '읽음' : '완료'}
+                        {contact.status === 'new'
+                          ? '신규'
+                          : contact.status === 'read'
+                            ? '읽음'
+                            : '완료'}
                       </span>
                     </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">등록일</label>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      등록일
+                    </label>
                     <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                       {new Date(contact.created_at).toLocaleString('ko-KR')}
                     </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">수정일</label>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      수정일
+                    </label>
                     <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                       {new Date(contact.updated_at).toLocaleString('ko-KR')}
                     </p>
@@ -531,4 +656,3 @@ export function ContactDetailModal({ contactId, isOpen, onClose }: ContactDetail
     </div>
   );
 }
-

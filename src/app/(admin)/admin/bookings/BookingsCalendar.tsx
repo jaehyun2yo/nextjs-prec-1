@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import { FaClock, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { ContactDetailModal } from '../contacts/ContactDetailModal';
 
 interface Contact {
   id: number; // BIGSERIAL
@@ -18,7 +18,7 @@ interface Booking {
   visit_date: string;
   visit_time_slot: string;
   company_name: string;
-  contact_id: number | null; // BIGINT (BIGSERIAL)
+  contact_id: number | string | null; // BIGINT (BIGSERIAL) or UUID
   status: string;
   notes: string | null;
   created_at: string;
@@ -30,8 +30,9 @@ interface BookingsCalendarProps {
 }
 
 export function BookingsCalendar({ initialBookings }: BookingsCalendarProps) {
-  const router = useRouter();
   const [dayOffset, setDayOffset] = useState(0); // 오늘 기준으로 며칠 뒤인지
+  const [selectedContactId, setSelectedContactId] = useState<number | string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // 날짜별로 예약 그룹화
   const bookingsByDate = useMemo(() => {
@@ -89,11 +90,23 @@ export function BookingsCalendar({ initialBookings }: BookingsCalendarProps) {
 
   // 태그 클릭 핸들러
   const handleBookingClick = (booking: Booking) => {
-    if (booking.contact_id && booking.contact_id > 0) {
-      router.push(`/admin/contacts/${booking.contact_id}`);
+    // contact_id가 있고, booking.contacts가 있는 경우에만 모달 열기
+    // booking.contacts가 null이면 해당 contact가 삭제되었거나 존재하지 않음
+    if (booking.contact_id && booking.contacts) {
+      setSelectedContactId(booking.contact_id);
+      setIsModalOpen(true);
+    } else if (booking.contact_id && !booking.contacts) {
+      // contact_id는 있지만 조인된 contact 정보가 없는 경우
+      alert('해당 문의 정보를 찾을 수 없습니다.\n문의가 삭제되었거나 존재하지 않을 수 있습니다.');
     } else {
-      console.warn('Invalid contact_id:', booking.contact_id);
+      alert('예약 정보에 문의 ID가 없습니다.');
     }
+  };
+
+  // 모달 닫기 핸들러
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedContactId(null);
   };
 
   const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
@@ -194,6 +207,23 @@ export function BookingsCalendar({ initialBookings }: BookingsCalendarProps) {
           })}
         </div>
       </div>
+
+      {/* 문의 상세보기 모달 */}
+      {isModalOpen && (
+        <ContactDetailModal
+          contactId={selectedContactId}
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+        />
+      )}
+
+      {/* 디버깅 정보 */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="fixed bottom-4 right-4 bg-black/80 text-white p-2 text-xs rounded z-50">
+          <div>Modal Open: {isModalOpen ? 'Yes' : 'No'}</div>
+          <div>Contact ID: {selectedContactId || 'None'}</div>
+        </div>
+      )}
     </div>
   );
 }
