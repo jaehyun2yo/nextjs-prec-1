@@ -72,9 +72,8 @@ export function AdminBadge({ userType }: AdminBadgeProps) {
   }
 
   return (
-    <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full">
+    <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full leading-none">
       {newContactCount > 99 ? '99+' : newContactCount}
     </span>
   );
 }
-
